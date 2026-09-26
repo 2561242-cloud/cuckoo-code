@@ -50,10 +50,23 @@ export function setWindowCumulative(profileId: string, value: number): number {
   return getTotal();
 }
 
-/** 系统总累计：所有窗口（含已关闭）之和 */
+/** 系统总累计：所有窗口（含已关闭）之和（忽略子代理遗留键） */
 export function getTotal(): number {
   const m = read();
   let sum = 0;
-  for (const k of Object.keys(m)) sum += (typeof m[k] === 'number' ? m[k] : 0);
+  for (const k of Object.keys(m)) {
+    if (k.startsWith('subagent-')) continue; // 防御：忽略子代理遗留键
+    sum += (typeof m[k] === 'number' ? m[k] : 0);
+  }
   return sum;
+}
+
+/** 清理子代理遗留键（启动时调用一次） */
+export function cleanupSubagentKeys(): void {
+  const m = read();
+  let changed = false;
+  for (const k of Object.keys(m)) {
+    if (k.startsWith('subagent-')) { delete m[k]; changed = true; }
+  }
+  if (changed) write(m);
 }

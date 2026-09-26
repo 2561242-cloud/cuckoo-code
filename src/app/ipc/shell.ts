@@ -5,7 +5,7 @@
 import { createRequire } from 'node:module';
 import * as windowState from '../window.js';
 import { getProvider } from '../../providers/registry.js';
-import { setWindowCumulative, getTotal } from '../token-stats.js';
+import { setWindowCumulative, getTotal, cleanupSubagentKeys } from '../token-stats.js';
 
 const require = createRequire(import.meta.url);
 const { ipcMain } = require('electron');
@@ -49,6 +49,8 @@ function pushTokenUsage(view: any, context: number, cumulative: number, windowCu
 }
 
 function registerShellIpc(): void {
+  // 启动时清理子代理遗留的 token 统计键（历史 bug：子代理上报污染系统总累计）
+  try { cleanupSubagentKeys(); } catch (_) { /* ignore */ }
   // AI 页面报告 token（上下文 + 对话累计 + 窗口累计 + 今日累计）→ 转发给壳页面状态条
   ipcMain.handle('update-token-usage', async (event: any, { context, cumulative, windowCumulative, todayCumulative }: any) => {
     const view = viewOf(event);
@@ -64,7 +66,10 @@ function registerShellIpc(): void {
     // 更新系统总累计并广播给所有窗口
     try {
       const ctx = view ? windowState.getContextByWebContents(view.webContents) : null;
-      if (ctx && ctx.profileId && typeof windowCumulative === 'number') {
+      // 子代理窗口跳过：它与父窗口共享 partition/localStorage，
+      // windowCumulative 等于父窗口的值，上报会重复计入系统总累计。
+      const isSubagent = ctx && ctx.profileId && String(ctx.profileId).startsWith('subagent-');
+      if (ctx && ctx.profileId && !isSubagent && typeof windowCumulative === 'number') {
         setWindowCumulative(ctx.profileId, windowCumulative);
         broadcastSystemTotal();
       }
