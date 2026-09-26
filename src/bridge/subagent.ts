@@ -19,6 +19,7 @@ export interface SubagentConfig {
   systemPrompt: string;
   tools: string[] | null;
   maxTurns: number | null;
+  projectDir: string | null;
 }
 
 /** 从 process.argv 解析子代理配置（无则 null） */
@@ -54,11 +55,11 @@ function buildSubagentPrompt(cfg: SubagentConfig, toolPrompt: string): string {
 
 /**
  * 若当前是子代理窗口，则初始化子代理流程。
- * @returns 是否为子代理窗口（true 表示已接管）
+ * @returns 子代理配置（非子代理窗口返回 null）
  */
-export function initSubagentIfNeeded(): boolean {
+export function initSubagentIfNeeded(): SubagentConfig | null {
   const cfg = readSubagentConfig();
-  if (!cfg) return false;
+  if (!cfg) return null;
 
   console.log('[Cuckoo Code][子代理] 激活：' + cfg.agentName);
 
@@ -104,5 +105,5 @@ export function initSubagentIfNeeded(): boolean {
     }, 1000);
   })();
 
-  return true;
+  return cfg;
 }

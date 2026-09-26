@@ -90,14 +90,18 @@ function handleUrlChanged(): void {
  */
 function init(): void {
   // 子代理窗口：注册完成判定（onInterceptedResponse 计数），但 overlay 照常初始化
-  const isSubagent = initSubagentIfNeeded();
-  if (isSubagent) {
+  const subCfg = initSubagentIfNeeded();
+  if (subCfg) {
     console.log('[Cuckoo Code] 子代理窗口：overlay + 拦截监听器照常初始化，额外挂完成判定');
   }
   try {
     ui.injectCSS();
     ui.injectOverlay();
     projectDir.initProjectDirSection();
+    // 子代理窗口：把继承的项目目录显示到 UI（子代理窗口没有 project-dir-updated 事件）
+    if (subCfg && subCfg.projectDir) {
+      try { projectDir.updateProjectDirDisplay(subCfg.projectDir); } catch (_) { /* ignore */ }
+    }
     bindEvents();
     ui.updateHomeMode();
 

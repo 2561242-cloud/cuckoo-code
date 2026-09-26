@@ -98,7 +98,9 @@ export async function runAgent(opts: {
     systemPrompt: opts.systemPrompt,
     tools: opts.tools || null,
     maxTurns: opts.maxTurns || null,
+    projectDir: projectDir || null, // 传给子代理窗口，供 overlay 显示"当前项目目录"
   };
+  console.log('[子代理] 父窗口 projectDir=' + (projectDir || '(null)'));
   const windowId = _createWindow(subProfile);
 
   // 关键：把父窗口的项目目录写入子代理窗口的 sessionStore，
