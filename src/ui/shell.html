@@ -105,13 +105,13 @@
         <span class="sb-value" id="sb-cumulative">0</span>
       </div>
       <div class="sb-sep"></div>
-      <div class="sb-item" title="窗口累计：本窗口所有会话累计之和">
-        <span class="sb-icon">🪟</span>
-        <span class="sb-value" id="sb-window">0</span>
-      </div>
       <div class="sb-item" title="今日窗口：本窗口今天的累计消耗">
         <span class="sb-icon">📅</span>
         <span class="sb-value" id="sb-today">0</span>
+      </div>
+      <div class="sb-item" title="窗口累计：本窗口所有会话累计之和">
+        <span class="sb-icon">🪟</span>
+        <span class="sb-value" id="sb-window">0</span>
       </div>
       <div class="sb-item" title="系统总累计：所有窗口累计之和（含已关闭窗口）">
         <span class="sb-icon">🌐</span>
@@ -161,6 +161,7 @@
   // 对话 token 显示
   function formatTokenCount(n) {
     if (!isFinite(n) || n < 0) return '0';
+    if (n >= 100000000) return (n / 100000000).toFixed(2) + '亿';
     if (n >= 10000) return (n / 10000).toFixed(2) + '万';
     return String(Math.round(n));
   }
