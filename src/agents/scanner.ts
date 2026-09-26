@@ -54,9 +54,10 @@ function scanDir(baseDir: string, source: AgentSource): AgentMeta[] {
     }
 
     const { data, body } = parseFrontmatter(raw);
-    const name = (data.name || ent.name.replace(/\.md$/i, '')).trim();
+    // 注意：data.name 为纯空白时是 truthy，需 trim 后判断，空则回退文件名
+    const name = (data.name && data.name.trim()) || ent.name.replace(/\.md$/i, '');
     const description = (data.description || firstParagraph(body)).trim();
-    if (!description) continue; // 无描述 → 无法展示，跳过
+    if (!name.trim() || !description) continue; // 无名或无描述 → 无法展示，跳过
 
     let tools: string[] | undefined;
     if (data.tools) {
@@ -65,8 +66,9 @@ function scanDir(baseDir: string, source: AgentSource): AgentMeta[] {
 
     let maxTurns: number | undefined;
     if (data.maxTurns) {
-      const n = parseInt(data.maxTurns, 10);
-      if (Number.isFinite(n) && n > 0) maxTurns = n;
+      // 严格解析：Number() 对 "5abc" 返回 NaN（parseInt 会得 5）；限上界防畸形配置
+      const n = Number(data.maxTurns);
+      if (Number.isInteger(n) && n > 0 && n <= 1000) maxTurns = n;
     }
 
     result.push({

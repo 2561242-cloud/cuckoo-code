@@ -55,9 +55,10 @@ function scanDir(baseDir: string, source: SkillSource): SkillMeta[] {
     }
 
     const { data, body } = parseFrontmatter(raw);
-    const name = (data.name || ent.name).trim();
+    // 注意：data.name 为纯空白时是 truthy，需 trim 后判断，空则回退目录名
+    const name = (data.name && data.name.trim()) || ent.name;
     const description = (data.description || firstParagraph(body)).trim();
-    if (!description) continue; // 无描述 → 无法展示，跳过
+    if (!name.trim() || !description) continue; // 无名或无描述 → 无法展示，跳过
 
     const whenToUse = data.when_to_use ? data.when_to_use.trim() : undefined;
     let allowedTools: string[] | undefined;
