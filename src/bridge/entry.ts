@@ -93,6 +93,8 @@ function init(): void {
   const subCfg = initSubagentIfNeeded();
   if (subCfg) {
     console.log('[Cuckoo Code] 子代理窗口：overlay + 拦截监听器照常初始化，额外挂完成判定');
+    // 子代理窗口在新对话页，但需要显示完整面板 → 抑制首页模式
+    try { ui.setSuppressHomeMode(true); } catch (_) { /* ignore */ }
   }
   try {
     ui.injectCSS();

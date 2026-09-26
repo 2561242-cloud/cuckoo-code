@@ -340,10 +340,18 @@ function flashBadge(_title?: string): void {
  * 首页 https://chat.deepseek.com/ 时，只保留「初始化项目」按钮，隐藏其他内容
  * 同时展示首次使用提示浮窗（居中）
  */
+// 抑制首页模式（子代理窗口用：它在"新对话"页，但需要显示完整面板）
+let suppressHomeMode = false;
+
+/** 设置是否抑制首页模式（子代理窗口调用） */
+function setSuppressHomeMode(v: boolean): void {
+  suppressHomeMode = !!v;
+}
+
 function updateHomeMode(): void {
   const url = window.location.href;
   const provider = getProviderByUrl(url);
-  const isHome = provider && provider.homeUrlPattern ? provider.homeUrlPattern.test(url) : false;
+  const isHome = !suppressHomeMode && provider && provider.homeUrlPattern ? provider.homeUrlPattern.test(url) : false;
   const overlay = document.getElementById('cuckoo-overlay');
   if (overlay) {
     if (isHome) {
@@ -420,6 +428,7 @@ export {
   commandHistory,
   flashBadge,
   updateHomeMode,
+  setSuppressHomeMode,
   showFirstTimeDialog,
   hideFirstTimeDialog,
   forceShowOverlay,
