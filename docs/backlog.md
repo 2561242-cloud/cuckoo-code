@@ -167,3 +167,34 @@
 6. **🟡 硬编码路径**：MCP 段硬编码本机路径 `C:\Users\61519\...`，打包分发时会错，应动态生成。
 
 （注：CUCKOO.md 反引号转义 bug 已于 2026-09-27 修复，见 83e662a。）
+
+
+---
+
+## 压缩刷新慢问题（2026-09-27，用户要求先记录，暂不改）
+
+**现象**：点「压缩」后，AI 摘要已生成（网页上可见），但要等很久（实测约 60~80 秒）才刷新页面。
+
+**日志证据**（时间戳为 UTC）：
+- 01:51:11 已触发发送, 压缩-摘要
+- 01:52:31 收到摘要回复，长度=8071（80 秒后）
+- 01:52:31 清除 IDB → 刷新
+
+**根因分析**（代码层）：
+- 压缩段1 走 waitForResponse(120000)，等的是 hook 派发的 cuckoo-ai-response（finished=true）
+- hook 的 feed() 逻辑：收到 FINISHED 帧就立即 dispatch，中间无任何延迟
+- finished 来自解析 SSE 的 response/status = FINISHED（或 quasi_status = FINISHED）帧
+- 结论：慢的不是我方代码，而是 DeepSeek 服务端——正文生成完后 SSE 连接保持打开，FINISHED 帧延迟下发
+
+**验证方法**（未做）：
+- dispatch 的 dbg.path 字段标明派发路径：
+  - feed-finished-frame = 收到 FINISHED 帧立即派发
+  - stream-end = 流关闭才派发（说明 FINISHED 帧未到或解析失败）
+- 加日志打「FINISHED 帧到达时间 / dispatch 时间 / 派发路径」即可确认
+
+**可选改进（未做）**：
+- A. 复用 hook 已有的 cuckoo-stream-idle（看门狗）：正文 N 秒无新增即提前当完成
+- B. 在 waitForResponse 加正文静默检测：连续 N 秒无新增即认为完成
+- C. 先加诊断日志确认根因，再决定
+
+**另**：压缩段3（分享页初始化）本次也疑似卡住（01:52:36 检测到待初始化后无后续日志），待一并排查。
