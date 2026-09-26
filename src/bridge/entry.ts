@@ -92,8 +92,8 @@ function init(): void {
   // 子代理窗口：注册完成判定（onInterceptedResponse 计数），但 overlay 照常初始化
   const subCfg = initSubagentIfNeeded();
   if (subCfg) {
-    console.log('[Cuckoo Code] 子代理窗口：overlay + 拦截监听器照常初始化，额外挂完成判定');
-    // 子代理窗口在新对话页，但需要显示完整面板 → 抑制首页模式
+    console.log('[Cuckoo Code] 子代理窗口：overlay 照常初始化');
+    console.log('[Cuckoo Code] subCfg.projectDir=' + (subCfg.projectDir || '(null)'));
     try { ui.setSuppressHomeMode(true); } catch (_) { /* ignore */ }
   }
   try {
@@ -102,7 +102,12 @@ function init(): void {
     projectDir.initProjectDirSection();
     // 子代理窗口：把继承的项目目录显示到 UI（子代理窗口没有 project-dir-updated 事件）
     if (subCfg && subCfg.projectDir) {
-      try { projectDir.updateProjectDirDisplay(subCfg.projectDir); } catch (_) { /* ignore */ }
+      try {
+        projectDir.updateProjectDirDisplay(subCfg.projectDir);
+        console.log('[Cuckoo Code] 已调 updateProjectDirDisplay(' + subCfg.projectDir + ')');
+      } catch (e: any) { console.log('[Cuckoo Code] updateProjectDirDisplay 异常: ' + e.message); }
+    } else {
+      console.log('[Cuckoo Code] 子代理窗口无 projectDir，跳过 UI 显示');
     }
     bindEvents();
     ui.updateHomeMode();

@@ -100,7 +100,7 @@ export async function runAgent(opts: {
     maxTurns: opts.maxTurns || null,
     projectDir: projectDir || null, // 传给子代理窗口，供 overlay 显示"当前项目目录"
   };
-  console.log('[子代理] 父窗口 projectDir=' + (projectDir || '(null)'));
+  console.log('[子代理] 父窗口 projectDir=' + (projectDir || '(null)') + ' parentWindowId=' + opts.parentWindowId + ' parentProfileId=' + opts.parentProfileId);
   const windowId = _createWindow(subProfile);
 
   // 关键：把父窗口的项目目录写入子代理窗口的 sessionStore，
@@ -126,10 +126,10 @@ export async function runAgent(opts: {
     if (text === '__SUBAGENT_TIMEOUT__') throw new Error('子代理执行超时');
     return text;
   } finally {
-    // 关闭子代理窗口
-    try {
-      const ctx = windowState.getWindowContext(windowId);
-      if (ctx && ctx.win && !ctx.win.isDestroyed()) ctx.win.close();
-    } catch (_) { /* ignore */ }
+    // 【调试中】暂不关闭子代理窗口，便于观察状态
+    // try {
+    //   const ctx = windowState.getWindowContext(windowId);
+    //   if (ctx && ctx.win && !ctx.win.isDestroyed()) ctx.win.close();
+    // } catch (_) { /* ignore */ }
   }
 }
