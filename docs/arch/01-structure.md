@@ -119,6 +119,19 @@
 | `with-log.ts` | 给函数加调用日志（AOP） |
 | `markdown.ts` | `BT` / `FENCE` 常量 |
 
+## src/skills/ 、src/agents/ —— 底层共享模块
+
+| 文件 | 职责 |
+|---|---|
+| `skills/frontmatter.ts` | 极简 YAML frontmatter 解析（零依赖） |
+| `skills/scanner.ts` | 扫描 `.cuckoo/skills/<name>/SKILL.md`（项目级 + 用户级），解析 name/description |
+| `skills/prompt.ts` | 生成系统提示词的「可用技能」章节 |
+| `skills/index.ts` | 模块入口 |
+| `agents/scanner.ts` | 扫描 `.cuckoo/agents/<name>.md`（项目级 + 用户级），解析 name/description/tools/maxTurns |
+| `agents/prompt.ts` | 生成系统提示词的「可用子代理」章节 |
+| `agents/types.ts` | `AgentMeta` / `AgentSource` 类型 |
+| `agents/index.ts` | 模块入口 |
+
 ## src/updater/ 、src/types/ 、src/prompt/ 、src/ui/
 
 | 路径 | 职责 |

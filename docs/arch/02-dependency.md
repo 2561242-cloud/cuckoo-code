@@ -8,6 +8,8 @@
 infra ← providers ← tools ← bridge ← session ← app
                     ↑          ↑
                  overlay ──────┘
+
+skills ← agents          （底层共享，供 session/tools 使用）
 ```
 
 箭头读作"被依赖"。即：
@@ -15,14 +17,18 @@ infra ← providers ← tools ← bridge ← session ← app
 | 层 | 可依赖 | 不可依赖 |
 |---|---|---|
 | `infra/` | 无（最底层） | 一切上层 |
+| `skills/` | 无（仅 node 内置） | 一切上层 |
+| `agents/` | `skills`（仅用其 frontmatter 解析） | 一切上层 |
 | `providers/` | `infra` | tools/bridge/overlay/session/app |
-| `tools/` | `infra`、`providers` | bridge/overlay/session/app |
+| `tools/` | `infra`、`providers`、`skills`、`agents` | bridge/overlay/session/app |
 | `bridge/` | `infra`、`providers`、`tools`、**`overlay`** | session/app |
 | `overlay/` | `infra`、`providers`、`tools` | **bridge/session/app**（见下） |
-| `session/` | `infra`、`providers`、`tools`、`bridge` | overlay/app |
+| `session/` | `infra`、`providers`、`tools`、`bridge`、`skills`、`agents` | overlay/app |
 | `app/` | 全部 | 无 |
 
-**记忆法**：`infra` 最底层，`app` 最顶层；`overlay` 与 `bridge` 是 UI 侧的"兄弟"，但 **bridge 可依赖 overlay，overlay 不可依赖 bridge**。
+**记忆法**：`infra` / `skills` 最底层，`app` 最顶层；`overlay` 与 `bridge` 是 UI 侧的"兄弟"，但 **bridge 可依赖 overlay，overlay 不可依赖 bridge**。
+
+**关于 `skills/` 与 `agents/`**：两者是**底层共享模块**（纯文件扫描 + 解析，只依赖 node 内置；`agents/` 额外用 `skills/frontmatter`）。被 `session/prompt-builder`（组装提示词）、`tools/impl/run-agent`（执行子代理）等引用。**它们不得反向依赖任何上层**（如 app/bridge/session）。
 
 ## 两个关键约束
 
