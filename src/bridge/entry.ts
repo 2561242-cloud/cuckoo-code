@@ -92,22 +92,16 @@ function init(): void {
   // 子代理窗口：注册完成判定（onInterceptedResponse 计数），但 overlay 照常初始化
   const subCfg = initSubagentIfNeeded();
   if (subCfg) {
-    console.log('[Cuckoo Code] 子代理窗口：overlay 照常初始化');
-    console.log('[Cuckoo Code] subCfg.projectDir=' + (subCfg.projectDir || '(null)'));
+    // 子代理窗口在新对话页，但需要完整面板 → 抑制首页模式
     try { ui.setSuppressHomeMode(true); } catch (_) { /* ignore */ }
   }
   try {
     ui.injectCSS();
     ui.injectOverlay();
     projectDir.initProjectDirSection();
-    // 子代理窗口：把继承的项目目录显示到 UI（子代理窗口没有 project-dir-updated 事件）
+    // 子代理窗口：显示继承的项目目录（它没有 project-dir-updated 事件）
     if (subCfg && subCfg.projectDir) {
-      try {
-        projectDir.updateProjectDirDisplay(subCfg.projectDir);
-        console.log('[Cuckoo Code] 已调 updateProjectDirDisplay(' + subCfg.projectDir + ')');
-      } catch (e: any) { console.log('[Cuckoo Code] updateProjectDirDisplay 异常: ' + e.message); }
-    } else {
-      console.log('[Cuckoo Code] 子代理窗口无 projectDir，跳过 UI 显示');
+      try { projectDir.updateProjectDirDisplay(subCfg.projectDir); } catch (_) { /* ignore */ }
     }
     bindEvents();
     ui.updateHomeMode();
