@@ -3,7 +3,7 @@
  */
 import { createRequire } from 'node:module';
 import * as windowState from '../window.js';
-import { onSubagentResponse, getSubagentPrompt } from '../subagent.js';
+import { onSubagentResponse } from '../subagent.js';
 
 const require = createRequire(import.meta.url);
 const { ipcMain } = require('electron');
@@ -16,14 +16,6 @@ function registerSubagentIpc(): void {
       onSubagentResponse(ctx.win.id, text || '');
     }
     return { success: true };
-  });
-
-  // 子代理 bridge 拉取"工具系统提示"
-  ipcMain.handle('get-subagent-prompt', async (event: any) => {
-    const ctx = windowState.getContextByWebContents(event.sender);
-    const windowId = ctx && ctx.win && !ctx.win.isDestroyed() ? ctx.win.id : null;
-    const prompt = windowId ? getSubagentPrompt(windowId) : null;
-    return { success: !!prompt, prompt: prompt || '' };
   });
 }
 

@@ -7,7 +7,6 @@
  */
 import { createRequire } from 'node:module';
 import { extractJsToolBlocks } from './parser/js-detector.js';
-import { sendToChat } from '../overlay/chat-input.js';
 import { onInterceptedResponse } from './intercept/observer.js';
 
 const require = createRequire(import.meta.url);
@@ -37,14 +36,10 @@ export function readSubagentConfig(): SubagentConfig | null {
   }
 }
 
-/** 拼子代理的首轮提示词：代理系统提示 + 工具系统提示 + 任务 */
-function buildSubagentPrompt(cfg: SubagentConfig, toolPrompt: string): string {
+/** 拼子代理的"代理提示 + 任务"（作为 extraPrompt 追加到完整系统提示词末尾） */
+function buildSubagentPrompt(cfg: SubagentConfig): string {
   const parts: string[] = [];
   if (cfg.systemPrompt) parts.push(cfg.systemPrompt);
-  if (toolPrompt) {
-    parts.push('');
-    parts.push(toolPrompt);
-  }
   parts.push('');
   parts.push('---');
   parts.push('任务：' + cfg.task);
@@ -84,26 +79,18 @@ export function initSubagentIfNeeded(): SubagentConfig | null {
     }
   });
 
-  // 拉取工具系统提示，再等页面就绪后发送首轮任务
-  (async () => {
-    let toolPrompt = '';
+  // 复用"初始化项目"流程：调一次 initProject（含工具提示 + 代理提示 + 任务）。
+  // 它内部会发 initial-prompt 事件；若输入框未就绪，chat-input 的处理器会等待重试。
+  // 这样 UI（project-dir-updated）、提示词（initial-prompt）、工具上下文全走标准流程。
+  const extraPrompt = buildSubagentPrompt(cfg);
+  setTimeout(async () => {
     try {
-      const res = await ipcRenderer.invoke('get-subagent-prompt');
-      if (res && res.success) toolPrompt = res.prompt || '';
-    } catch (_) { /* ignore */ }
-    const prompt = buildSubagentPrompt(cfg, toolPrompt);
-
-    let attempts = 0;
-    const timer = setInterval(async () => {
-      attempts++;
-      if (attempts > 60) { clearInterval(timer); console.error('[Cuckoo Code][子代理] 等待输入框超时'); return; }
-      const ok = await sendToChat(prompt, '子代理任务', 800);
-      if (ok) {
-        clearInterval(timer);
-        console.log('[Cuckoo Code][子代理] 任务已发送');
-      }
-    }, 1000);
-  })();
+      await (window as any).electronAPI.initProject(cfg.projectDir || null, false, extraPrompt, true);
+      console.log('[Cuckoo Code][子代理] 已调 initProject（复用初始化流程）');
+    } catch (e: any) {
+      console.error('[Cuckoo Code][子代理] initProject 失败: ' + (e && e.message));
+    }
+  }, 800);
 
   return cfg;
 }

@@ -12,9 +12,9 @@ const { ipcMain } = require('electron');
 
 function registerProjectIpc(): void {
   // 初始化项目
-  ipcMain.handle('init-project', async (event: any, { skipPrompt = false, projectDir = null, isCompaction = false }: any = {}) => {
+  ipcMain.handle('init-project', async (event: any, { skipPrompt = false, projectDir = null, isCompaction = false, extraPrompt = '', noDialog = false }: any = {}) => {
     const ctx = windowState.getContextByWebContents(event.sender);
-    return initProject(skipPrompt, ctx, projectDir, isCompaction);
+    return initProject(skipPrompt, ctx, projectDir, isCompaction, extraPrompt || '', !!noDialog);
   });
 
   // 重新扫描技能，返回技能清单文本（供「发送skill信息」按钮使用）

@@ -7,17 +7,8 @@
  * 依赖注入：createWindow / profileManager 由 entry.ts 注入，避免循环依赖。
  */
 import * as windowState from './window.js';
-import { buildPrompt } from '../session/prompt-builder.js';
 
 type CreateWindowFn = (profile: any) => number;
-
-/** 各子代理窗口的"待发送提示词"缓存（windowId → prompt） */
-const promptCache = new Map<number, string>();
-
-/** bridge 拉取子代理提示词（IPC） */
-export function getSubagentPrompt(windowId: number): string | null {
-  return promptCache.get(windowId) || null;
-}
 
 let _createWindow: CreateWindowFn | null = null;
 let _profileManager: any = null;
@@ -113,14 +104,7 @@ export async function runAgent(opts: {
     }
   } catch (_) { /* ignore */ }
 
-  // 构建工具系统提示（复用 buildPrompt；含工具 API/列表/说明）
-  try {
-    const built = buildPrompt({ providerId, selectedDir: projectDir, isCompaction: false });
-    if (built && built.prompt) promptCache.set(windowId, built.prompt);
-  } catch (err: any) {
-    console.error('[子代理] 构建提示词失败:', err.message);
-  }
-
+  // 提示词由子代理窗口自己调 initProject 生成（复用初始化流程）
   try {
     const text = await waitForDone(windowId, timeoutMs);
     if (text === '__SUBAGENT_TIMEOUT__') throw new Error('子代理执行超时');

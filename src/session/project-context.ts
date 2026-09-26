@@ -33,8 +33,10 @@ function logWithFile(providerId: string, msg: string): void {
  * @param windowContext 窗口上下文
  * @param presetDir 预设项目目录（如压缩后自动初始化）。提供时跳过目录选择对话框。
  * @param isCompaction 是否为压缩后初始化（末尾追加"请继续你之前的工作"）
+ * @param extraPrompt 追加到提示词末尾的额外内容（子代理用它带上"代理系统提示 + 任务"）
+ * @param noDialog 为 true 时不弹目录选择框（子代理场景：目录取不到就用空值继续）
  */
-async function initProject(skipPrompt: boolean = false, windowContext: any = null, presetDir: string | null = null, isCompaction: boolean = false): Promise<any> {
+async function initProject(skipPrompt: boolean = false, windowContext: any = null, presetDir: string | null = null, isCompaction: boolean = false, extraPrompt: string = '', noDialog: boolean = false): Promise<any> {
   const ctx = windowContext || windowState.getMainContext();
   const mainWindow = ctx ? ctx.win : windowState.getMainWindow();
   // AI 页面在 WebContentsView 中（壳窗口的 win.webContents 是地址栏壳页面）
@@ -48,6 +50,10 @@ async function initProject(skipPrompt: boolean = false, windowContext: any = nul
     // 预设目录（压缩后自动初始化）：直接用，不弹框
     selectedDir = presetDir;
     console.log('[Cuckoo Code] 使用预设目录（自动初始化）:', selectedDir);
+  } else if (noDialog) {
+    // 子代理场景：不弹框，无目录则用空值继续（工具提示里 projectDir 为空）
+    selectedDir = '';
+    console.log('[Cuckoo Code] noDialog：跳过目录选择（无预设目录）');
   } else {
     // 先让用户选择目录
     const result = dialog.showOpenDialogSync(mainWindow, {
@@ -119,7 +125,11 @@ async function initProject(skipPrompt: boolean = false, windowContext: any = nul
   }
   stepLog('提示词组装完成');
 
-  const combined = built.prompt;
+  let combined = built.prompt;
+  // 子代理等场景：在完整系统提示词末尾追加"代理系统提示 + 任务"
+  if (extraPrompt) {
+    combined += '\n\n---\n\n' + extraPrompt;
+  }
   console.log('[Cuckoo Code] 准备发送初始提示（不含目录树），长度:', combined.length);
   if (view && view.webContents && !view.webContents.isDestroyed()) {
     view.webContents.send('initial-prompt', combined);
