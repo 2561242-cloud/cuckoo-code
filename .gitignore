@@ -38,6 +38,10 @@ temp/
 !.cuckooCode/CUCKOO.md
 .claude/
 
+# .cuckoo/ 下的本地运行时配置（各人不同，不进仓库）
+.cuckoo/mcp.json
+.cuckoo/mcp-state.json
+
 # Playwright MCP 产物（快照/截图）
 .playwright-mcp/
 

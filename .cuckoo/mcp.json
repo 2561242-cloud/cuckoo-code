@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-filesystem", "C:/d/SourceCode/2026/cuckoo-code"]
-    }
-  }
-}
