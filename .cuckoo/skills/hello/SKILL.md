@@ -1,6 +1,6 @@
 ---
 name: hello
-description: 打个招呼的示例技能。当用户说"演示技能"时使用。
+description: 打个招呼的示例技能，当用户说"演示技能"时使用
 when_to_use: 用户想验证技能功能是否生效时
 ---
 
