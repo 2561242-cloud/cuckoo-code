@@ -47,11 +47,19 @@ function addDailyToken(delta: number): void {
 }
 
 /** 今日累计消耗 */
+let _lastDailyLogged = '';
 function getTodayCumulative(): number {
   try {
     const raw = localStorage.getItem(TOKEN_DAILY_KEY);
     const obj = raw ? JSON.parse(raw) : {};
-    const v = obj ? obj[todayKey()] : 0;
+    const k = todayKey();
+    const v = obj ? obj[k] : 0;
+    // 【临时诊断】输出 todayKey 与整个 daily map，确认"今日窗口"数据
+    const snap = k + '|' + JSON.stringify(obj);
+    if (snap !== _lastDailyLogged) {
+      _lastDailyLogged = snap;
+      console.log('[Cuckoo Token] 今日诊断 todayKey=' + k + ' today=' + (typeof v === 'number' ? v : 0) + ' dailyMap=' + JSON.stringify(obj));
+    }
     return typeof v === 'number' ? v : 0;
   } catch (_) {
     return 0;
