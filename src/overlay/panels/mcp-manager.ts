@@ -40,9 +40,13 @@ async function renderMcpList() {
     list.innerHTML = servers.map((s: any) => {
       const status = s.connected ? '已连接' : (s.enabled ? '未连接' : '已禁用');
       const statusColor = s.connected ? '#4ade80' : (s.enabled ? '#ffc107' : '#5d6280');
+      // 来源标记：项目级 / 用户级
+      const srcLabel = s.source === 'project' ? '项目' : '用户';
+      const srcColor = s.source === 'project' ? '#8b93ff' : '#5d6280';
       return '<div class="cuckoo-window-item cuckoo-mcp-item" data-mcp-name="' + s.name + '">' +
         '<span class="cuckoo-window-name">' + s.name + '</span>' +
-        '<span class="cuckoo-mcp-dot" style="width:8px;height:8px;border-radius:50%;background:' + statusColor + ';flex-shrink:0;" title="' + status + '"></span>' +
+        '<span style="font-size:10px;padding:1px 5px;border-radius:4px;background:' + srcColor + '33;color:' + srcColor + ';flex-shrink:0;margin-left:6px;">' + srcLabel + '</span>' +
+        '<span class="cuckoo-mcp-dot" style="width:8px;height:8px;border-radius:50%;background:' + statusColor + ';flex-shrink:0;margin-left:auto;" title="' + status + '"></span>' +
       '</div>';
     }).join('');
 
