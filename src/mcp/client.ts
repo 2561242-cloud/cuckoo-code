@@ -261,6 +261,35 @@ async function connectEnabledServers(projectDir: string | null = null): Promise<
   return Array.from(connections.keys());
 }
 
+/** 每个窗口"上次自动连的项目目录"，避免同一项目重复触发 */
+const lastProjectByWindow = new Map<number, string | null>();
+
+/**
+ * 窗口的项目目录确定后，异步自动连接该项目下所有已启用 server，并登记窗口引用。
+ * 同一窗口同一项目只触发一次。连接失败不影响其它。
+ */
+function autoConnectForWindow(windowId: number, projectDir: string | null): void {
+  const prev = lastProjectByWindow.get(windowId);
+  if (prev === projectDir) return; // 同一项目，已处理
+  lastProjectByWindow.set(windowId, projectDir);
+  // 项目变了：先释放旧项目引用
+  if (prev !== undefined) releaseProject(windowId, projectDir);
+  // 异步连（不阻塞调用方）
+  const servers = mcpConfig.getEnabledServers(projectDir);
+  for (const server of servers) {
+    server.projectDir = projectDir;
+    connectServer(server, windowId).catch((err: any) => {
+      console.error('[MCP] 自动连接失败:', server.name, err.message);
+    });
+  }
+}
+
+/** 窗口关闭时清理其"上次项目"记录 */
+function forgetWindow(windowId: number): void {
+  lastProjectByWindow.delete(windowId);
+  releaseWindow(windowId);
+}
+
 /** 调用工具（自动确保连接） */
 async function callMcpTool(serverName: string, toolName: string, args: any, projectDir: string | null = null, windowId: number | null = null): Promise<any> {
   const entry = await connectServerByName(serverName, projectDir, windowId);
@@ -301,6 +330,8 @@ export {
   connectServer,
   connectServerByName,
   connectEnabledServers,
+  autoConnectForWindow,
+  forgetWindow,
   disconnectAll,
   releaseWindow,
   releaseProject,

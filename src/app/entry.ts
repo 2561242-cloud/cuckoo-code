@@ -208,11 +208,20 @@ function createWindow(profile: any) {
     view.webContents.loadFile(selectPage);
   }
 
+  // 项目目录确定后，异步自动连该项目的 MCP（不阻塞导航/窗口）
+  const autoConnectMcp = () => {
+    try {
+      const dir = (sessionStore && sessionStore.state && sessionStore.state.selectedProjectDir) || null;
+      mcpClient.autoConnectForWindow(mainWindow.id, dir);
+    } catch (_) {}
+  };
+
   view.webContents.on('did-finish-load', () => {
     if (view.webContents && !view.webContents.isDestroyed()) {
       view.webContents.send('page-loaded');
       sessionStore.tryRestoreSessionFromUrl(view);
       pushUrlState(view);
+      autoConnectMcp();
     }
   });
 
@@ -221,6 +230,7 @@ function createWindow(profile: any) {
     pushUrlState(view);
     // 通知 AI 页面（overlay/看门狗）URL 已变，替代原先的渲染进程轮询
     try { view.webContents.send('cuckoo-url-changed', { url }); } catch (_) {}
+    autoConnectMcp();
   });
 
   view.webContents.on('did-navigate-in-page', (_event: any, url: string) => {
@@ -228,6 +238,7 @@ function createWindow(profile: any) {
     pushUrlState(view);
     // SPA 路由（pushState）变化也在此触发，替代轮询
     try { view.webContents.send('cuckoo-url-changed', { url }); } catch (_) {}
+    autoConnectMcp();
   });
 
   view.webContents.on('before-input-event', (_event: any, input: any) => {
@@ -260,8 +271,8 @@ function createWindow(profile: any) {
   mainWindow.on('closed', () => {
     sessionsToFlush.delete(winSession);
     windowState.removeWindow(mainWindow.id);
-    // 释放该窗口持有的 MCP 连接引用（归零的连接进入空闲计时）
-    try { mcpClient.releaseWindow(mainWindow.id); } catch (_) {}
+    // 释放该窗口持有的 MCP 连接引用 + 清理自动连记录
+    try { mcpClient.forgetWindow(mainWindow.id); } catch (_) {}
   });
 
   return mainWindow.id;
