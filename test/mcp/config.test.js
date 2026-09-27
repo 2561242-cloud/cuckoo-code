@@ -1,10 +1,12 @@
 'use strict';
 /**
- * mcp/config 测试（新：项目级 + 用户级双路径）
- * electron 的 app.getPath 是外部边界，mock 它指向临时目录（符合"只 mock 外部边界"原则）。
- * os.homedir 也 mock，避免污染真实用户目录。
+ * mcp/config 测试（项目级 + 用户级双路径）
+ *
+ * 隔离：用环境变量 CUCKOO_HOME 把"用户级目录"指向临时目录；
+ * electron 的 app.getPath 用 createRequire mock 指向临时目录。
+ * 两者都是外部边界，符合"只 mock 外部边界"原则。
  */
-import { test, beforeEach, vi } from 'vitest';
+import { test, beforeEach, afterEach, vi } from 'vitest';
 import assert from 'node:assert';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -27,24 +29,27 @@ vi.mock('node:module', async (importOriginal) => {
   };
 });
 
-vi.mock('node:os', async (importOriginal) => {
-  const actual = await importOriginal();
-  return { ...actual, default: { ...actual.default, homedir: () => FAKE_HOME } };
-});
-
 let cfg;
+let oldHome;
 
-function userConfigFile() { return path.join(FAKE_HOME, '.cuckoo', 'mcp.json'); }
+function userConfigFile() { return path.join(FAKE_HOME, 'mcp.json'); }
 function projConfigFile(p) { return path.join(p, '.cuckoo', 'mcp.json'); }
 
 beforeEach(async () => {
   vi.resetModules();
+  oldHome = process.env.CUCKOO_HOME;
+  process.env.CUCKOO_HOME = FAKE_HOME;
   fs.rmSync(TMP, { recursive: true, force: true });
   fs.mkdirSync(FAKE_HOME, { recursive: true });
   fs.mkdirSync(USER_DATA, { recursive: true });
   fs.mkdirSync(PROJ1, { recursive: true });
   fs.mkdirSync(PROJ2, { recursive: true });
   cfg = await import('../../src/mcp/config.js');
+});
+
+afterEach(() => {
+  if (oldHome === undefined) delete process.env.CUCKOO_HOME;
+  else process.env.CUCKOO_HOME = oldHome;
 });
 
 test('无任何配置时 getServers 为空', () => {
@@ -101,12 +106,10 @@ test('upsertServer 覆盖同名 server', () => {
   assert.strictEqual(cfg.getServers(null).length, 1);
 });
 
-// ========== 新功能：项目级 + 用户级 ==========
+// ========== 项目级 + 用户级 ==========
 
 test('项目级覆盖用户级同名 server', () => {
-  // 用户级：fs -> command=user
   cfg.upsertServer({ name: 'fs', type: 'stdio', command: 'user-cmd' });
-  // 项目级：fs -> command=proj（手动写文件）
   fs.mkdirSync(path.join(PROJ1, '.cuckoo'), { recursive: true });
   fs.writeFileSync(projConfigFile(PROJ1), JSON.stringify({
     mcpServers: { fs: { command: 'proj-cmd' } }
@@ -134,11 +137,9 @@ test('项目级 server 的状态存项目级（不污染用户级）', () => {
   fs.mkdirSync(path.join(PROJ1, '.cuckoo'), { recursive: true });
   fs.writeFileSync(projConfigFile(PROJ1), JSON.stringify({ mcpServers: { p: { command: 'x' } } }));
   cfg.setServerEnabled('p', false, PROJ1);
-  // 项目级状态文件应记录
   const st = JSON.parse(fs.readFileSync(path.join(PROJ1, '.cuckoo', 'mcp-state.json'), 'utf-8'));
   assert.strictEqual(st.p, false);
-  // 用户级状态文件不应有
-  const ustateFile = path.join(FAKE_HOME, '.cuckoo', 'mcp-state.json');
+  const ustateFile = path.join(FAKE_HOME, 'mcp-state.json');
   if (fs.existsSync(ustateFile)) {
     const ustate = JSON.parse(fs.readFileSync(ustateFile, 'utf-8'));
     assert.strictEqual(ustate.p, undefined);
@@ -154,7 +155,6 @@ test('migrateLegacy：新位置无文件时，把旧 userData/mcp.json 复制过
   cfg.migrateLegacy();
   const raw = JSON.parse(fs.readFileSync(userConfigFile(), 'utf-8'));
   assert.strictEqual(raw.mcpServers.legacy.command, 'old');
-  // 旧文件保留
   assert.ok(fs.existsSync(path.join(USER_DATA, 'mcp.json')), '旧文件应保留');
 });
 

@@ -30,8 +30,12 @@ const { app } = require('electron');
 
 // ========== 路径 ==========
 
+/**
+ * 用户级目录。默认 ~/.cuckoo；可用环境变量 CUCKOO_HOME 覆盖（测试隔离 / 用户自定义）。
+ */
 function getUserDir(): string {
-  return path.join(os.homedir(), '.cuckoo');
+  const override = process.env.CUCKOO_HOME;
+  return override ? override : path.join(os.homedir(), '.cuckoo');
 }
 function getUserConfigFile(): string {
   return path.join(getUserDir(), 'mcp.json');
