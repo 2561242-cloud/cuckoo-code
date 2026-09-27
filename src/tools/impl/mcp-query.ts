@@ -59,24 +59,25 @@ class McpListServersTool extends Tool {
     };
   }
 
-  async execute(): Promise<ToolResult> {
+  async execute(params: any): Promise<ToolResult> {
+    const projectDir = (params && params.projectDir) || null;
+    const windowId = (params && typeof params.currentWindowId === 'number') ? params.currentWindowId : null;
     try {
       // 惰性加载 MCP client（避免 tools 模块加载期依赖 electron）
       const mcpClient = await import('../../mcp/client.js');
-      const servers = mcpClient.listConfiguredServers();
+      const servers = mcpClient.listConfiguredServers(projectDir);
       if (servers.length === 0) {
         return ToolResult.success('当前没有配置任何 MCP server。');
       }
-      const allTools = mcpClient.getMcpToolList();
       const lines: string[] = [];
       for (const s of servers) {
         const status = !s.enabled ? '禁用' : (s.connected ? '已连接' : '未连接');
-        lines.push('- ' + s.name + ' [' + s.type + '] ' + status + '，工具数: ' + s.toolCount);
+        lines.push('- ' + s.name + ' [' + (s.source || 'user') + '/' + s.type + '] ' + status + '，工具数: ' + s.toolCount);
         if (s.connected) {
-          const serverTools = allTools.filter((t: any) => t.server === s.name);
-          for (const t of serverTools) {
-            lines.push('  - ' + t.name);
-          }
+          try {
+            const serverTools = await mcpClient.getToolsByServer(s.name, projectDir, windowId);
+            for (const t of serverTools) lines.push('  - ' + t.name);
+          } catch (_) {}
         }
       }
       return ToolResult.success(lines.join('\n'));
@@ -114,14 +115,15 @@ class McpGetToolsTool extends Tool {
   }
 
   async execute(params: any): Promise<ToolResult> {
-    const { server } = params;
+    const { server, projectDir, currentWindowId } = params;
     if (!server || typeof server !== 'string') {
       return ToolResult.error('server 不能为空');
     }
+    const winId = typeof currentWindowId === 'number' ? currentWindowId : null;
     try {
       // 惰性加载 MCP client（避免 tools 模块加载期依赖 electron）
       const mcpClient = await import('../../mcp/client.js');
-      const tools = await mcpClient.getToolsByServer(server);
+      const tools = await mcpClient.getToolsByServer(server, projectDir || null, winId);
       if (tools.length === 0) {
         return ToolResult.success('server "' + server + '" 没有提供任何工具。');
       }

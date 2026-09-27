@@ -23,9 +23,12 @@ let serverTokenUsage: any = null;
 const TOKEN_CACHE_KEY = 'cuckoo-token-cache';
 // 按天累计（保留所有历史，供后续统计）
 const TOKEN_DAILY_KEY = 'cuckoo-token-daily';
-// 每日统计口径版本：v1=累加完整 acc（错误，会膨胀）；v2=累加 delta（今天新增）
+// 每日统计口径版本：
+//  v1 = 累加完整 acc 但无限膨胀（错误）
+//  v2 = 累加 delta（跨天会漏算，与预期不符）
+//  v3 = 每天累加"当轮完整 acc"（今天每轮的总量之和，跨天归零）
 const DAILY_VERSION_KEY = 'cuckoo-token-daily-version';
-const DAILY_VERSION = '2';
+const DAILY_VERSION = '3';
 
 /** 是否子代理窗口（由 bridge 注入）。子代理共享父窗口 localStorage，不应参与 token 统计 */
 let isSubagentWindow = false;
@@ -50,7 +53,7 @@ function todayKey(): string {
   return y + '-' + m + '-' + day;
 }
 
-/** 某天累加 token 消耗 */
+/** 某天累加 token（传入"当轮完整 acc"） */
 function addDailyToken(delta: number): void {
   if (typeof delta !== 'number' || delta <= 0) return;
   try {
@@ -127,8 +130,8 @@ function saveTokenForSession(sessionId: string, acc: number): void {
     if (acc > lastAcc) {
       // 窗口累计：累加"当轮完整上下文"（DeepSeek 每轮都重发完整历史）
       entry.cumulative = (typeof entry.cumulative === 'number' ? entry.cumulative : 0) + acc;
-      // 今日窗口：只累加"本轮新增"（delta），即"今天新消耗的 token"；跨天归零
-      addDailyToken(acc - lastAcc);
+      // 今日窗口：累加"当轮完整 acc"（今天每轮的总量之和）；跨天由 todayKey() 天然归零
+      addDailyToken(acc);
     }
     entry.context = acc;
     entry.lastAcc = acc;

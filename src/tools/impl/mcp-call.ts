@@ -55,7 +55,7 @@ class McpCallTool extends Tool {
   }
 
   async execute(params: any): Promise<ToolResult> {
-    const { server, tool, args } = params;
+    const { server, tool, args, projectDir, currentWindowId } = params;
     try {
       if (!server || typeof server !== 'string') {
         return ToolResult.error('server 不能为空');
@@ -63,9 +63,10 @@ class McpCallTool extends Tool {
       if (!tool || typeof tool !== 'string') {
         return ToolResult.error('tool 不能为空');
       }
+      const winId = typeof currentWindowId === 'number' ? currentWindowId : null;
       // 惰性加载 MCP client（避免 tools 模块加载期依赖 electron）
       const mcpClient = await import('../../mcp/client.js');
-      const result = await mcpClient.callMcpTool(server, tool, args || {});
+      const result = await mcpClient.callMcpTool(server, tool, args || {}, projectDir || null, winId);
 
       // 提取纯文本内容
       const content = result.content || [];

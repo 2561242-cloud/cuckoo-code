@@ -260,6 +260,8 @@ function createWindow(profile: any) {
   mainWindow.on('closed', () => {
     sessionsToFlush.delete(winSession);
     windowState.removeWindow(mainWindow.id);
+    // 释放该窗口持有的 MCP 连接引用（归零的连接进入空闲计时）
+    try { mcpClient.releaseWindow(mainWindow.id); } catch (_) {}
   });
 
   return mainWindow.id;
@@ -630,16 +632,22 @@ ipcMainForProfile.handle('update-window-name', async (event: any, { displayName 
 
 // ========== MCP 相关 IPC ==========
 
+// 取事件来源窗口的 projectDir
+function getProjectDirOfEvent(event: any): string | null {
+  try {
+    const ctx = windowState.getContextByWebContents(event.sender);
+    return (ctx && ctx.sessionStore && ctx.sessionStore.state.selectedProjectDir) || null;
+  } catch (_) { return null; }
+}
+
 // 列出所有 MCP server（含启用状态）
-ipcMainForProfile.handle('list-mcp-servers', async () => {
-  const servers = mcpConfig.getServers();
-  const connected = new Set(mcpClient.getConnectedServers().map(s => s.name));
-  console.log('[MCP DEBUG] servers:', JSON.stringify(servers.map(s => ({ name: s.name, enabled: s.enabled }))));
-  console.log('[MCP DEBUG] connected:', JSON.stringify(Array.from(connected)));
-  return { success: true, servers: servers.map(s => ({ ...s, connected: connected.has(s.name) })) };
+ipcMainForProfile.handle('list-mcp-servers', async (event: any) => {
+  const projectDir = getProjectDirOfEvent(event);
+  const servers = mcpClient.listConfiguredServers(projectDir);
+  return { success: true, servers };
 });
 
-// 添加或更新 MCP server 配置
+// 添加或更新 MCP server 配置（固定写用户级）
 ipcMainForProfile.handle('upsert-mcp-server', async (_event: any, { server }: any) => {
   if (!server || !server.name || !server.type) {
     return { success: false, error: 'server 配置不完整（需要 name 和 type）' };
@@ -649,35 +657,49 @@ ipcMainForProfile.handle('upsert-mcp-server', async (_event: any, { server }: an
 });
 
 // 删除 MCP server
-ipcMainForProfile.handle('remove-mcp-server', async (_event: any, { name }: any) => {
-  await mcpClient.disconnectServerByName(name);
+ipcMainForProfile.handle('remove-mcp-server', async (event: any, { name }: any) => {
+  const projectDir = getProjectDirOfEvent(event);
+  // 断开可能存在的连接
+  await mcpClient.disconnectAll().catch(() => {});
   mcpConfig.removeServer(name);
   return { success: true };
 });
 
 // 启用 MCP server（连接并拉取工具）
-ipcMainForProfile.handle('enable-mcp-server', async (_event: any, { name }: any) => {
+ipcMainForProfile.handle('enable-mcp-server', async (event: any, { name }: any) => {
   try {
-    mcpConfig.setServerEnabled(name, true);
-    await mcpClient.connectServerByName(name);
-    console.log('[MCP DEBUG] enable 完成, connections:', JSON.stringify(Array.from(mcpClient.getConnectedServers().map(s => s.name))));
+    const projectDir = getProjectDirOfEvent(event);
+    mcpConfig.setServerEnabled(name, true, projectDir);
+    await mcpClient.connectServerByName(name, projectDir, null);
     return { success: true };
   } catch (err: any) {
-    console.error('[MCP DEBUG] enable 失败:', err);
+    console.error('[MCP] enable 失败:', err);
     return { success: false, error: err.message };
   }
 });
 
 // 禁用 MCP server（断开连接）
-ipcMainForProfile.handle('disable-mcp-server', async (_event: any, { name }: any) => {
-  mcpConfig.setServerEnabled(name, false);
-  await mcpClient.disconnectServerByName(name);
+ipcMainForProfile.handle('disable-mcp-server', async (event: any, { name }: any) => {
+  const projectDir = getProjectDirOfEvent(event);
+  mcpConfig.setServerEnabled(name, false, projectDir);
+  // 简单处理：断开该 server 可能存在的连接（引用清零后由空闲计时断开）
+  await mcpClient.disconnectAll().catch(() => {});
   return { success: true };
 });
 
 // 获取已启用 server 的工具列表（用于注入提示词）
-ipcMainForProfile.handle('get-mcp-tools', async () => {
-  return { success: true, tools: mcpClient.getMcpToolList() };
+ipcMainForProfile.handle('get-mcp-tools', async (event: any) => {
+  const projectDir = getProjectDirOfEvent(event);
+  const servers = mcpClient.listConfiguredServers(projectDir);
+  const tools: any[] = [];
+  for (const s of servers) {
+    if (!s.connected) continue;
+    try {
+      const list = await mcpClient.getToolsByServer(s.name, projectDir);
+      for (const t of list) tools.push({ server: s.name, ...t });
+    } catch (_) {}
+  }
+  return { success: true, tools };
 });
 
 // ========== 单实例锁 ==========
@@ -695,6 +717,8 @@ if (!gotSingleInstanceLock) {
 
   app.whenReady().then(() => {
     setupAppMenu();
+    // MCP 配置首次迁移（旧 userData/mcp.json → ~/.cuckoo/mcp.json，旧文件保留）
+    try { mcpConfig.migrateLegacy(); } catch (_) { /* ignore */ }
     // 启动时打开所有"默认打开"的窗口；若一个都没勾，回退默认（上次活跃的或第一个）
     const autoOpen = profileManager.getAutoOpenProfiles();
     if (autoOpen.length > 0) {
@@ -704,11 +728,7 @@ if (!gotSingleInstanceLock) {
       createWindow(null);
     }
 
-    // 后台连接已启用的 MCP server，不阻塞窗口创建
-    mcpClient.connectEnabledServers().catch(err => {
-      console.error('[MCP] 初始化连接失败:', err.message);
     });
-  });
 }
 
 app.on('window-all-closed', () => {
@@ -722,13 +742,16 @@ app.on('window-all-closed', () => {
   }, 500);
 });
 
-// 退出前刷新所有 session 数据
+// 退出前刷新所有 session 数据 + 断开所有 MCP 连接
 let quitFlushed = false;
 app.on('before-quit', (event: any) => {
   if (quitFlushed) return;
   event.preventDefault();
   quitFlushed = true;
-  flushAllSessions().finally(() => {
+  Promise.all([
+    flushAllSessions().catch(() => {}),
+    mcpClient.disconnectAll().catch(() => {}),
+  ]).finally(() => {
     app.quit();
   });
 });

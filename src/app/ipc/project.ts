@@ -3,6 +3,7 @@
  */
 import { createRequire } from 'node:module';
 import * as windowState from '../window.js';
+import * as mcpClient from '../../mcp/client.js';
 import { initProject } from '../../session/project-context.js';
 import { scanSkills } from '../../skills/index.js';
 import { buildSkillsSection } from '../../skills/prompt.js';
@@ -16,7 +17,16 @@ function registerProjectIpc(): void {
   // 初始化项目
   ipcMain.handle('init-project', async (event: any, { skipPrompt = false, projectDir = null, isCompaction = false, extraPrompt = '', noDialog = false }: any = {}) => {
     const ctx = windowState.getContextByWebContents(event.sender);
-    return initProject(skipPrompt, ctx, projectDir, isCompaction, extraPrompt || '', !!noDialog);
+    const windowId = ctx && ctx.win ? ctx.win.id : null;
+    const result = await initProject(skipPrompt, ctx, projectDir, isCompaction, extraPrompt || '', !!noDialog);
+    // 项目目录可能变化：释放该窗口对"旧项目"的 MCP 连接引用
+    if (windowId !== null) {
+      try {
+        const newDir = (ctx && ctx.sessionStore && ctx.sessionStore.state.selectedProjectDir) || null;
+        mcpClient.releaseProject(windowId, newDir);
+      } catch (_) {}
+    }
+    return result;
   });
 
   // 重新扫描技能 + 代理，返回合并清单文本（供「刷新技能与代理」按钮使用）

@@ -48,20 +48,31 @@ function install(): void {
   }
 
   // 终态判定：'finished' 正常完成 / 'stopped' 用户主动停止 / 'error' 失败或服务端截断
-  // 触发重试（归 error）的两种情况：
-  //  1) 仅 SSE INCOMPLETE 而无 stop_stream：服务端自己截断；
-  //  2) 已收到 FINISHED，但正文为空、只有思考内容：思考被中断、正文未生成
-  //     （网页显示"已停止"但正文一个字都没有，此前会被当作正常完成而丢弃）。
-  // 用户主动停止的可靠证据：拦截到 stop_stream 请求（点停止按钮才会发）。
+  //
+  // 判定优先级（自上而下）：
+  //  1) 用户主动停止（拦截到 stop_stream 请求）→ 'stopped'
+  //  2) 服务端截断（SSE INCOMPLETE 且非用户停止）→ 'error'（触发重试）
+  //  3) 收到 FINISHED 且正文非空 → 'finished'
+  //  4) 收到 FINISHED 但正文为空、只有思考 → 'error'（思考被中断、正文未生成，触发重试）
+  //  5) 未收到 FINISHED，但流已正常结束（stream-end）且有正文 → 'finished'
+  //     ⚠️ 实测 DeepSeek 有时不发 FINISHED 帧，正文却已完整生成。
+  //     此前这种情况会被判为 'error'，导致"摘要成功却报失败"（压缩流程等不到完成而超时）。
+  //     故：无截断标记、无用户停止、且有正文时，视为正常完成。
+  //  6) 以上都不满足（无正文、无 FINISHED）→ 'error'
   function resolveStatus(extractor) {
-    var st = 'error';
+    // 1) 用户主动停止
+    if (userStopped) return 'stopped';
+    // 2) 服务端截断（无 stop_stream 的 INCOMPLETE）
+    if (extractor.incomplete) return 'error';
+    // 3/4) 收到 FINISHED 帧
     if (extractor.finished) {
-      // 完成帧已到，但正文为空、只有思考内容：属"思考被中断、正文未生成"，
-      // 归为 error 以触发自动重试（否则会被当作正常完成而静默丢弃）。
-      if (extractor.thinkLen > 0 && extractor.textLen === 0) st = 'error';
-      else st = 'finished';
-    } else if (userStopped) st = 'stopped';
-    return st;
+      if (extractor.thinkLen > 0 && extractor.textLen === 0) return 'error';
+      return 'finished';
+    }
+    // 5) 未收到 FINISHED，但有正文（流已正常结束）→ 视为完成
+    if (extractor.textLen > 0) return 'finished';
+    // 6) 兜底
+    return 'error';
   }
 
   function dispatch(text, status, tokenUsage, msgIds, extra?, dbg?) {

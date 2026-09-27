@@ -1,6 +1,17 @@
 /**
- * MCP Client 管理
- * 连接/管理多个 MCP server（stdio + HTTP），提供工具列表和调用能力。
+ * MCP Client 管理（连接池 + 引用计数，支持项目级/用户级隔离）
+ *
+ * 连接 key：
+ *  - 用户级 server：`user::<name>`（全局唯一，跨项目共享）
+ *  - 项目级 server：`project:<projectDir>::<name>`（每项目一份）
+ *
+ * 引用计数：每个连接记"哪些窗口在用"（Set<windowId>）。
+ *  - 窗口关闭 / 切换项目 → 释放引用
+ *  - 引用归零 → 启动空闲计时器（60 秒）；期间有人用则取消；超时无人用才断开
+ *
+ * 进程释放：
+ *  - 正常退出 → disconnectAll()（由 entry.ts 的 before-quit 调用）
+ *  - 强杀主进程 → 无法执行清理，依赖 stdin EOF（规范 server 自己退出）
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -10,43 +21,42 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 
-// electron 特殊：其 index.js 导出字符串，须用 createRequire（见 P3a 手册 1.5）
 const require = createRequire(import.meta.url);
 const { app } = require('electron');
 
-// server name -> { client, transport, tools, connected }
+// 空闲断开时长（毫秒）
+const IDLE_DISCONNECT_MS = 60 * 1000;
+
+/**
+ * 连接池条目：
+ * {
+ *   key, client, transport, tools, connected,
+ *   refs: Set<windowId>,   // 谁在用
+ *   idleTimer: NodeJS.Timeout | null
+ * }
+ */
 const connections = new Map<string, any>();
-// server name -> Promise<entry>：连接进行中的缓存，避免并发重复连接（如启动与初始化同时触发）
+// 连接进行中的缓存：key -> Promise<entry>（避免并发重复连接）
 const connecting = new Map<string, Promise<any>>();
 
-// 默认工作目录缓存（探测一次）
+// ========== 默认工作目录（同以前）==========
 let defaultCwdCache: string | undefined;
 let defaultCwdResolved = false;
 
-/**
- * 计算 MCP 子进程的默认工作目录。
- * 优先「程序目录/mcp-cwd」，不可写时回退「userData/mcp-cwd」。
- * 覆盖各平台、各安装方式（ZIP/Portable 可写程序目录；Program Files/macOS 不可写则落 userData）。
- * @returns {string|undefined} 可写目录的绝对路径；全部失败返回 undefined（子进程继承父进程 cwd）
- */
 function getDefaultMcpCwd(): string | undefined {
   if (defaultCwdResolved) return defaultCwdCache;
   defaultCwdResolved = true;
 
   const candidates: string[] = [];
-  // portable 版：程序运行时解压到临时目录，exe 路径不可靠，用 electron-builder 提供的
-  // PORTABLE_EXECUTABLE_DIR（指向用户放置 portable exe 的真实目录）
   if (app.isPackaged && process.env.PORTABLE_EXECUTABLE_DIR) {
     candidates.push(path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'mcp-cwd'));
   }
-  // 打包后：程序目录优先（便于用户删除程序目录时一并清理）
   if (app.isPackaged) {
     try {
       const exeDir = path.dirname(app.getPath('exe'));
       candidates.push(path.join(exeDir, 'mcp-cwd'));
     } catch (_) {}
   }
-  // userData 兜底（始终可写；开发环境也走这里）
   try {
     candidates.push(path.join(app.getPath('userData'), 'mcp-cwd'));
   } catch (_) {}
@@ -68,25 +78,52 @@ function getDefaultMcpCwd(): string | undefined {
   return undefined;
 }
 
-async function connectServer(server: any): Promise<any> {
-  if (connections.has(server.name)) {
-    return connections.get(server.name);
-  }
-  // 已有连接进行中：复用同一个 Promise，避免 spawn 多个子进程/重复建连
-  if (connecting.has(server.name)) {
-    return connecting.get(server.name);
+// ========== key 计算 ==========
+
+function connKey(server: any): string {
+  return server.source === 'project'
+    ? 'project:' + (server.projectDir || '') + '::' + server.name
+    : 'user::' + server.name;
+}
+
+// ========== 连接管理 ==========
+
+async function connectServer(server: any, windowId: number | null): Promise<any> {
+  const key = connKey(server);
+
+  // 已有连接 → 复用，并加入引用
+  const existing = connections.get(key);
+  if (existing) {
+    if (windowId !== null) {
+      existing.refs.add(windowId);
+      cancelIdleTimer(existing);
+    }
+    return existing;
   }
 
-  const p = doConnectServer(server);
-  connecting.set(server.name, p);
+  // 连接进行中 → 复用 Promise
+  if (connecting.has(key)) {
+    const p = connecting.get(key);
+    const entry = await p;
+    if (windowId !== null && entry) {
+      entry.refs.add(windowId);
+      cancelIdleTimer(entry);
+    }
+    return entry;
+  }
+
+  const p = doConnectServer(server, key);
+  connecting.set(key, p);
   try {
-    return await p;
+    const entry = await p;
+    if (windowId !== null) entry.refs.add(windowId);
+    return entry;
   } finally {
-    connecting.delete(server.name);
+    connecting.delete(key);
   }
 }
 
-async function doConnectServer(server: any): Promise<any> {
+async function doConnectServer(server: any, key: string): Promise<any> {
   let transport: any;
   if (server.type === 'stdio') {
     transport = new StdioClientTransport({
@@ -115,44 +152,108 @@ async function doConnectServer(server: any): Promise<any> {
     console.error('[MCP] 获取工具列表失败:', server.name, err.message);
   }
 
-  const entry = { client, transport, tools, connected: true };
-  connections.set(server.name, entry);
-  console.log('[MCP] 已连接:', server.name, '工具数=', tools.length);
+  const entry = { key, client, transport, tools, connected: true, refs: new Set<number>(), idleTimer: null };
+  connections.set(key, entry);
+  console.log('[MCP] 已连接:', key, '工具数=', tools.length);
   return entry;
 }
 
-async function disconnectServer(name: string): Promise<void> {
-  // 若有连接进行中，先等它结束，避免断开后又被它重新登记
-  if (connecting.has(name)) {
-    try { await connecting.get(name); } catch (_) {}
+function cancelIdleTimer(entry: any): void {
+  if (entry && entry.idleTimer) {
+    clearTimeout(entry.idleTimer);
+    entry.idleTimer = null;
   }
-  const entry = connections.get(name);
+}
+
+function scheduleIdleDisconnect(entry: any): void {
+  cancelIdleTimer(entry);
+  entry.idleTimer = setTimeout(() => {
+    if (entry.refs.size === 0) {
+      disconnectByKey(entry.key).catch(() => {});
+    }
+  }, IDLE_DISCONNECT_MS);
+  // 定时器不阻止进程退出
+  if (entry.idleTimer && typeof entry.idleTimer.unref === 'function') entry.idleTimer.unref();
+}
+
+async function disconnectByKey(key: string): Promise<void> {
+  // 等正在进行的连接结束，避免断开后又被它重新登记
+  if (connecting.has(key)) {
+    try { await connecting.get(key); } catch (_) {}
+  }
+  const entry = connections.get(key);
   if (!entry) return;
+  cancelIdleTimer(entry);
   try {
     await entry.client.close();
   } catch (_) {}
-  connections.delete(name);
-  console.log('[MCP] 已断开:', name);
+  connections.delete(key);
+  console.log('[MCP] 已断开:', key);
 }
 
-async function refreshServerTools(name: string): Promise<any[]> {
-  const entry = connections.get(name);
-  if (!entry) return [];
-  try {
-    const result = await entry.client.listTools({});
-    entry.tools = result.tools || [];
-    return entry.tools;
-  } catch (err: any) {
-    console.error('[MCP] 刷新工具列表失败:', name, err.message);
-    return entry.tools || [];
+/**
+ * 释放某个窗口的全部引用（窗口关闭 / 退出时调用）。
+ * 引用归零的连接 → 启动空闲计时。
+ */
+function releaseWindow(windowId: number): void {
+  for (const entry of connections.values()) {
+    if (entry.refs.has(windowId)) {
+      entry.refs.delete(windowId);
+      if (entry.refs.size === 0) scheduleIdleDisconnect(entry);
+    }
   }
 }
 
-async function connectEnabledServers(): Promise<string[]> {
-  const servers = mcpConfig.getEnabledServers();
+/**
+ * 窗口切换项目目录：释放该窗口对"旧项目"连接的引用。
+ * 旧项目 = 与 newProjectDir 不同的所有 project:* 连接。
+ */
+function releaseProject(windowId: number, newProjectDir: string | null): void {
+  for (const entry of connections.values()) {
+    if (!entry.key.startsWith('project:')) continue;
+    // key 形如 project:<dir>::<name>，取出 dir
+    const rest = entry.key.slice('project:'.length);
+    const sep = rest.indexOf('::');
+    const dir = sep >= 0 ? rest.slice(0, sep) : rest;
+    if (dir !== (newProjectDir || '') && entry.refs.has(windowId)) {
+      entry.refs.delete(windowId);
+      if (entry.refs.size === 0) scheduleIdleDisconnect(entry);
+    }
+  }
+}
+
+/** 退出时强制断开全部 */
+async function disconnectAll(): Promise<void> {
+  const keys = Array.from(connections.keys());
+  for (const key of keys) {
+    await disconnectByKey(key);
+  }
+}
+
+// ========== 对外 API（都带 projectDir）==========
+
+/** 从配置里找 server 定义（项目级优先），带 source/projectDir */
+function resolveServer(name: string, projectDir: string | null): any | null {
+  const list = mcpConfig.getServers(projectDir);
+  return list.find((s: any) => s.name === name) || null;
+}
+
+/** 连接指定 server，并登记窗口引用 */
+async function connectServerByName(name: string, projectDir: string | null, windowId: number | null = null): Promise<any> {
+  const server = resolveServer(name, projectDir);
+  if (!server) throw new Error('MCP server 不存在或未启用: ' + name);
+  if (!server.enabled) throw new Error('MCP server 已禁用: ' + name);
+  server.projectDir = projectDir; // 供 connKey 用
+  return connectServer(server, windowId);
+}
+
+/** 连接所有已启用 server（按需；连接后不登记引用——由调用方按需 acquire） */
+async function connectEnabledServers(projectDir: string | null = null): Promise<string[]> {
+  const servers = mcpConfig.getEnabledServers(projectDir);
   for (const server of servers) {
+    server.projectDir = projectDir;
     try {
-      await connectServer(server);
+      await connectServer(server, null);
     } catch (err: any) {
       console.error('[MCP] 连接失败:', server.name, err.message);
     }
@@ -160,58 +261,24 @@ async function connectEnabledServers(): Promise<string[]> {
   return Array.from(connections.keys());
 }
 
-async function connectServerByName(name: string): Promise<any> {
-  const server = mcpConfig.getServers().find(s => s.name === name && s.enabled);
-  if (!server) throw new Error('MCP server 不存在或未启用: ' + name);
-  return connectServer(server);
-}
-
-async function disconnectServerByName(name: string): Promise<void> {
-  await disconnectServer(name);
-}
-
-async function callMcpTool(serverName: string, toolName: string, args: any): Promise<any> {
-  let entry = connections.get(serverName);
-  if (!entry) {
-    entry = await connectServerByName(serverName);
-  }
+/** 调用工具（自动确保连接） */
+async function callMcpTool(serverName: string, toolName: string, args: any, projectDir: string | null = null, windowId: number | null = null): Promise<any> {
+  const entry = await connectServerByName(serverName, projectDir, windowId);
   const result = await entry.client.callTool({ name: toolName, arguments: args });
   return result;
 }
 
-function getConnectedServers(): any[] {
-  const out: any[] = [];
-  for (const [name, entry] of connections) {
-    out.push({ name, tools: entry.tools, connected: entry.connected });
-  }
-  return out;
-}
-
-function getMcpToolList(): any[] {
-  const out: any[] = [];
-  for (const [serverName, entry] of connections) {
-    for (const tool of entry.tools) {
-      out.push({
-        server: serverName,
-        name: tool.name,
-        description: tool.description || '',
-        inputSchema: tool.inputSchema || {},
-      });
-    }
-  }
-  return out;
-}
-
-/**
- * 列出所有已配置的 MCP server（含启用状态和连接状态）
- * @returns {Array<{name, type, enabled, connected, toolCount}>}
- */
-function listConfiguredServers(): any[] {
-  const servers = mcpConfig.getServers();
-  return servers.map(s => {
-    const entry = connections.get(s.name);
+/** 列出已配置 server（含启用/连接状态） */
+function listConfiguredServers(projectDir: string | null): any[] {
+  const servers = mcpConfig.getServers(projectDir);
+  return servers.map((s: any) => {
+    const key = s.source === 'project'
+      ? 'project:' + (projectDir || '') + '::' + s.name
+      : 'user::' + s.name;
+    const entry = connections.get(key);
     return {
       name: s.name,
+      source: s.source,
       type: s.type,
       enabled: s.enabled,
       connected: !!(entry && entry.connected),
@@ -220,16 +287,9 @@ function listConfiguredServers(): any[] {
   });
 }
 
-/**
- * 获取指定 server 的工具列表（按需连接）
- * @param {string} name server 名称
- * @returns {Array<{name, description, inputSchema}>}
- */
-async function getToolsByServer(name: string): Promise<any[]> {
-  let entry = connections.get(name);
-  if (!entry) {
-    entry = await connectServerByName(name);
-  }
+/** 某 server 的工具列表（按需连接） */
+async function getToolsByServer(name: string, projectDir: string | null, windowId: number | null = null): Promise<any[]> {
+  const entry = await connectServerByName(name, projectDir, windowId);
   return entry.tools.map((t: any) => ({
     name: t.name,
     description: t.description || '',
@@ -239,15 +299,14 @@ async function getToolsByServer(name: string): Promise<any[]> {
 
 export {
   connectServer,
-  disconnectServer,
-  refreshServerTools,
-  connectEnabledServers,
   connectServerByName,
-  disconnectServerByName,
+  connectEnabledServers,
+  disconnectAll,
+  releaseWindow,
+  releaseProject,
   callMcpTool,
-  getConnectedServers,
-  getMcpToolList,
   listConfiguredServers,
   getToolsByServer,
   getDefaultMcpCwd,
+  IDLE_DISCONNECT_MS,
 };

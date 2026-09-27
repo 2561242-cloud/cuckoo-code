@@ -76,8 +76,8 @@ function buildPlatformInfo(): string {
 }
 
 /** 生成 MCP 能力章节 */
-function buildMcpSection(): string {
-  const enabledMcpServers = mcpClient.listConfiguredServers().filter(s => s.enabled);
+function buildMcpSection(selectedDir: string | null): string {
+  const enabledMcpServers = mcpClient.listConfiguredServers(selectedDir).filter(s => s.enabled);
   const mcpServerList = enabledMcpServers.length
     ? enabledMcpServers.map(s => '- ' + s.name + '（' + s.type + '，' + (s.connected ? '已连接' : '未连接') + '，工具数 ' + s.toolCount + '）').join('\n')
     : '（当前没有已配置且启用的 MCP server）';
@@ -153,12 +153,12 @@ function buildPrompt(opts: { providerId: string; selectedDir: string; isCompacti
   const toolsDescription = toolRegistry.getFormattedJsApiForPrompt();
   const promptSections = toolRegistry.getFormattedPromptSections();
 
-  // 后台异步连接已启用的 MCP server，不阻塞初始化
-  mcpClient.connectEnabledServers().catch((err: any) => {
+  // 后台异步连接已启用的 MCP server，不阻塞初始化（按当前项目）
+  mcpClient.connectEnabledServers(selectedDir).catch((err: any) => {
     console.error('[MCP] 初始化时连接失败:', err.message);
   });
 
-  const mcpSection = buildMcpSection();
+  const mcpSection = buildMcpSection(selectedDir);
   const platformInfo = buildPlatformInfo();
   const projectIntro = readProjectIntro(selectedDir);
   const projectIntroSection = projectIntro ? '---\n## 项目介绍\n' + projectIntro : '';
