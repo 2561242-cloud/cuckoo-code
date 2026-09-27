@@ -179,7 +179,7 @@ function wireEvents(h: typeof hooks): void {
 let eventsBound = false;
 
 /**
- * 「发送skill信息」按钮：让主进程重新扫描技能目录，把技能清单发给 AI
+ * 「刷新技能与代理」按钮：让主进程重新扫描技能 + 代理目录，把最新清单发给 AI
  */
 async function handleSendSkills() {
   const api = (window as any).electronAPI;
@@ -190,23 +190,23 @@ async function handleSendSkills() {
   try {
     const result = await api.refreshSkills();
     if (!result || !result.success) {
-      showToast('获取技能失败: ' + ((result && result.error) || '未知错误'), 3000);
+      showToast('获取清单失败: ' + ((result && result.error) || '未知错误'), 3000);
       return;
     }
     const section = result.section || '';
     if (!section.trim()) {
-      showToast('没有找到任何技能', 3000);
+      showToast('没有找到任何技能或代理', 3000);
       return;
     }
     // 注意：sendToChat 是 async，必须 await，否则恒为真值、误报成功
-    const ok = await sendToChat(section, '技能清单', 300);
+    const ok = await sendToChat(section, '技能与代理清单', 300);
     if (!ok) {
       showToast('发送失败：未找到输入框', 3000);
       return;
     }
-    showToast('已发送技能清单（共 ' + (result.count || 0) + ' 个技能）', 2500);
+    showToast('已发送（技能 ' + (result.skillCount || 0) + ' 个 / 代理 ' + (result.agentCount || 0) + ' 个）', 2500);
   } catch (e: any) {
-    showToast('发送技能失败: ' + e.message, 3000);
+    showToast('发送失败: ' + e.message, 3000);
   }
 }
 
