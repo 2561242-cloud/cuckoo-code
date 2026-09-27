@@ -263,3 +263,47 @@ description 截断 1536 字符、初始化时自动注入提示词、「发送 s
 两者同构实现（`.cuckoo/{skills,agents}/` + frontmatter + 渐进式披露 + 项目/用户级）。
 差异：agents 有 `runAgent` 工具（主动调用），skills 无对应工具——skills 靠 AI 自己 read SKILL.md。
 符合本质差异：agent = 独立上下文委派，skill = 当前上下文的流程/知识。
+
+
+---
+
+## dsh 的 Skill 显式调用机制（2026-09-27 记录，参考实现）
+
+**来源**：读上游 `deepseek-harness2`（dsh）源码（`packages/skill/{skill,tool-skill}`、`packages/subagent/tool-subagent`）。
+
+### dsh 怎么"显式告诉 AI 用某个 skill"
+
+**两条路径，都不改用户原话：**
+
+**路径 1：用户打 `/技能名`（最硬）**
+- dsh 有 `agent/pre-step` 钩子（"发请求前"时机）
+- 扫用户消息 → 发现调用了技能 → 读技能全文 → **在消息列表末尾追加一条新用户消息**：
+  ```
+  <skill_content name="pdf">
+  <skill_resources>Base directory: ...</skill_resources>
+  <skill_instructions>（SKILL.md 全文）</skill_instructions>
+  </skill_content>
+  ```
+- 代码注释原文："the user's own words ride a plain user message, and the rendered skill body follows as injected instructions-form context"
+- **用户原话照发，技能全文追加在后** → AI 收到两条消息
+
+**路径 2：自然语言"用 pdf 技能帮我X"（靠提示词硬约定）**
+- 会话里发一条 `<system-reminder>` 用户消息，含 `<available_skills>` 清单 + 硬指令：
+  - "If the user names a skill, or the task clearly matches a skill's description, **call the `skill` tool with the exact skill name before taking task actions**. Load all applicable skills, then follow their full instructions."
+  - "This catalog contains summaries only; **do not infer or follow a skill's instructions until it has been loaded**."
+- `skill` 工具描述呼应："Load the full instructions for a skill. Call it before acting on a task that names or clearly matches a skill in the session skill catalog."
+- **目录变化时重发一条**：`renderCatalogUpdate()` → "The available skill catalog changed. This complete catalog replaces every earlier available-skills list in this session"（用新消息覆盖，而非改系统提示词）
+
+### dsh 的 Agent：不点名
+- 只有一个通用 `subagent` 工具，**没有 name 参数**；专项化靠 `persona`/`toolFilter`/`provider`/`model` 配置
+- "何时用"写进工具 description（`providerWording`，按 spawn/fork 生成不同措辞）
+
+### 对我们的启示（可落地）
+| # | 改进 | 说明 |
+|---|---|---|
+| 1 | **技能加统一工具** `loadSkill(name)` | dsh 有 `skill(name)`、Claude Code 有 `Skill` 工具；我们只让 AI 自己 `read`，容易偷懒 |
+| 2 | **显式调用：把技能全文塞进输入框** | 模仿 dsh 路径1——overlay 按钮/命令 → 往 DeepSeek 输入框塞 `<skill_content>...</skill_content>` 全文 + 用户需求 → 一起发 |
+| 3 | **提示词措辞写硬** | "用户点名技能时必须先用工具加载，不许凭简介瞎猜"（比"你必须先 read"更硬） |
+| 4 | **技能清单可重发** | dsh 用 `<system-reminder>` 新消息覆盖；我们已加「刷新技能与代理」按钮（e9bd7ff），方向一致 |
+
+**我们的难点**：dsh 自己写客户端，能在"发请求前"钩子里追加消息；我们用 DeepSeek 输入框，**没有该钩子**——只能"往输入框塞文本再发"（效果等价）。
