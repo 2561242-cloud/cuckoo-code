@@ -1,5 +1,34 @@
 # Changelog
 
+## [0.8.0] - 2026-09-27
+
+### Added
+- **子代理（Subagents，对齐 Claude Code）**：主对话可把任务**委派**给独立上下文的子代理，
+  只回摘要——既隔离上下文（缓解长对话卡顿），又支持专门化 + 工具限制。
+  代理是带 frontmatter 的 Markdown 文件（`.cuckoo/agents/` 项目级 + `~/.cuckoo/agents/` 用户级），
+  支持 `name`/`description`/`tools`/`maxTurns` 字段；用 `runAgent(name, task)` 调用。
+  子代理在独立窗口（共享登录态）中执行，完成判定为"无工具调用"。
+- **8 个开箱即用代理**：用户级 `explore`（只读探索）/ `code-reviewer`（代码审查）/
+  `test-runner`（跑测试+根因）；项目级 `arch-guard` / `tool-smith` / `build-doctor` /
+  `req-writer` / `hook-surgeon`。
+- **「刷新技能与代理」按钮**：对话已开始时，点一下重新扫描技能/代理目录并把最新清单发给 AI
+  （解决"对话开始后新增 agent 不生效"）。
+- **token 状态条支持「亿」单位**：≥1 亿显示 `X.XX亿`；「今日窗口」调整到「窗口累计」前面。
+- **Skill / Agent 配置文档**（`docs/skills.md` / `docs/agents.md`）+ README 引用（中英文）。
+
+### Fixed
+- **「今日窗口」口径修正**：改为累加**当天新增**（delta），跨天归零；子代理不计入。
+  旧口径（累加完整上下文，会膨胀）数据自动迁移清空。
+- **系统总累计虚高**：子代理窗口共享父窗口 partition，其上报会重复计入；现子代理跳过上报，
+  并忽略/清理历史遗留键。
+- **代理扫描健壮性**：空 `name`（纯空白）兜底为文件名；`maxTurns` 改为严格整数解析（`Number()` + 上界 1000）。
+- 子代理窗口在新对话页被 home-mode 隐藏面板 → 现抑制首页模式，正常显示完整面板。
+- 子代理窗口 `return` 跳过了拦截监听器初始化 → 现照常启动。
+
+### Docs
+- 新增 `docs/skills.md`、`docs/agents.md`；README（中英文）加 Skill / Agent 两节。
+- backlog 记录：Claude Code subagents / Agent Skills 未实现功能对照、dsh 的 Skill 显式调用机制、压缩刷新慢诊断。
+
 ## [0.7.1] - 2026-09-25
 
 ### Fixed
