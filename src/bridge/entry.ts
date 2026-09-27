@@ -11,7 +11,7 @@ import './api.js';
 import { createRequire } from 'node:module';
 import * as ui from '../overlay/panel.js';
 import * as projectDir from '../overlay/project-dir.js';
-import { bindEvents, refreshTokenForCurrentSession } from '../overlay/events.js';
+import { bindEvents, refreshTokenForCurrentSession, setIsSubagentWindow } from '../overlay/events.js';
 import * as chatInput from '../overlay/chat-input.js';
 import { wireEvents } from '../overlay/events.js';
 import { getProviderByUrl } from '../providers/registry.js';
@@ -94,6 +94,8 @@ function init(): void {
   if (subCfg) {
     // 子代理窗口在新对话页，但需要完整面板 → 抑制首页模式
     try { ui.setSuppressHomeMode(true); } catch (_) { /* ignore */ }
+    // 子代理共享父窗口 localStorage，不参与 token 统计（否则污染"今日窗口"）
+    try { setIsSubagentWindow(true); } catch (_) { /* ignore */ }
   }
   try {
     ui.injectCSS();

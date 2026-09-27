@@ -23,6 +23,23 @@ let serverTokenUsage: any = null;
 const TOKEN_CACHE_KEY = 'cuckoo-token-cache';
 // 按天累计（保留所有历史，供后续统计）
 const TOKEN_DAILY_KEY = 'cuckoo-token-daily';
+// 每日统计口径版本：v1=累加完整 acc（错误，会膨胀）；v2=累加 delta（今天新增）
+const DAILY_VERSION_KEY = 'cuckoo-token-daily-version';
+const DAILY_VERSION = '2';
+
+/** 是否子代理窗口（由 bridge 注入）。子代理共享父窗口 localStorage，不应参与 token 统计 */
+let isSubagentWindow = false;
+function setIsSubagentWindow(v: boolean): void { isSubagentWindow = !!v; }
+
+/** 旧口径数据迁移：v1 的今日值是"完整 acc 之和"（会膨胀），不可比，检测到就清空重来 */
+function migrateDailyVersion(): void {
+  try {
+    if (localStorage.getItem(DAILY_VERSION_KEY) !== DAILY_VERSION) {
+      localStorage.removeItem(TOKEN_DAILY_KEY);
+      localStorage.setItem(DAILY_VERSION_KEY, DAILY_VERSION);
+    }
+  } catch (_) {}
+}
 
 /** 取本地日期字符串 YYYY-MM-DD */
 function todayKey(): string {
@@ -46,20 +63,13 @@ function addDailyToken(delta: number): void {
   } catch (_) {}
 }
 
-/** 今日累计消耗 */
-let _lastDailyLogged = '';
+/** 今日累计消耗（今天新消耗的 token；跨天归零） */
 function getTodayCumulative(): number {
   try {
+    migrateDailyVersion();
     const raw = localStorage.getItem(TOKEN_DAILY_KEY);
     const obj = raw ? JSON.parse(raw) : {};
-    const k = todayKey();
-    const v = obj ? obj[k] : 0;
-    // 【临时诊断】输出 todayKey 与整个 daily map，确认"今日窗口"数据
-    const snap = k + '|' + JSON.stringify(obj);
-    if (snap !== _lastDailyLogged) {
-      _lastDailyLogged = snap;
-      console.log('[Cuckoo Token] 今日诊断 todayKey=' + k + ' today=' + (typeof v === 'number' ? v : 0) + ' dailyMap=' + JSON.stringify(obj));
-    }
+    const v = obj ? obj[todayKey()] : 0;
     return typeof v === 'number' ? v : 0;
   } catch (_) {
     return 0;
@@ -106,6 +116,7 @@ function readTokenCache(): Record<string, SessionToken> {
  */
 function saveTokenForSession(sessionId: string, acc: number): void {
   if (!sessionId || typeof acc !== 'number') return;
+  if (isSubagentWindow) return; // 子代理不参与 token 统计（共享父窗口 localStorage，会污染）
   try {
     const cache = readTokenCache();
     let entry: any = cache[sessionId];
@@ -114,11 +125,10 @@ function saveTokenForSession(sessionId: string, acc: number): void {
     if (!entry || typeof entry !== 'object') entry = { context: 0, cumulative: 0, lastAcc: 0 };
     const lastAcc = typeof entry.lastAcc === 'number' ? entry.lastAcc : 0;
     if (acc > lastAcc) {
-      // 累加"当轮完整上下文"：DeepSeek 每轮都重发完整历史，
-      // 故每轮实际处理的 token ≈ 当轮 accumulated，直接累加 acc（不是增量）
+      // 窗口累计：累加"当轮完整上下文"（DeepSeek 每轮都重发完整历史）
       entry.cumulative = (typeof entry.cumulative === 'number' ? entry.cumulative : 0) + acc;
-      // 按天累加（供"今日窗口累计"与后续统计）
-      addDailyToken(acc);
+      // 今日窗口：只累加"本轮新增"（delta），即"今天新消耗的 token"；跨天归零
+      addDailyToken(acc - lastAcc);
     }
     entry.context = acc;
     entry.lastAcc = acc;
@@ -514,4 +524,4 @@ function bindEvents() {
   });
 }
 
-export { bindEvents, wireEvents, refreshTokenForCurrentSession };
+export { bindEvents, wireEvents, refreshTokenForCurrentSession, setIsSubagentWindow };
