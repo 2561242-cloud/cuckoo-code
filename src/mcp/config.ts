@@ -175,6 +175,17 @@ function getEnabledServers(projectDir: string | null): any[] {
   return getServers(projectDir).filter(s => s.enabled);
 }
 
+/** 只取用户级 server（供 UI 的 JSON 编辑框，避免把项目级混进去） */
+function getUserServers(): any[] {
+  const userServers = readServersAt(getUserConfigFile());
+  const userState = readStateAt(getUserStateFile());
+  const out: any[] = [];
+  for (const [name, def] of Object.entries(userServers) as [string, any][]) {
+    out.push(buildServerDef(name, def, 'user', userState));
+  }
+  return out;
+}
+
 // ========== 写入（固定用户级）==========
 
 function upsertServer(server: any): any {
@@ -239,6 +250,7 @@ export {
   getStateFile,  // 兼容旧名
   migrateLegacy,
   getServers,
+  getUserServers,
   getEnabledServers,
   upsertServer,
   removeServer,

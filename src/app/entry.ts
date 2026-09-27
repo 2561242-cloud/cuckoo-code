@@ -640,8 +640,11 @@ function getProjectDirOfEvent(event: any): string | null {
   } catch (_) { return null; }
 }
 
-// 列出所有 MCP server（含启用状态）
-ipcMainForProfile.handle('list-mcp-servers', async (event: any) => {
+// 列出所有 MCP server（含启用状态）。scope='user' 时只返回用户级（供 UI JSON 编辑框）
+ipcMainForProfile.handle('list-mcp-servers', async (event: any, opts: any = {}) => {
+  if (opts && opts.scope === 'user') {
+    return { success: true, servers: mcpConfig.getUserServers() };
+  }
   const projectDir = getProjectDirOfEvent(event);
   const servers = mcpClient.listConfiguredServers(projectDir);
   return { success: true, servers };

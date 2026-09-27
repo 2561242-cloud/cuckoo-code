@@ -80,8 +80,8 @@ let electronAPI: any = {
     return ipcRenderer.invoke('refresh-skills');
   },
   // ========== MCP 相关 API ==========
-  listMcpServers: () => {
-    return ipcRenderer.invoke('list-mcp-servers');
+  listMcpServers: (opts: any) => {
+    return ipcRenderer.invoke('list-mcp-servers', opts || {});
   },
   upsertMcpServer: (server: any) => {
     return ipcRenderer.invoke('upsert-mcp-server', { server });

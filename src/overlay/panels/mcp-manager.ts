@@ -4,9 +4,9 @@
  */
 import { showToast, showConfirmDialog } from '../panel.js';
 
-/** 加载配置到 JSON 框 */
+/** 加载配置到 JSON 框（只显示用户级，不混项目级） */
 async function loadMcpConfigToJson() {
-  const res = await (window as any).electronAPI.listMcpServers();
+  const res = await (window as any).electronAPI.listMcpServers({ scope: 'user' });
   const servers = res && res.success ? res.servers : [];
   // 转成主流 mcpServers 格式
   const mcpServers: Record<string, any> = {};
@@ -157,8 +157,8 @@ async function handleMcpSave(sendToChat: any) {
       }
     }
 
-    // 先删除 JSON 里不存在的旧 server
-    const oldRes = await (window as any).electronAPI.listMcpServers();
+    // 先删除 JSON 里不存在的旧 server（只针对用户级，避免误删项目级）
+    const oldRes = await (window as any).electronAPI.listMcpServers({ scope: 'user' });
     const oldServers = (oldRes && oldRes.success && oldRes.servers) || [];
     const newNames = new Set(Object.keys(parsed.mcpServers));
     for (const old of oldServers) {
