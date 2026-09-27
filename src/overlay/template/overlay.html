@@ -34,6 +34,7 @@
       <button id="cuckoo-btn-init" class="cuckoo-btn cuckoo-btn-primary">初始化项目</button>
       <button id="cuckoo-btn-window-manager" class="cuckoo-btn cuckoo-btn-secondary" title="管理窗口（新建/切换）">窗口管理</button>
       <button id="cuckoo-btn-mcp" class="cuckoo-btn cuckoo-btn-secondary" title="管理 MCP 工具">MCP</button>
+      <button id="cuckoo-btn-agent" class="cuckoo-btn cuckoo-btn-secondary" title="管理子代理（Agents）">Agent</button>
     </div>
     <div class="cuckoo-actions">
 <button id="cuckoo-btn-gen-doc" class="cuckoo-btn cuckoo-btn-primary" title="让 AI 生成项目说明文档 (CUCKOO.md)">生成项目说明</button>
@@ -219,6 +220,50 @@
       </div>
     </div>
   </div>
+</div>
+<div id="cuckoo-agent-manager" class="cuckoo-window-manager cuckoo-hidden">
+  <div class="cuckoo-wm-header">
+    <span class="cuckoo-title">子代理（Agents）</span>
+    <button id="cuckoo-agent-close" class="cuckoo-btn-icon" title="关闭">×</button>
+  </div>
+  <div class="cuckoo-wm-body cuckoo-agent-body">
+    <div class="cuckoo-agent-left">
+      <div class="cuckoo-session-header">
+        <span class="cuckoo-label">已配置</span>
+        <button id="cuckoo-agent-new" class="cuckoo-btn-refresh-sessions" title="新建 Agent">＋</button>
+        <button id="cuckoo-agent-refresh" class="cuckoo-btn-refresh-sessions" title="刷新">🔄</button>
+      </div>
+      <div id="cuckoo-agent-list" class="cuckoo-session-list">
+        <div class="cuckoo-session-empty">暂无</div>
+      </div>
+    </div>
+    <div class="cuckoo-agent-right">
+      <input type="hidden" id="cuckoo-agent-id" />
+      <label class="cuckoo-label">名称</label>
+      <input id="cuckoo-agent-name" class="cuckoo-agent-input" type="text" placeholder="如：需求调研专家" />
+      <label class="cuckoo-label">描述（何时委派给它）</label>
+      <input id="cuckoo-agent-desc" class="cuckoo-agent-input" type="text" placeholder="只读调研业务与系统现状……" />
+      <label class="cuckoo-label">允许的工具（逗号分隔，留空=全部）</label>
+      <input id="cuckoo-agent-tools" class="cuckoo-agent-input" type="text" placeholder="read, glob, grep" />
+      <label class="cuckoo-label">最大轮数（留空=不限）</label>
+      <input id="cuckoo-agent-maxturns" class="cuckoo-agent-input" type="number" min="1" max="1000" placeholder="如 20" />
+      <label class="cuckoo-label">系统提示词</label>
+      <textarea id="cuckoo-agent-prompt" class="cuckoo-cmd-preview cuckoo-agent-prompt" rows="8" placeholder="你是……"></textarea>
+      <div class="cuckoo-actions">
+        <button id="cuckoo-agent-save" type="button" class="cuckoo-btn cuckoo-btn-primary">保存</button>
+        <button id="cuckoo-agent-toggle" type="button" class="cuckoo-btn cuckoo-btn-secondary">启用/禁用</button>
+        <button id="cuckoo-agent-delete" type="button" class="cuckoo-btn cuckoo-btn-secondary" style="display:none;">删除</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="cuckoo-agent-float" class="cuckoo-agent-float cuckoo-hidden">
+  <div class="cuckoo-af-header">
+    <span class="cuckoo-af-title">子代理</span>
+    <span id="cuckoo-af-count" class="cuckoo-af-count">0</span>
+    <button id="cuckoo-af-toggle" class="cuckoo-af-toggle" title="收起/展开">−</button>
+  </div>
+  <div id="cuckoo-af-list" class="cuckoo-af-list"></div>
 </div>
 <div id="cuckoo-tool-mask" class="cuckoo-tool-mask cuckoo-hidden">
   <div class="cuckoo-tool-mask-box">

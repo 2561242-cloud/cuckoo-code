@@ -19,6 +19,7 @@ import { startInterceptObserver, onInterceptedResponse } from './intercept/obser
 import { startRetryEngine } from './loop/retry.js';
 import { startSessionWatcher, startWatchdog, checkSessionChange } from './loop/watchdog.js';
 import { initSubagentIfNeeded } from './subagent.js';
+import { initAgentFloat } from '../overlay/agent-float.js';
 
 const require = createRequire(import.meta.url);
 const { webFrame, ipcRenderer } = require('electron');
@@ -107,6 +108,9 @@ function init(): void {
     }
     bindEvents();
     ui.updateHomeMode();
+
+    // 初始化 Agent 悬浮卡片（AI 页面左侧）
+    try { initAgentFloat(); } catch (err) { console.error('[Cuckoo Code] initAgentFloat 失败:', err); }
 
     // URL 变化：主进程 did-navigate/-in-page 会推 'cuckoo-url-changed'
     ipcRenderer.on('cuckoo-url-changed', handleUrlChanged);

@@ -45,6 +45,15 @@ let electronAPI: any = {
   simulateMouse: (action: any, x: any, y: any) => {
     return ipcRenderer.invoke('simulate-mouse', { action, x, y });
   },
+  // Agent 状态：overlay 卡片用
+  getAgentStatus: () => {
+    return ipcRenderer.invoke('get-agent-status');
+  },
+  onAgentUpdated: (cb: (data: any) => void) => {
+    const listener = (_e: any, data: any) => cb(data);
+    ipcRenderer.on('overlay-agent-updated', listener);
+    return () => ipcRenderer.removeListener('overlay-agent-updated', listener);
+  },
   listSessions: () => {
     return ipcRenderer.invoke('list-sessions');
   },
@@ -97,6 +106,22 @@ let electronAPI: any = {
   },
   getMcpTools: () => {
     return ipcRenderer.invoke('get-mcp-tools');
+  },
+  // ========== Agent（子代理）相关 API ==========
+  listAgents: () => {
+    return ipcRenderer.invoke('list-agents');
+  },
+  upsertAgent: (agent: any) => {
+    return ipcRenderer.invoke('upsert-agent', { agent });
+  },
+  removeAgent: (id: any) => {
+    return ipcRenderer.invoke('remove-agent', { id });
+  },
+  setAgentEnabled: (id: any, enabled: any) => {
+    return ipcRenderer.invoke('set-agent-enabled', { id, enabled });
+  },
+  getAllAgents: (projectDir: any) => {
+    return ipcRenderer.invoke('get-all-agents', { projectDir });
   },
   // ========== 平台相关 API ==========
   listProviders: () => {

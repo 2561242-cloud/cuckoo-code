@@ -12,6 +12,8 @@ import { getProvider } from '../providers/registry.js';
 import * as updater from '../updater/index.js';
 import * as mcpConfig from '../mcp/config.js';
 import * as mcpClient from '../mcp/client.js';
+import * as agentConfig from '../agents/config.js';
+import { scanAgents } from '../agents/scanner.js';
 import { resolveAsset, resolveSrc } from '../infra/paths.js';
 
 const require = createRequire(import.meta.url);
@@ -49,7 +51,7 @@ if (RENDERER_LOG_DIR) {
 import { registerIpcHandlers } from './ipc/index.js';
 import { injectSubagentDeps, runAgent as runAgentImpl } from './subagent.js';
 import { injectAgentRunner } from '../tools/impl/run-agent.js';
-import { pushUrlState } from './ipc/shell.js';
+import { pushUrlState, pushAgentStatusTo } from './ipc/shell.js';
 
 // 退出前需要 flush 的 sessions
 const sessionsToFlush = new Set<any>();
@@ -139,6 +141,7 @@ function createWindow(profile: any) {
   mainWindow.loadFile(resolveSrc('ui/shell.html'));
   mainWindow.webContents.on('did-finish-load', () => {
     pushUrlState(view);
+    pushAgentStatusTo(mainWindow);
   });
 
   // 保存 session 引用（窗口销毁后 webContents 不可访问）
@@ -678,6 +681,56 @@ ipcMainForProfile.handle('disable-mcp-server', async (_event: any, { name }: any
 // 获取已启用 server 的工具列表（用于注入提示词）
 ipcMainForProfile.handle('get-mcp-tools', async () => {
   return { success: true, tools: mcpClient.getMcpToolList() };
+});
+
+// ========== Agent（子代理）相关 IPC ==========
+
+// 列出所有全局 agent（带启用状态）
+ipcMainForProfile.handle('list-agents', async () => {
+  try {
+    return { success: true, agents: agentConfig.listAgents() };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+// 新增或更新 agent
+ipcMainForProfile.handle('upsert-agent', async (_event: any, { agent }: any) => {
+  try {
+    const saved = agentConfig.upsertAgent(agent || {});
+    return { success: true, agent: saved };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+// 删除 agent
+ipcMainForProfile.handle('remove-agent', async (_event: any, { id }: any) => {
+  try {
+    const ok = agentConfig.removeAgent(id);
+    return { success: ok };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+// 启用/禁用 agent
+ipcMainForProfile.handle('set-agent-enabled', async (_event: any, { id, enabled }: any) => {
+  try {
+    const ok = agentConfig.setAgentEnabled(id, !!enabled);
+    return { success: ok };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
+// 获取合并后的 agent 清单（全局 + 项目级 + 用户级，供调试/预览）
+ipcMainForProfile.handle('get-all-agents', async (_event: any, { projectDir = null }: any = {}) => {
+  try {
+    return { success: true, agents: scanAgents(projectDir || null) };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 });
 
 // ========== 单实例锁 ==========

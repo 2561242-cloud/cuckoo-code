@@ -341,3 +341,67 @@
 .cuckoo-settings-hint { font-size: 12px; color: var(--ck-text-dim); white-space: nowrap; }
 .cuckoo-settings-input { width: 90px; background: var(--ck-code-bg); border: 1px solid var(--ck-border); border-radius: 6px; padding: 4px 8px; color: var(--ck-text); font-size: 12px; }
 .cuckoo-settings-textarea { width: 100%; background: var(--ck-code-bg); border: 1px solid var(--ck-border); border-radius: 6px; padding: 6px 8px; color: var(--ck-text); font-size: 12px; resize: vertical; }
+
+/* ===== Agent 管理面板 ===== */
+#cuckoo-agent-manager { width: 820px; max-width: 92vw; }
+#cuckoo-agent-manager .cuckoo-agent-body { flex-direction: row; gap: 14px; align-items: stretch; overflow: hidden; }
+.cuckoo-agent-left { width: 220px; flex-shrink: 0; display: flex; flex-direction: column; }
+.cuckoo-agent-left .cuckoo-session-list { flex: 1; max-height: none; overflow-y: auto; }
+.cuckoo-agent-right { flex: 1; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
+.cuckoo-agent-input { width: 100%; box-sizing: border-box; background: var(--ck-code-bg); border: 1px solid var(--ck-border); border-radius: 8px; color: var(--ck-text); padding: 6px 10px; font-size: 12px; }
+.cuckoo-agent-prompt { min-height: 110px; resize: vertical; }
+.cuckoo-agent-right .cuckoo-label { margin-top: 4px; }
+.cuckoo-agent-right .cuckoo-btn { flex: 0 0 auto; }
+/* ===== Agent 悬浮卡片（仿左侧栏风格，可拖动） ===== */
+.cuckoo-agent-float {
+  position: fixed; top: 120px; left: 12px; width: 232px;
+  background: rgba(17, 19, 34, 0.97);
+  border: 1px solid var(--ck-border); border-radius: 12px;
+  z-index: 2147483646;
+  box-shadow: 0 8px 28px rgba(0,0,0,0.4);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--ck-text); font-size: 12px; line-height: 1.5;
+  overflow: hidden;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.cuckoo-agent-float.cuckoo-hidden { display: none; }
+.cuckoo-af-header {
+  display: flex; align-items: center; gap: 6px;
+  padding: 9px 12px; cursor: move; user-select: none;
+  border-bottom: 1px solid var(--ck-border);
+  background: rgba(255,255,255,0.02);
+}
+.cuckoo-af-title { font-size: 12px; font-weight: 700; color: #c8ccff; flex: 1; letter-spacing: 0.3px; }
+.cuckoo-af-count {
+  font-size: 10px; color: var(--ck-text-dim);
+  background: var(--ck-surface); border-radius: 8px; padding: 1px 7px;
+}
+.cuckoo-af-toggle {
+  background: transparent; border: none; color: var(--ck-text-dim);
+  cursor: pointer; font-size: 15px; line-height: 1; padding: 0 2px;
+}
+.cuckoo-af-toggle:hover { color: #fff; }
+.cuckoo-af-list { padding: 6px; display: flex; flex-direction: column; gap: 4px; max-height: 46vh; overflow-y: auto; }
+.cuckoo-af-list::-webkit-scrollbar { width: 5px; }
+.cuckoo-af-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+.cuckoo-agent-float.cuckoo-af-collapsed .cuckoo-af-list { display: none; }
+.cuckoo-af-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 9px; border-radius: 8px;
+  background: var(--ck-surface); border: 1px solid transparent;
+  transition: background 0.15s, border-color 0.2s;
+}
+.cuckoo-af-item.working {
+  background: rgba(74,222,128,0.10);
+  border-color: rgba(74,222,128,0.5);
+}
+.cuckoo-af-emoji { font-size: 15px; line-height: 1; flex-shrink: 0; }
+.cuckoo-af-info { flex: 1; min-width: 0; }
+.cuckoo-af-name { color: #c8ccff; font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cuckoo-af-state { font-size: 10px; color: var(--ck-text-dim); display: flex; align-items: center; gap: 4px; }
+.cuckoo-af-dot { width: 6px; height: 6px; border-radius: 50%; background: #ff6b7a; flex-shrink: 0; }
+.cuckoo-af-item.working .cuckoo-af-dot { background: #4ade80; animation: cuckoo-af-blink 1s steps(1,end) infinite; }
+.cuckoo-af-item.working .cuckoo-af-state { color: #4ade80; }
+.cuckoo-af-task { font-size: 10px; color: #6b7099; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cuckoo-af-empty { color: var(--ck-text-dim); font-size: 11px; text-align: center; padding: 10px 0; }
+@keyframes cuckoo-af-blink { 0%,49% { opacity: 1; } 50%,100% { opacity: 0.25; } }
