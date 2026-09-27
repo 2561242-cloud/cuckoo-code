@@ -45,7 +45,8 @@ Not just chat. The AI can read/write files, search code, execute commands, query
 - **Multi-window management**: each window has an independent profile context; tick "Default" to auto-open on startup
 - **Address bar**: top bar to view/copy the URL, navigate back/forward/reload, quick-jump; a status bar below shows token usage
 - **Project initialization**: after selecting a project directory, the AI gets the directory tree and system prompt
-- **Skill support**: Claude Code-aligned skills (project `.cuckoo/skills/` + user `~/.cuckoo/skills/`), progressive disclosure
+- **Skill support**: Claude Code-aligned skills (project `.cuckoo/skills/` + user `~/.cuckoo/skills/`), progressive disclosure — teach the AI domain-specific workflows/rules/scripts. **→ [Configuration & usage](docs/skills.md)**
+- **Agent support**: Claude Code-aligned subagents (project `.cuckoo/agents/` + user `~/.cuckoo/agents/`); the main conversation can delegate tasks to an isolated-context subagent that returns only a summary — isolating context and enabling specialization. **→ [Configuration & usage](docs/agents.md)**
 - **Tool call system**: the AI can read/write files, search code, execute commands, query databases, and more
 - **Tool execution mask**: a mask over the AI page during execution, with a "Stop" button to cancel sending results back
 - **MCP support**: Claude Desktop compatible config format, stdio / http server types

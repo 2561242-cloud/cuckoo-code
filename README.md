@@ -47,7 +47,8 @@
 - **多窗口管理**：每个窗口独立 Profile 上下文，互不干扰；可勾选「默认」在启动时自动打开
 - **地址栏**：顶部地址栏显示/复制 URL、前进后退刷新、快速跳转；下方状态条显示 token 用量
 - **项目初始化**：选择项目目录后，AI 获得目录树和系统提示词，操作基于真实项目上下文
-- **Skill 支持**：对齐 Claude Code 的技能机制（项目级 `.cuckoo/skills/` + 用户级 `~/.cuckoo/skills/`），渐进式披露
+- **Skill 支持**：对齐 Claude Code 的技能机制（项目级 `.cuckoo/skills/` + 用户级 `~/.cuckoo/skills/`），渐进式披露——教 AI 掌握特定领域的流程/规范/脚本。**→ [配置与使用说明](docs/skills.md)**
+- **Agent 支持**：对齐 Claude Code 的子代理机制（项目级 `.cuckoo/agents/` + 用户级 `~/.cuckoo/agents/`），主对话可把任务委派给独立上下文的子代理，只回摘要——既隔离上下文又支持专门化。**→ [配置与使用说明](docs/agents.md)**
 - **工具调用系统**：AI 可调用读写文件、搜索代码、执行命令、查询数据库等工具
 - **工具执行遮罩**：执行期间在 AI 页面显示遮罩，可点击「停止」取消回传
 - **MCP 支持**：采用 Claude Desktop 兼容格式配置，支持 stdio / http 类型 server
