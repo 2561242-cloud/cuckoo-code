@@ -158,6 +158,61 @@ Both stdio (command + args) and http (url + headers) types are supported. Enable
 
 ---
 
+## Skill Configuration
+
+Skills teach the AI domain-specific **workflows, rules, and scripts**, aligned with Claude Code's Agent Skills mechanism.
+
+A skill is a `SKILL.md` with frontmatter, placed under a conventional directory:
+
+- **Project-level**: `<project>/.cuckoo/skills/<name>/SKILL.md` (travels with the repo, shared by the team)
+- **User-level**: `~/.cuckoo/skills/<name>/SKILL.md` (available across all projects)
+
+On project initialization, skills are **scanned automatically**, and each skill's **name + description + path** is injected into the system prompt (**progressive disclosure**, no full text). When a task is relevant, the AI `read`s the full SKILL.md on demand and follows its instructions; if a skill ships scripts, the AI runs them via `bash`/`pwsh`.
+
+```markdown
+---
+name: my-skill
+description: One line describing what this skill does and when to use it.
+when_to_use: when the user wants xxx
+allowed-tools: read, edit, bash
+---
+
+# Skill body
+Write the workflow, rules, and examples here.
+```
+
+**Full guide (directory conventions, fields, examples) → [Skill configuration & usage](docs/skills.md)**
+
+---
+
+## Agent Configuration
+
+Agents let the main conversation **delegate** tasks to an **isolated-context** sub-conversation that returns only a summary, aligned with Claude Code's subagents mechanism.
+
+An agent is a `.md` file with frontmatter:
+
+- **Project-level**: `<project>/.cuckoo/agents/<name>.md` (travels with the repo, shared by the team)
+- **User-level**: `~/.cuckoo/agents/<name>.md` (available across all projects)
+
+On project initialization, agents are **scanned automatically**, and each agent's **name + description** is injected into the system prompt. When a task suits delegation, the main conversation calls `runAgent(name, task)` — the subagent works in an isolated context and **returns only a summary**.
+
+**Twofold value**: (1) context isolation (relieves long-conversation lag); (2) specialization + tool restriction.
+
+```markdown
+---
+name: code-reviewer
+description: Review code quality. Use after writing code.
+tools: read, grep, glob
+maxTurns: 20
+---
+
+You are a senior code reviewer. Review the given code and report real issues.
+```
+
+**Full guide (directory conventions, fields, examples, built-in agents) → [Agent configuration & usage](docs/agents.md)**
+
+---
+
 ## Custom Provider
 
 Want to integrate a new AI platform? Copy `src/providers/custom/provider.template.js` and fill in according to the template:

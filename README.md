@@ -160,6 +160,61 @@ MCP 配置采用 **Claude Desktop 兼容格式**（可直接分享/导入）：
 
 ---
 
+## Skill 配置
+
+Skill（技能）让 AI 掌握特定领域的**流程、规范、脚本**，对齐 Claude Code 的 Agent Skills 机制。
+
+技能是带 frontmatter 的 `SKILL.md`，放在约定目录下：
+
+- **项目级**：`<项目根>/.cuckoo/skills/<name>/SKILL.md`（随仓库走，团队共享）
+- **用户级**：`~/.cuckoo/skills/<name>/SKILL.md`（所有项目通用）
+
+初始化项目时**自动扫描**，把技能的 **name + description + 路径**注入系统提示词（**渐进式披露**，不塞全文）。AI 判断任务相关时，会主动 `read` 该 SKILL.md 全文，再按其中指令执行；技能若附带脚本，AI 会用 `bash`/`pwsh` 运行。
+
+```markdown
+---
+name: my-skill
+description: 一句话说明这个技能做什么。当用户需要 xxx 时使用。
+when_to_use: 用户想 xxx 时
+allowed-tools: read, edit, bash
+---
+
+# 技能正文
+这里写具体流程、规范、示例。
+```
+
+**完整说明（目录约定、字段、示例）→ [Skill 配置与使用](docs/skills.md)**
+
+---
+
+## Agent 配置
+
+Agent（子代理）让主对话把任务**委派**给**独立上下文**的子对话，只回摘要，对齐 Claude Code 的 subagents 机制。
+
+代理是带 frontmatter 的 `.md` 文件：
+
+- **项目级**：`<项目根>/.cuckoo/agents/<name>.md`（随仓库走，团队共享）
+- **用户级**：`~/.cuckoo/agents/<name>.md`（所有项目通用）
+
+初始化项目时**自动扫描**，把代理的 **name + description** 注入系统提示词。主对话判断任务适合委派时，用 `runAgent(name, task)` 调用——子代理在独立上下文中完成，**只把结果摘要返回**。
+
+**双重价值**：① 上下文隔离（缓解长对话卡顿）；② 专门化 + 工具限制。
+
+```markdown
+---
+name: code-reviewer
+description: 审查代码质量。写完代码后使用。
+tools: read, grep, glob
+maxTurns: 20
+---
+
+你是资深代码审查专家。审查指定代码，找出真问题并给出建议。
+```
+
+**完整说明（目录约定、字段、示例、内置代理）→ [Agent 配置与使用](docs/agents.md)**
+
+---
+
 ## 自定义 Provider
 
 想要接入新的 AI 平台？复制 `src/providers/custom/provider.template.js`，按模板填写：
