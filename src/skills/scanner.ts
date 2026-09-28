@@ -41,6 +41,16 @@ function parseAllowedTools(raw: string): string[] {
   return parts.map((s) => s.trim()).filter(Boolean);
 }
 
+/** 解析触发提示词：支持 "a, b, c" 或 "[a, b, c]" 写法，返回去重数组 */
+function parseTriggers(raw: any): string[] | undefined {
+  if (!raw) return undefined;
+  let s = String(raw).trim();
+  if (s.startsWith('[') && s.endsWith(']')) s = s.slice(1, -1);
+  const parts = s.split(',').map((x) => x.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+  const uniq = Array.from(new Set(parts));
+  return uniq.length ? uniq : undefined;
+}
+
 /** 从正文取首段（非空、非标题行）作为缺省 description */
 function firstParagraph(body: string): string {
   for (const raw of body.split('\n')) {
@@ -86,12 +96,14 @@ function scanDir(baseDir: string, source: SkillSource): SkillMeta[] {
 
     const whenToUse = data.when_to_use ? data.when_to_use.trim() : undefined;
     const allowedTools = data['allowed-tools'] ? parseAllowedTools(data['allowed-tools']) : undefined;
+    const triggers = parseTriggers(data.trigger || data.triggers);
 
     result.push({
       name,
       description,
       whenToUse,
       allowedTools,
+      triggers,
       skillPath,
       dir,
       source,
@@ -131,12 +143,14 @@ export function scanAppSkillsDir(skillsDir: string, source: SkillSource): SkillM
 
     const whenToUse = data.when_to_use ? data.when_to_use.trim() : undefined;
     const allowedTools = data['allowed-tools'] ? parseAllowedTools(data['allowed-tools']) : undefined;
+    const triggers = parseTriggers(data.trigger || data.triggers);
 
     result.push({
       name,
       description,
       whenToUse,
       allowedTools,
+      triggers,
       skillPath,
       dir,
       source,

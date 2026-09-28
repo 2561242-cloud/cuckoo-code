@@ -17,8 +17,10 @@ export interface Frontmatter {
  * @returns { data, body } —— data 为键值对，body 为去掉 frontmatter 的正文
  */
 export function parseFrontmatter(content: string): { data: Frontmatter; body: string } {
+  // 剥离 UTF-8 BOM（某些编辑器/工具写文件会加，会破坏开头的 --- 识别）
+  const stripped = content.charCodeAt(0) === 0xFEFF ? content.slice(1) : content;
   // 归一化换行，简化后续处理
-  const text = content.replace(/\r\n/g, '\n');
+  const text = stripped.replace(/\r\n/g, '\n');
 
   // 必须以 "---\n" 开头
   if (!text.startsWith('---\n')) {

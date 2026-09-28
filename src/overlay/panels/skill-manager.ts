@@ -193,12 +193,32 @@ function renderMarketDetail(detail: any, item: any) {
   document.getElementById('cuckoo-skill-install')?.addEventListener('click', () => installSkill(item));
 }
 
+/** 从市场重新拉取已安装技能的中文名称 */
+async function refreshSkillNames() {
+  const btn = document.getElementById('cuckoo-skill-refresh-names') as any;
+  if (btn) { btn.disabled = true; btn.textContent = '更新中…'; }
+  try {
+    const res = await (window as any).electronAPI.refreshSkillNames();
+    if (res && res.success) {
+      cachedInstalled = res.skills || [];
+      showToast('已更新 ' + (res.updated || 0) + ' 个技能名称' + (res.skipped ? '（' + res.skipped + ' 个无市场来源，跳过）' : ''), 3000);
+      await renderInstalledList();
+    } else {
+      showToast('更新失败: ' + ((res && res.error) || '未知'), 3500);
+    }
+  } catch (err: any) {
+    showToast('更新失败: ' + (err.message || err), 3500);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '更新名称'; }
+  }
+}
+
 /** 从市场安装技能 */
 async function installSkill(item: any) {
   const btn = document.getElementById('cuckoo-skill-install') as any;
   if (btn) { btn.disabled = true; btn.textContent = '安装中…'; }
   try {
-    const res = await (window as any).electronAPI.installSkill(item.slug, item.namespace);
+    const res = await (window as any).electronAPI.installSkill(item.slug, item.namespace, item.name);
     if (res && res.success) {
       showToast('已安装: ' + (res.skill ? res.skill.name : item.name), 2500);
       await renderInstalledList();
@@ -281,4 +301,5 @@ export {
   renderInstalledList,
   renderMarketList,
   clearSkillDetail,
+  refreshSkillNames,
 };

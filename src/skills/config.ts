@@ -45,6 +45,56 @@ function getStateFile(): string {
   return path.join(getUserDataDir(), 'skills-state.json');
 }
 
+/**
+ * 技能元信息覆盖文件。
+ * 从市场安装的技能，SKILL.md 里的 name 是英文；这里存市场的中文名 + slug/namespace，
+ * 供列表显示与「更新技能名称」反查使用。
+ * 结构：{ "<id>": { displayName: "中文名", slug: "...", namespace: "..." } }
+ */
+function getDisplayNamesFile(): string {
+  return path.join(getUserDataDir(), 'skills-display-names.json');
+}
+
+function readDisplayNames(): Record<string, any> {
+  try {
+    const file = getDisplayNamesFile();
+    if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf-8'));
+  } catch (err: any) {
+    console.error('[Skills] 读取显示名失败:', err.message);
+  }
+  return {};
+}
+
+function writeDisplayNames(map: Record<string, any>): boolean {
+  try {
+    fs.writeFileSync(getDisplayNamesFile(), JSON.stringify(map, null, 2), 'utf-8');
+    return true;
+  } catch (err: any) {
+    console.error('[Skills] 写入显示名失败:', err.message);
+    return false;
+  }
+}
+
+/** 设置/更新单个技能的元信息覆盖（displayName 为空则删除） */
+function setSkillDisplayName(id: string, displayName: string, slug?: string, namespace?: string): boolean {
+  const map = readDisplayNames();
+  const key = safeId(id);
+  if (displayName && displayName.trim()) {
+    map[key] = { displayName: displayName.trim() };
+    if (slug) map[key].slug = slug;
+    if (namespace) map[key].namespace = namespace;
+  } else {
+    delete map[key];
+  }
+  return writeDisplayNames(map);
+}
+
+/** 读取单个技能的元信息覆盖 */
+function getSkillMeta(id: string): any | null {
+  const map = readDisplayNames();
+  return map[safeId(id)] || null;
+}
+
 /** 确保目录存在 */
 function ensureDir(): void {
   try {
@@ -108,6 +158,16 @@ function parseAllowedTools(raw: string): string[] {
   return parts.map((s) => s.trim()).filter(Boolean);
 }
 
+/** 解析触发提示词：支持 "a, b, c" 或 "[a, b, c]" 写法，返回去重数组 */
+function parseTriggers(raw: any): string[] | undefined {
+  if (!raw) return undefined;
+  let s = String(raw).trim();
+  if (s.startsWith('[') && s.endsWith(']')) s = s.slice(1, -1);
+  const parts = s.split(',').map((x) => x.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
+  const uniq = Array.from(new Set(parts));
+  return uniq.length ? uniq : undefined;
+}
+
 /**
  * 读取某个 SKILL.md 为技能定义。
  * @param skillMdPath SKILL.md 绝对路径
@@ -121,16 +181,33 @@ function readSkillFile(skillMdPath: string, id: string): any | null {
     return null;
   }
   const { data, body } = parseFrontmatter(raw);
-  const name = (data.name && data.name.trim()) || id;
+  // name 优先，其次 displayName/display_name（市场技能常用这俩存中文名）
+  const rawName = (data.name && String(data.name).trim()) || '';
+  const displayName = (data.displayName && String(data.displayName).trim())
+    || (data.display_name && String(data.display_name).trim())
+    || '';
   const description = (data.description || '').trim();
+  // 中文品牌名兜底：description 开头到 ".Skill/.Skills" 的部分（如 "包拯.Skills你身边的..." → "包拯.Skills"）
+  let brandName = '';
+  const bm = description.match(/^[\s\S]*?\.Skills?/);
+  if (bm && /[\u4e00-\u9fa5]/.test(bm[0])) brandName = bm[0];
+  const name = displayName || brandName || rawName || id;
   const allowedTools = data['allowed-tools'] ? parseAllowedTools(data['allowed-tools']) : undefined;
+  // SKILL.md 里自带的 slug（供市场反查用，可能 ≠ 目录名）
+  const skillSlug = (data.slug && String(data.slug).trim()) || '';
+  // 触发提示词：trigger / triggers 字段（可能是数组写法 "[a, b]" 或 "a, b"）
+  const triggers = parseTriggers(data.trigger || data.triggers);
   return {
     id,
     name,
+    rawName,
+    displayName: displayName || null,
+    slug: skillSlug || null,
     description,
     license: data.license || '',
     allowedTools,
     whenToUse: data.when_to_use ? data.when_to_use.trim() : undefined,
+    triggers,
     content: body.trim(),
     filePath: skillMdPath,
     dir: path.dirname(skillMdPath),
@@ -148,6 +225,7 @@ function listSkills(): any[] {
   } catch {
     return [];
   }
+  const displayNames = readDisplayNames();
   const result: any[] = [];
   for (const ent of entries) {
     if (!ent.isDirectory()) continue;
@@ -155,6 +233,12 @@ function listSkills(): any[] {
     const skill = readSkillFile(path.join(dir, id, 'SKILL.md'), id);
     if (!skill) continue;
     skill.enabled = state[id] !== false; // 默认启用
+    // 显示名优先级：市场覆盖（含中文才用）> SKILL.md 自带 displayName/品牌名 > name
+    const meta = displayNames[id];
+    if (meta && meta.displayName && /[\u4e00-\u9fa5]/.test(meta.displayName)) {
+      skill.name = meta.displayName;
+    }
+    if (meta) { skill.marketSlug = meta.slug || null; skill.marketNamespace = meta.namespace || null; }
     result.push(skill);
   }
   return result;
@@ -168,6 +252,11 @@ function getSkill(id: string): any | null {
   if (!skill) return null;
   const state = readState();
   skill.enabled = state[safeId(id)] !== false;
+  const meta = getSkillMeta(safeId(id));
+  if (meta && meta.displayName && /[\u4e00-\u9fa5]/.test(meta.displayName)) {
+    skill.name = meta.displayName;
+  }
+  if (meta) { skill.marketSlug = meta.slug || null; skill.marketNamespace = meta.namespace || null; }
   return skill;
 }
 
@@ -216,7 +305,7 @@ function upsertSkill(skill: any): any {
  * @param id 目标 id（目录名）；缺省从 SKILL.md 的 name 生成
  * @returns 安装后的技能
  */
-function installSkillFromDir(srcDir: string, id?: string): any {
+function installSkillFromDir(srcDir: string, id?: string, displayName?: string, slug?: string, namespace?: string): any {
   ensureDir();
   const skillMd = path.join(srcDir, 'SKILL.md');
   if (!fs.existsSync(skillMd)) throw new Error('技能包缺少 SKILL.md');
@@ -229,6 +318,8 @@ function installSkillFromDir(srcDir: string, id?: string): any {
   // 清空已存在的目标目录（覆盖安装）
   if (fs.existsSync(destDir)) fs.rmSync(destDir, { recursive: true, force: true });
   fs.cpSync(srcDir, destDir, { recursive: true });
+  // 记录市场提供的显示名（通常为中文）与 slug/namespace（供更新名称反查）
+  if (displayName && String(displayName).trim()) setSkillDisplayName(finalId, String(displayName).trim(), slug, namespace);
   return getSkill(finalId);
 }
 
@@ -264,4 +355,6 @@ export {
   installSkillFromDir,
   removeSkill,
   setSkillEnabled,
+  setSkillDisplayName,
+  getSkillMeta,
 };

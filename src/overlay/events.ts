@@ -12,7 +12,7 @@ import { renderWindowList, openWindowManager, closeWindowManager, handleGenerate
 import { loadMcpConfigToJson, renderMcpList, openMcpManager, closeMcpManager, handleMcpSave } from './panels/mcp-manager.js';
 import { openSettings, closeSettings, resetSettings, saveSettings } from './panels/settings.js';
 import { openAgentManager, closeAgentManager, renderAgentList, clearAgentForm, saveAgent, deleteAgent, toggleAgentEnabled } from './panels/agent-manager.js';
-import { openSkillManager, closeSkillManager, switchTab, doSearch } from './panels/skill-manager.js';
+import { openSkillManager, closeSkillManager, switchTab, doSearch, refreshSkillNames } from './panels/skill-manager.js';
 import { makeFabDraggable } from './fab.js';
 import { getProviderByUrl } from '../providers/registry.js';
 
@@ -442,6 +442,8 @@ function bindEvents() {
   document.getElementById('cuckoo-skill-search-input')?.addEventListener('keydown', (e: any) => {
     if (e.key === 'Enter') doSearch();
   });
+  // Skill 面板：更新已装技能名称（从市场拉中文名）
+  document.getElementById('cuckoo-skill-refresh-names')?.addEventListener('click', refreshSkillNames);
 
   // 浮动面板：新建窗口（不指定平台，让窗口显示平台选择页）
   const wmNewWindowBtn = document.getElementById('cuckoo-wm-new-window');

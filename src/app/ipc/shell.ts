@@ -11,6 +11,12 @@ import { getAgentStatus, pushAgentStatusTo } from '../agent-status.js';
 const require = createRequire(import.meta.url);
 const { ipcMain } = require('electron');
 
+/** 取事件来源的壳窗口（标题栏按钮所在窗口） */
+function winOf(event: any): any {
+  const { BrowserWindow } = require('electron');
+  return BrowserWindow.fromWebContents(event.sender);
+}
+
 /** 取事件来源对应的 AI 页面 view */
 function viewOf(event: any): any {
   return windowState.getViewByWebContents(event.sender);
@@ -83,9 +89,75 @@ function registerShellIpc(): void {
     return { success: true, systemTotal: getTotal() };
   });
 
+  // 查询应用版本（标题栏显示用）
+  ipcMain.handle('get-app-version', async () => {
+    const { app } = require('electron');
+    return { success: true, version: app.getVersion() };
+  });
+
+  // 查询已启用的应用级技能（快捷按钮栏用）
+  ipcMain.handle('shell-get-skills', async () => {
+    try {
+      const { listSkills } = require('../../skills/config.js');
+      const skills = (listSkills() || [])
+        .filter((s: any) => s.enabled !== false)
+        .map((s: any) => ({ id: s.id, name: s.name, triggers: s.triggers || [] }));
+      return { success: true, skills };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  // 点击技能按钮：把文本填入 AI 页面输入框（只填不发，主进程直接操作 DOM）
+  ipcMain.handle('shell-trigger-skill', async (event: any, { text }: any) => {
+    const view = viewOf(event);
+    if (!view || !view.webContents || view.webContents.isDestroyed()) return { success: false };
+    const safe = JSON.stringify(String(text || ''));
+    const code = '(function(){try{' +
+      'var t=' + safe + ';' +
+      'var el=document.querySelector("textarea")||document.querySelector("[contenteditable=true]")||document.querySelector("div[contenteditable]");' +
+      'if(!el)return "no-input";' +
+      'el.focus();' +
+      'if(el.tagName==="TEXTAREA"){' +
+      'var setter=Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype,"value").set;' +
+      'setter.call(el,t);' +
+      '}else{el.textContent=t;}' +
+      'el.dispatchEvent(new Event("input",{bubbles:true}));' +
+      'return "ok";' +
+      '}catch(e){return "err:"+e.message;}})()';
+    try {
+      const res = await view.webContents.executeJavaScript(code);
+      return { success: true, result: res };
+    } catch (e: any) {
+      return { success: false, error: e.message };
+    }
+  });
+
   // 查询当前子代理运行状态（壳页面加载时拉取一次）
   ipcMain.handle('get-agent-status', async () => {
     return { success: true, agents: getAgentStatus() };
+  });
+
+  // ========== 自绘标题栏：窗口控制（仿 macOS 圆点） ==========
+  ipcMain.handle('shell-win-close', async (event: any) => {
+    const win = winOf(event);
+    if (win && !win.isDestroyed()) win.close();
+    return { success: true };
+  });
+
+  ipcMain.handle('shell-win-minimize', async (event: any) => {
+    const win = winOf(event);
+    if (win && !win.isDestroyed()) win.minimize();
+    return { success: true };
+  });
+
+  ipcMain.handle('shell-win-toggle-maximize', async (event: any) => {
+    const win = winOf(event);
+    if (win && !win.isDestroyed()) {
+      if (win.isMaximized()) win.unmaximize();
+      else win.maximize();
+    }
+    return { success: true };
   });
 
 

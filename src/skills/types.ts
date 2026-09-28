@@ -18,6 +18,8 @@ export interface SkillMeta {
   whenToUse?: string;
   /** 声明可用工具（frontmatter 的 allowed-tools，仅声明不强制） */
   allowedTools?: string[];
+  /** 触发提示词（frontmatter 的 trigger/triggers，用于快捷按钮与路由） */
+  triggers?: string[];
   /** SKILL.md 的绝对路径（供 AI read）；应用级技能为 <app>/skills/<id>.md */
   skillPath: string;
   /** 技能目录绝对路径（应用级为 <app>/skills） */

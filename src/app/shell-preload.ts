@@ -23,10 +23,17 @@ const shellAPI = {
     ipcRenderer.on('shell-total-updated', (_e: any, data: any) => cb(data));
   },
   getSystemTotal: () => ipcRenderer.invoke('get-system-total'),
+  getAppVersion: () => ipcRenderer.invoke('get-app-version'),
+  getSkills: () => ipcRenderer.invoke('shell-get-skills'),
+  triggerSkill: (text: string) => ipcRenderer.invoke('shell-trigger-skill', { text }),
   onAgentUpdated: (cb: (data: any) => void) => {
     ipcRenderer.on('shell-agent-updated', (_e: any, data: any) => cb(data));
   },
   getAgentStatus: () => ipcRenderer.invoke('get-agent-status'),
+  // 自绘标题栏窗口控制
+  winClose: () => ipcRenderer.invoke('shell-win-close'),
+  winMinimize: () => ipcRenderer.invoke('shell-win-minimize'),
+  winToggleMaximize: () => ipcRenderer.invoke('shell-win-toggle-maximize'),
 };
 
 try {

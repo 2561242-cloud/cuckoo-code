@@ -106,8 +106,11 @@ let electronAPI: any = {
   getSkillDetail: (slug: any, namespace: any) => {
     return ipcRenderer.invoke('get-skill-detail', { slug, namespace });
   },
-  installSkill: (slug: any, namespace: any) => {
-    return ipcRenderer.invoke('install-skill', { slug, namespace });
+  installSkill: (slug: any, namespace: any, displayName: any) => {
+    return ipcRenderer.invoke('install-skill', { slug, namespace, displayName });
+  },
+  refreshSkillNames: () => {
+    return ipcRenderer.invoke('refresh-skill-names');
   },
   // ========== MCP 相关 API ==========
   listMcpServers: () => {

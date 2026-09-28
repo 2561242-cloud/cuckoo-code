@@ -95,6 +95,9 @@ function createWindow(profile: any) {
     width: defaultBounds.width,
     height: defaultBounds.height,
     ...(defaultBounds.x !== undefined ? { x: defaultBounds.x + cascadeOffset, y: (defaultBounds.y || 0) + cascadeOffset } : {}),
+    frame: false, // 无边框：自绘仿 macOS 标题栏
+    transparent: true, // 透明窗口：配合 CSS 圆角（Win10 无原生圆角）
+    backgroundColor: '#00000000',
     icon: resolveAsset('assets/icon.png'),
     title: 'Cuckoo Code Pro - ' + (provider ? provider.name : '未选择平台') + ' - ' + profileData.name,
     webPreferences: {
@@ -130,11 +133,23 @@ function createWindow(profile: any) {
   mainWindow.contentView.addChildView(view);
 
   // 布局：AI 页面占地址栏下方区域，随窗口尺寸变化
-  const TOOLBAR_HEIGHT = 44 + 26; // 地址栏 44 + 状态条 26
+  const TITLEBAR_HEIGHT = 38; // 自绘仿 macOS 标题栏
+  const SKILLS_BAR_HEIGHT = 34; // 技能快捷按钮栏
+  const TOOLBAR_HEIGHT = TITLEBAR_HEIGHT + 44 + SKILLS_BAR_HEIGHT + 26; // 标题栏 38 + 地址栏 44 + 技能栏 34 + 状态条 26
+  const WINDOW_RADIUS = 10; // 窗口圆角（透明窗口 + CSS 圆角，Win10 无原生圆角）
+  const BORDER = 1; // 与 shell 的边框宽度一致，让四周边框可见
   const layoutView = () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const [w, h] = mainWindow.getContentSize();
-    view.setBounds({ x: 0, y: TOOLBAR_HEIGHT, width: w, height: Math.max(0, h - TOOLBAR_HEIGHT) });
+    // 左右下内缩，露出 shell 的边框；顶部从工具栏下方开始
+    view.setBounds({
+      x: BORDER,
+      y: TOOLBAR_HEIGHT,
+      width: Math.max(0, w - BORDER * 2),
+      height: Math.max(0, h - TOOLBAR_HEIGHT - BORDER),
+    });
+    // AI 页面是独立原生子视图，需单独设圆角（否则底部两角是直角）
+    try { if (typeof view.setBorderRadius === 'function') view.setBorderRadius(WINDOW_RADIUS); } catch (_) { /* 老版本忽略 */ }
   };
   layoutView();
   mainWindow.on('resize', layoutView);
@@ -789,11 +804,71 @@ ipcMainForProfile.handle('get-skill-detail', async (_event: any, { slug, namespa
   }
 });
 
+// 更新已安装技能的名称：从市场重新拉取中文名
+// 优先用记录的 slug/namespace；老技能没记录时，用技能 id 作为 slug 去市场搜索匹配
+ipcMainForProfile.handle('refresh-skill-names', async () => {
+  try {
+    const skills = skillConfig.listSkills();
+    let updated = 0;
+    let skipped = 0;
+    const failed: string[] = [];
+    for (const s of skills) {
+      const meta = skillConfig.getSkillMeta(s.id) || {};
+      let slug = meta.slug;
+      let namespace = meta.namespace;
+      // 老技能：用 id 作为关键词去市场搜索匹配
+      if (!slug || !namespace) {
+        try {
+          const kw = String(s.id).replace(/[-_]?skills?$/i, ''); // 去掉 -skill(s) 后缀再搜
+          const r = await skillMarket.searchSkills(kw, 1, 15);
+          const list = (r.skills || []).filter((x: any) => x.namespace); // 必须有 namespace
+          const hasCn = (t: any) => /[\u4e00-\u9fa5]/.test(String(t || ''));
+          const idLower = String(s.id).toLowerCase();
+          // 匹配优先级：slug 精确 > name 精确 > 去后缀相等；同分优先含中文名
+          const exactSlug = list.find((x: any) => String(x.slug).toLowerCase() === idLower);
+          const exactName = list.find((x: any) => String(x.name).toLowerCase() === idLower);
+          const loose = list.find((x: any) => {
+            const sl = String(x.slug).toLowerCase().replace(/[-_]?skills?$/i, '');
+            return sl === kw.toLowerCase();
+          });
+          const pick = exactSlug
+            || exactName
+            || loose
+            || list.find((x: any) => hasCn(x.name));
+          if (pick) { slug = pick.slug; namespace = pick.namespace; }
+        } catch (_) { /* 忽略，走下面跳过 */ }
+      }
+      if (!slug || !namespace) { skipped++; failed.push(s.name + '(未匹配)'); continue; }
+      try {
+        const d = await skillMarket.getSkillDetail(slug, namespace);
+        const cn = d && d.name;
+        // 只采用含中文的名字；市场名是英文时不覆盖（避免把 SKILL.md 的中文品牌名挡掉）
+        if (cn && /[\u4e00-\u9fa5]/.test(cn) && cn !== s.name) {
+          skillConfig.setSkillDisplayName(s.id, cn, slug, namespace);
+          updated++;
+        } else if (!cn || !/[\u4e00-\u9fa5]/.test(cn)) {
+          skipped++;
+        }
+      } catch (_) { skipped++; failed.push(s.name + '(拉取失败)'); }
+    }
+    return { success: true, updated, skipped, failed, skills: skillConfig.listSkills() };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+});
+
 // 从市场下载并安装技能
-ipcMainForProfile.handle('install-skill', async (_event: any, { slug, namespace }: any) => {
+ipcMainForProfile.handle('install-skill', async (_event: any, { slug, namespace, displayName }: any) => {
   try {
     const dir = await skillMarket.downloadAndExtract(slug, namespace);
-    const saved = skillConfig.installSkillFromDir(dir);
+    // displayName 传市场的中文名；未传则从市场详情兜底拉取
+    let cn = displayName;
+    if (!cn && slug && namespace) {
+      try { const d = await skillMarket.getSkillDetail(slug, namespace); cn = d && d.name; } catch (_) { /* 忽略 */ }
+    }
+    // 只采用含中文的名字；英文市场名不覆盖（保留 SKILL.md 里的品牌名）
+    if (cn && !/[\u4e00-\u9fa5]/.test(cn)) cn = undefined;
+    const saved = skillConfig.installSkillFromDir(dir, undefined, cn, slug, namespace);
     return { success: true, skill: saved };
   } catch (err: any) {
     return { success: false, error: err.message };

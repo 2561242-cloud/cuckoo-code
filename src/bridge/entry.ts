@@ -113,6 +113,23 @@ function init(): void {
     // 初始化 Agent 悬浮卡片（AI 页面左侧）
     try { initAgentFloat(); } catch (err) { console.error('[Cuckoo Code] initAgentFloat 失败:', err); }
 
+    // 技能快捷按钮：主进程转发过来的文本 → 填入输入框（只填不发）
+    ipcRenderer.on('cuckoo-trigger-skill', (_e: any, data: any) => {
+      const text = data && data.text;
+      if (!text) return;
+      try {
+        const input = chatInput.findInputArea();
+        console.log('[Cuckoo Code] 技能填入：input=' + !!input);
+        if (input) {
+          chatInput.setInputContent(input, String(text));
+        } else {
+          console.warn('[Cuckoo Code] 技能填入：未找到输入框');
+        }
+      } catch (err) {
+        console.error('[Cuckoo Code] 技能填入失败:', err);
+      }
+    });
+
     // URL 变化：主进程 did-navigate/-in-page 会推 'cuckoo-url-changed'
     ipcRenderer.on('cuckoo-url-changed', handleUrlChanged);
     window.addEventListener('popstate', handleUrlChanged);

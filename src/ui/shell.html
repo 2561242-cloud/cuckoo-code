@@ -5,22 +5,63 @@
 <title>Cuckoo</title>
 <style>
   :root {
-    --ck-bg: #111322;
-    --ck-toolbar: #171a2b;
-    --ck-surface: rgba(255, 255, 255, 0.04);
-    --ck-surface-hover: rgba(255, 255, 255, 0.08);
-    --ck-border: rgba(255, 255, 255, 0.08);
-    --ck-primary: #8b93ff;
-    --ck-text: #e8eaf6;
-    --ck-text-dim: #9aa0c0;
+    --ck-bg: #ffffff;
+    --ck-toolbar: #f5f5f7;
+    --ck-surface: rgba(0, 0, 0, 0.04);
+    --ck-surface-hover: rgba(0, 0, 0, 0.07);
+    --ck-border: #d2d2d7;
+    --ck-primary: #0071e3;
+    --ck-text: #1d1d1f;
+    --ck-text-dim: #6e6e73;
   }
   * { box-sizing: border-box; }
   html, body {
     margin: 0; height: 100%;
     font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-    background: var(--ck-bg); color: var(--ck-text); overflow: hidden;
+    background: transparent; color: var(--ck-text); overflow: hidden;
   }
-  .shell { display: flex; flex-direction: column; height: 100vh; }
+  /* 圆角容器：窗口为透明无边框，圆角由此提供 */
+  .shell {
+    display: flex; flex-direction: column; height: 100vh;
+    background: var(--ck-bg);
+    border-radius: 10px;
+    border: 1px solid #d2d2d7;
+    overflow: hidden;
+  }
+  /* ===== 自绘仿 macOS 标题栏 ===== */
+  .titlebar {
+    display: flex; align-items: center;
+    height: 38px; padding: 0 12px; flex-shrink: 0;
+    background: var(--ck-toolbar);
+    border-bottom: 1px solid var(--ck-border);
+    -webkit-app-region: drag;
+    user-select: none;
+  }
+  .traffic {
+    display: flex; align-items: center; gap: 8px;
+    -webkit-app-region: no-drag;
+  }
+  .traffic .dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    border: none; padding: 0; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: filter .15s;
+  }
+  .traffic .dot svg { width: 7px; height: 7px; opacity: 0; transition: opacity .12s; }
+  .traffic:hover .dot svg { opacity: 1; }
+  .traffic .dot-close { background: #ff5f57; }
+  .traffic .dot-min { background: #febc2e; }
+  .traffic .dot-max { background: #28c840; }
+  .traffic .dot:hover { filter: brightness(1.1); }
+  .traffic .dot svg { stroke: rgba(0,0,0,0.55); stroke-width: 2.4; fill: none; }
+  .titlebar-title {
+    flex: 1; text-align: center;
+    font-size: 12.5px; font-weight: 600; color: var(--ck-text-dim);
+    letter-spacing: .3px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    pointer-events: none;
+    padding: 0 76px;
+  }
   .toolbar {
     display: flex; align-items: center; gap: 6px;
     height: 44px; padding: 0 10px;
@@ -48,7 +89,7 @@
     transition: border-color .15s, background .15s;
   }
   .url-wrap:hover { background: var(--ck-surface-hover); }
-  .url-wrap:focus-within { border-color: var(--ck-primary); background: rgba(255,255,255,0.06); }
+  .url-wrap:focus-within { border-color: var(--ck-primary); background: rgba(0,0,0,0.05); }
   .lock { width: 12px; height: 12px; flex-shrink: 0; margin-right: 8px; color: #5fbf7f; }
   .url-input {
     flex: 1; border: none; outline: none; background: transparent;
@@ -57,6 +98,28 @@
   .url-input::placeholder { color: var(--ck-text-dim); }
   .url-input::selection { background: var(--ck-primary); color: #fff; }
   .divider { width: 1px; height: 20px; background: var(--ck-border); margin: 0 4px; }
+  .skills-bar {
+    display: flex; align-items: center; gap: 6px;
+    height: 34px; padding: 0 10px; flex-shrink: 0;
+    background: var(--ck-bg);
+    border-bottom: 1px solid var(--ck-border);
+    overflow-x: auto; overflow-y: hidden;
+  }
+  .skills-bar.empty { visibility: hidden; } /* 保留高度，避免 AI 区域跳动 */
+  .skills-bar::-webkit-scrollbar { height: 0; }
+  .skill-chip {
+    display: flex; align-items: center; flex-shrink: 0;
+    height: 24px; padding: 0 12px; border-radius: 12px;
+    background: var(--ck-surface);
+    border: 1px solid var(--ck-border);
+    color: var(--ck-text); font-size: 12px; line-height: 1;
+    cursor: pointer; user-select: none;
+    transition: background .15s, border-color .15s, color .15s;
+    -webkit-app-region: no-drag;
+    white-space: nowrap;
+  }
+  .skill-chip:hover { background: var(--ck-surface-hover); border-color: var(--ck-primary); color: var(--ck-primary); }
+  .skill-chip:active { transform: scale(0.97); }
   .statusbar {
     display: flex; align-items: center; justify-content: flex-end; gap: 10px;
     height: 26px; padding: 0 12px;
@@ -92,7 +155,7 @@
     transition: border-color .2s, background .2s;
   }
   .agent-pill-emoji { font-size: 13px; line-height: 1; }
-  .agent-pill-name { color: #c8ccff; font-weight: 600; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .agent-pill-name { color: #1d1d1f; font-weight: 600; max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .agent-pill-dot {
     width: 7px; height: 7px; border-radius: 50%;
     background: #ff6b7a; flex-shrink: 0;
@@ -118,6 +181,20 @@
 </head>
 <body>
   <div class="shell">
+    <div class="titlebar">
+      <div class="traffic">
+        <button class="dot dot-close" id="win-close" title="关闭">
+          <svg viewBox="0 0 10 10"><path d="M2 2 L8 8 M8 2 L2 8"/></svg>
+        </button>
+        <button class="dot dot-min" id="win-min" title="最小化">
+          <svg viewBox="0 0 10 10"><path d="M2 5 L8 5"/></svg>
+        </button>
+        <button class="dot dot-max" id="win-max" title="最大化">
+          <svg viewBox="0 0 10 10"><path d="M2.5 2.5 L7.5 7.5 M7.5 2.5 L2.5 7.5"/></svg>
+        </button>
+      </div>
+      <div class="titlebar-title" id="titlebar-title">Cuckoo Code Pro</div>
+    </div>
     <div class="toolbar">
       <button class="nav-btn disabled" id="btn-back" title="后退">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
@@ -138,6 +215,7 @@
       </button>
       <div class="agent-hud empty cuckoo-hidden-hud" id="agent-hud" title="子代理（Agent）运行状态"></div>
     </div>
+    <div class="skills-bar empty" id="skills-bar"></div>
     <div class="statusbar">
       <div class="sb-item" title="对话上下文：本会话当前占用的 token 总量">
         <span class="sb-icon">💬</span>
@@ -165,6 +243,61 @@
   </div>
 <script>
   var api = window.shellAPI || {};
+  // 自绘标题栏按钮
+  (function () {
+    var closeBtn = document.getElementById('win-close');
+    var minBtn = document.getElementById('win-min');
+    var maxBtn = document.getElementById('win-max');
+    if (closeBtn) closeBtn.addEventListener('click', function () { api.winClose && api.winClose(); });
+    if (minBtn) minBtn.addEventListener('click', function () { api.winMinimize && api.winMinimize(); });
+    if (maxBtn) maxBtn.addEventListener('click', function () { api.winToggleMaximize && api.winToggleMaximize(); });
+  })();
+  // 标题栏显示应用版本
+  (function () {
+    var el = document.getElementById('titlebar-title');
+    if (el && api.getAppVersion) {
+      api.getAppVersion().then(function (res) {
+        if (res && res.success && res.version) el.textContent = 'Cuckoo Code Pro v' + res.version;
+      }).catch(function () {});
+    }
+  })();
+  // 技能快捷按钮栏
+  function shortSkillName(name) {
+    return String(name || '').replace(/\.skills?$/i, '');
+  }
+  function renderSkillsBar(skills) {
+    var bar = document.getElementById('skills-bar');
+    if (!bar) return;
+    if (!skills || !skills.length) { bar.classList.add('empty'); bar.innerHTML = ''; return; }
+    bar.classList.remove('empty');
+    bar.innerHTML = skills.map(function (s, i) {
+      var label = shortSkillName(s.name);
+      return '<div class="skill-chip" data-idx="' + i + '" title="' + String(s.name).replace(/"/g, '&quot;') + '">' + label + '</div>';
+    }).join('');
+    bar.querySelectorAll('.skill-chip').forEach(function (el) {
+      el.addEventListener('click', function () {
+        var idx = parseInt(el.getAttribute('data-idx'), 10);
+        var s = skills[idx];
+        if (!s) return;
+        var label = shortSkillName(s.name);
+        var trigger = (s.triggers && s.triggers.length) ? s.triggers[0] : '';
+        var text = '使用「' + label + '」技能' + (trigger ? '：' + trigger : '');
+        if (api.triggerSkill) {
+          api.triggerSkill(text).then(function (res) {
+            console.log('[Shell] triggerSkill result:', JSON.stringify(res));
+          }).catch(function (e) { console.error('[Shell] triggerSkill error:', e); });
+        }
+      });
+    });
+  }
+  function loadSkillsBar() {
+    if (api.getSkills) {
+      api.getSkills().then(function (res) {
+        if (res && res.success) renderSkillsBar(res.skills);
+      }).catch(function () {});
+    }
+  }
+  loadSkillsBar();
   var input = document.getElementById('url-input');
   var btnBack = document.getElementById('btn-back');
   var btnForward = document.getElementById('btn-forward');
