@@ -89,7 +89,6 @@ function saveSettings() {
   const smax = secToMs(val('cuckoo-delay-max'));
   if (Number.isNaN(smin) || smin < 0) { showToast('发送延迟最小值必须是非负数字（秒）', 3000); return; }
   if (Number.isNaN(smax) || smax < smin) { showToast('发送延迟最大值不能小于最小值', 3000); return; }
-  if (smax > 10000) { showToast('发送延迟最大值不能超过 10 秒', 3000); return; }
   const amin = secToMs(val('cuckoo-attach-delay-min'));
   const amax = secToMs(val('cuckoo-attach-delay-max'));
   if (Number.isNaN(amin) || amin < 0) { showToast('附件上传间隔最小值必须是非负数字（秒）', 3000); return; }
