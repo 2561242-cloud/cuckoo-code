@@ -17,6 +17,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createRequire } from 'node:module';
 import * as mcpConfig from './config.js';
+import { resolveRuntimeBinDir } from '../infra/paths.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
@@ -123,13 +124,65 @@ async function connectServer(server: any, windowId: number | null): Promise<any>
   }
 }
 
+// ========== 自带运行时解析 ==========
+// 我们打包了 uv/node（resources/runtime/<platform>/bin/）。spawn MCP 时：
+//  - command 是 uvx/uv/npx/node/npm → 解析成自带绝对路径（优先自带，尊重"版本可控"）
+//  - 并把自带 bin 目录加进子进程 PATH（npx.cmd 内部还要找 node）
+
+const RUNTIME_COMMANDS = new Set(['uvx', 'uv', 'uvw', 'npx', 'node', 'npm']);
+
+/** 命令名 → 自带可执行文件（带平台后缀） */
+function bundledBinName(cmd: string): string {
+  const isWin = process.platform === 'win32';
+  if (cmd === 'uvx') return isWin ? 'uvx.exe' : 'uvx';
+  if (cmd === 'uv') return isWin ? 'uv.exe' : 'uv';
+  if (cmd === 'uvw') return isWin ? 'uvw.exe' : 'uvw';
+  if (cmd === 'node') return isWin ? 'node.exe' : 'node';
+  if (cmd === 'npx') return isWin ? 'npx.cmd' : 'npx';
+  if (cmd === 'npm') return isWin ? 'npm.cmd' : 'npm';
+  return cmd;
+}
+
+/**
+ * 解析 spawn 的 command：
+ *  - 若命令是 uvx/npx 等且自带运行时存在 → 返回自带绝对路径
+ *  - 否则原样返回（交给系统 PATH）
+ */
+function resolveCommand(command: string): { command: string; bundled: boolean } {
+  if (!RUNTIME_COMMANDS.has(command)) return { command, bundled: false };
+  const binDir = resolveRuntimeBinDir();
+  if (!binDir) return { command, bundled: false };
+  const full = path.join(binDir, bundledBinName(command));
+  if (fs.existsSync(full)) return { command: full, bundled: true };
+  return { command, bundled: false };
+}
+
+/** 构造 MCP 子进程的 env：自带 bin 目录加到 PATH 最前（仅此进程，不碰系统） */
+function buildSpawnEnv(userEnv: any): any {
+  const base = Object.assign({}, process.env, userEnv || {});
+  const binDir = resolveRuntimeBinDir();
+  if (binDir) {
+    const sep = process.platform === 'win32' ? ';' : ':';
+    base.PATH = binDir + sep + (base.PATH || base.Path || '');
+    // Windows 上大小写敏感：确保 Path 也在
+    if (process.platform === 'win32') base.Path = base.PATH;
+  }
+  return base;
+}
+
 async function doConnectServer(server: any, key: string): Promise<any> {
   let transport: any;
   if (server.type === 'stdio') {
+    const resolved = resolveCommand(server.command);
+    if (resolved.bundled) {
+      console.log('[MCP] 使用自带运行时: ' + server.command + ' → ' + resolved.command);
+    } else if (RUNTIME_COMMANDS.has(server.command)) {
+      console.warn('[MCP] 未找到自带运行时，回退系统 PATH: ' + server.command);
+    }
     transport = new StdioClientTransport({
-      command: server.command,
+      command: resolved.command,
       args: server.args || [],
-      env: server.env || {},
+      env: buildSpawnEnv(server.env),
       cwd: server.cwd || getDefaultMcpCwd(),
       stderr: 'pipe',
     });

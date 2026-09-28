@@ -32,6 +32,9 @@ userData/
 *.tmp
 temp/
 
+# 打包用的运行时二进制（uv/node，本地下载，不进仓库）
+resources/runtime/
+
 # Project specific
 # .cuckooCode/ 是各项目的工具目录，通常不提交；但本项目自身的约束文件 CUCKOO.md 例外
 .cuckooCode/*

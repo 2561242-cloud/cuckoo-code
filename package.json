@@ -6,7 +6,8 @@
   "main": "out/src/app/entry.js",
   "scripts": {
     "compile": "node scripts/build-hooks.mjs && tsc -p tsconfig.build.json && node scripts/build-tool-api.mjs",
-    "start": "node start.js",
+    "fetch-runtime": "node scripts/fetch-runtime.mjs",
+    "start": "node scripts/fetch-runtime.mjs && node start.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -129,6 +130,10 @@
       {
         "from": "src/tools/api.d.ts",
         "to": "tools/cuckoo-tools.d.ts"
+      },
+      {
+        "from": "resources/runtime",
+        "to": "runtime"
       }
     ],
     "files": [

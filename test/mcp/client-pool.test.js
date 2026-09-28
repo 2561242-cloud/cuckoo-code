@@ -16,7 +16,7 @@ vi.mock('node:module', async (importOriginal) => {
   return {
     ...actual,
     createRequire: () => (id) => {
-      if (id === 'electron') return { app: { isPackaged: false, getPath: () => 'C:/ud' } };
+      if (id === 'electron') return { app: { isPackaged: false, getPath: () => 'C:/ud', getAppPath: () => 'C:/app' } };
       throw new Error('unexpected require: ' + id);
     },
   };
