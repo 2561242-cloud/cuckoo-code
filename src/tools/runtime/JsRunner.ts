@@ -10,8 +10,12 @@
  */
 
 import vm from 'node:vm';
+import path from 'node:path';
 import { TOOL_BOOTSTRAP } from './bootstrap.generated.js';
 import { logRun, ToolFailure } from '../../infra/tool-error-log.js';
+import { scanRules, getScopedRules, getInjectedSet, markInjected } from '../../rules/index.js';
+import { matchRulesForPath } from '../../rules/matcher.js';
+import { renderRuleFull, renderRulePointer } from '../../rules/prompt.js';
 
 // 同步执行超时（vm timeout，覆盖无 await 的死循环）
 const SYNC_TIMEOUT = 30 * 1000;
@@ -76,6 +80,23 @@ TOOL_BOOTSTRAP,
 ].join('\n');
 
 /**
+ * 把 read 的文件路径转成"项目内相对路径（正斜杠）"。
+ * 绝对路径 → 相对 projectDir；相对路径 → 原样（去盘符/前导 ./）。
+ */
+function toProjectRelPath(filePath: any, projectDir: any): string | null {
+  if (!filePath || typeof filePath !== 'string') return null;
+  let p = filePath.replace(/\\/g, '/');
+  if (path.isAbsolute(filePath) || /^[a-zA-Z]:/.test(p)) {
+    if (!projectDir) return null;
+    const abs = path.resolve(filePath);
+    const rel = path.relative(projectDir, abs).replace(/\\/g, '/');
+    return rel.startsWith('..') ? null : rel; // 项目外的不算
+  }
+  // 相对路径
+  return p.replace(/^\.\//, '');
+}
+
+/**
  * 安全的 JSON 序列化（处理循环引用等异常）
  */
 function safeStringify(value: any): string {
@@ -121,6 +142,8 @@ class JsRunner {
     let longTaskRunning = 0;
     // 收集本次脚本里"工具级失败"（供开发版错误日志）
     const toolFailures: ToolFailure[] = [];
+    // 本次脚本 read 过的文件（项目内相对路径，正斜杠）——供规则注入
+    const readFiles: string[] = [];
 
     // 唯一跨域桥接函数：AI 代码中的每个工具调用都通过它回到主进程执行。
     // 注意：该函数绝不向沙箱抛出宿主对象（错误一律包装成 { success:false, error } 结果），
@@ -146,6 +169,10 @@ class JsRunner {
           result = await tool.execute(Object.assign({}, settings || {}, args, { projectDir, currentWindowId: windowId }));
           if (result && result.success === false) {
             toolFailures.push({ tool: op, args: args, error: result.error || '未知错误' });
+          } else if (op === 'read' && result && result.success !== false) {
+            // 记录本次读过的文件（项目内相对路径），供规则注入
+            const rel = toProjectRelPath((args as any) && (args as any).filePath, projectDir);
+            if (rel) readFiles.push(rel);
           }
         } catch (err: any) {
           result = { success: false, error: '工具 ' + op + ' 执行异常: ' + (err.message || String(err)) };
@@ -244,6 +271,14 @@ class JsRunner {
       }
 
       let output = parts.filter(Boolean).join('\n\n');
+
+      // ===== 规则注入（有 paths 的规则，read 命中时）=====
+      const rulesInjection = buildRulesInjection(readFiles, projectDir, settings);
+      if (rulesInjection) {
+        // 拼在输出开头（截断切尾，开头必保留）
+        output = rulesInjection + '\n\n' + output;
+      }
+
       if (output.length > OUTPUT_LIMIT) {
         output = output.slice(0, OUTPUT_LIMIT) + '\n...[输出过长已截断]...';
       }
@@ -267,6 +302,39 @@ class JsRunner {
       for (const h of sandboxTimers) clearTimeout(h);
       sandboxTimers.clear();
     }
+  }
+}
+
+/**
+ * 生成本次脚本的"规则注入文本"。
+ *  - 首次命中某规则 → 规则全文 + 路径
+ *  - 之后命中 → 规则名 + 路径（提示 AI 自己 read）
+ * 去重按"会话 + 规则文件路径"。
+ * @returns 注入文本（无命中返回空串）
+ */
+function buildRulesInjection(readFiles: string[], projectDir: any, settings: any): string {
+  if (!readFiles || readFiles.length === 0 || !projectDir) return '';
+  try {
+    const scoped = getScopedRules(scanRules(projectDir));
+    if (scoped.length === 0) return '';
+    const sessionId = (settings && settings.sessionId) || '(default)';
+    const injected = getInjectedSet(sessionId);
+    const parts: string[] = [];
+    for (const file of readFiles) {
+      const matched = matchRulesForPath(scoped, file);
+      for (const rule of matched) {
+        if (injected.has(rule.rulePath)) {
+          parts.push(renderRulePointer(rule, file));
+        } else {
+          parts.push(renderRuleFull(rule));
+          markInjected(sessionId, rule.rulePath);
+        }
+      }
+    }
+    return parts.join('\n\n');
+  } catch (err: any) {
+    console.error('[JsRunner] 规则注入失败:', err && err.message);
+    return '';
   }
 }
 

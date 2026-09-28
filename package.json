@@ -54,6 +54,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.13.6",
+    "@types/picomatch": "^4.0.3",
     "@vitest/coverage-v8": "^5.0.1",
     "electron": "^44.4.3",
     "electron-builder": "^26.15.3",
@@ -156,6 +157,7 @@
     "electron-log": "^5.4.4",
     "electron-updater": "^6.8.9",
     "mysql2": "^3.24.2",
+    "picomatch": "^4.0.7",
     "turndown": "^7.2.4"
   },
   "allowScripts": {

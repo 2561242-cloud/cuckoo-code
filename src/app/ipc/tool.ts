@@ -32,10 +32,11 @@ function registerToolIpc(): void {
     const ctx = windowState.getContextByWebContents(event.sender);
     const store = ctx ? ctx.sessionStore : null;
     const selectedDir = store ? store.state.selectedProjectDir : null;
+    const sessionId = store ? store.state.currentSessionId : null;
     const win = ctx ? ctx.win : null;
     const windowId = win && !win.isDestroyed() ? win.id : null;
     try {
-      const result = await jsRunner.run(code, selectedDir, windowId, { attachDelayMin, attachDelayMax });
+      const result = await jsRunner.run(code, selectedDir, windowId, { attachDelayMin, attachDelayMax, sessionId });
       return { callId, ...result };
     } catch (err: any) {
       return { callId, success: false, error: err.message };

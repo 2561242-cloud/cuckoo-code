@@ -162,4 +162,6 @@ log(r);
 ## 当前目录说明
 {{PROJECT_INTRO_SECTION}}
 
+{{PROJECT_RULES_SECTION}}
+
 ---
