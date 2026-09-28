@@ -49,6 +49,7 @@
 - **项目初始化**：选择项目目录后，AI 获得目录树和系统提示词，操作基于真实项目上下文
 - **Skill 支持**：对齐 Claude Code 的技能机制（项目级 `.cuckoo/skills/` + 用户级 `~/.cuckoo/skills/`），渐进式披露——教 AI 掌握特定领域的流程/规范/脚本。**→ [配置与使用说明](docs/skills.md)**
 - **Agent 支持**：对齐 Claude Code 的子代理机制（项目级 `.cuckoo/agents/` + 用户级 `~/.cuckoo/agents/`），主对话可把任务委派给独立上下文的子代理，只回摘要——既隔离上下文又支持专门化。**→ [配置与使用说明](docs/agents.md)**
+- **Rules 支持**：对齐 Claude Code 的规则机制（项目级 `.cuckoo/rules/` + 用户级 `~/.cuckoo/rules/`），规则可绑定文件路径（`paths`）——**只在 AI 读到相关文件时才注入**，把"改这里要注意什么"精准告诉 AI。**→ [配置与使用说明](docs/rules.md)**
 - **工具调用系统**：AI 可调用读写文件、搜索代码、执行命令、查询数据库等工具
 - **工具执行遮罩**：执行期间在 AI 页面显示遮罩，可点击「停止」取消回传
 - **MCP 支持**：采用 Claude Desktop 兼容格式配置，支持 stdio / http 类型 server
@@ -211,7 +212,38 @@ maxTurns: 20
 你是资深代码审查专家。审查指定代码，找出真问题并给出建议。
 ```
 
-**完整说明（目录约定、字段、示例、内置代理）→ [Agent 配置与使用](docs/agents.md)**
+**完整说明（目录约定、字段、示例、内置代理）→ [Agent 配置与使用](docs/agents.md)
+
+---
+
+## Rules 配置
+
+Rules（规则）让 AI **只在读相关文件时**看到对应的项目约束，对齐 Claude Code 的 `.claude/rules/` 机制。
+
+规则是带 frontmatter 的 `.md` 文件：
+
+- **项目级**：`<项目根>/.cuckoo/rules/<name>.md`（随仓库走，团队共享）
+- **用户级**：`~/.cuckoo/rules/<name>.md`（所有项目通用）
+
+**两种规则**：
+- **有 `paths`** → 只在 AI **读匹配文件**时注入（省上下文）
+- **无 `paths`** → 初始化时注入「## 项目规则」章节（始终适用）
+
+```markdown
+---
+name: api-rules
+paths:
+  - "src/api/**/*.ts"
+---
+
+# API 开发规则
+- 所有接口必须校验入参
+- 使用统一的错误响应格式
+```
+
+AI 读 `src/api/user.ts` 时，会**自动看到这条规则**（首次注入全文，之后只给提醒）。
+
+**完整说明（目录约定、字段、示例）→ [Rules 配置与使用](docs/rules.md)****
 
 ---
 
