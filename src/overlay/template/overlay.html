@@ -30,11 +30,22 @@
       </div>
     </div>
     <div class="cuckoo-divider"></div>
-    <div class="cuckoo-actions">
+    <div class="cuckoo-actions cuckoo-actions-main">
       <button id="cuckoo-btn-init" class="cuckoo-btn cuckoo-btn-primary">初始化项目</button>
-      <button id="cuckoo-btn-window-manager" class="cuckoo-btn cuckoo-btn-secondary" title="管理窗口（新建/切换）">窗口管理</button>
-      <button id="cuckoo-btn-mcp" class="cuckoo-btn cuckoo-btn-secondary" title="管理 MCP 工具">MCP</button>
-      <button id="cuckoo-btn-agent" class="cuckoo-btn cuckoo-btn-secondary" title="管理子代理（Agents）">Agent</button>
+    </div>
+    <div class="cuckoo-manage-grid">
+      <button id="cuckoo-btn-window-manager" class="cuckoo-manage-btn" title="管理窗口（新建/切换）">
+        <span class="cuckoo-manage-icon">🪟</span><span class="cuckoo-manage-text">窗口</span>
+      </button>
+      <button id="cuckoo-btn-mcp" class="cuckoo-manage-btn" title="管理 MCP 工具">
+        <span class="cuckoo-manage-icon">🔌</span><span class="cuckoo-manage-text">MCP</span>
+      </button>
+      <button id="cuckoo-btn-agent" class="cuckoo-manage-btn" title="管理子代理（Agents）">
+        <span class="cuckoo-manage-icon">🤖</span><span class="cuckoo-manage-text">Agent</span>
+      </button>
+      <button id="cuckoo-btn-skill" class="cuckoo-manage-btn" title="管理技能（Skills）">
+        <span class="cuckoo-manage-icon">🧩</span><span class="cuckoo-manage-text">Skill</span>
+      </button>
     </div>
     <div class="cuckoo-actions">
 <button id="cuckoo-btn-gen-doc" class="cuckoo-btn cuckoo-btn-primary" title="让 AI 生成项目说明文档 (CUCKOO.md)">生成项目说明</button>
@@ -173,6 +184,7 @@
         <span class="cuckoo-settings-hint">重试提示词</span>
         <textarea id="cuckoo-retry-prompt" class="cuckoo-settings-textarea" rows="2"></textarea>
       </div>
+      <label class="cuckoo-label"><input type="checkbox" id="cuckoo-retry-prefer-continue-btn" /> 优先点击页面"继续生成"按钮（失败再发提示词）</label>
       <div class="cuckoo-settings-row">
         <span class="cuckoo-settings-hint">AI 回复时间超时后重试</span>
         <input id="cuckoo-xhr-idle-timeout" type="number" min="0" step="1" value="300" class="cuckoo-settings-input" />
@@ -254,6 +266,30 @@
         <button id="cuckoo-agent-toggle" type="button" class="cuckoo-btn cuckoo-btn-secondary">启用/禁用</button>
         <button id="cuckoo-agent-delete" type="button" class="cuckoo-btn cuckoo-btn-secondary" style="display:none;">删除</button>
       </div>
+    </div>
+  </div>
+</div>
+<div id="cuckoo-skill-manager" class="cuckoo-window-manager cuckoo-hidden">
+  <div class="cuckoo-wm-header">
+    <span class="cuckoo-title">技能（Skills）</span>
+    <button id="cuckoo-skill-close" class="cuckoo-btn-icon" title="关闭">×</button>
+  </div>
+  <div class="cuckoo-skill-tabs">
+    <button class="cuckoo-skill-tab cuckoo-skill-tab-active" data-tab="installed">已安装</button>
+    <button class="cuckoo-skill-tab" data-tab="market">市场</button>
+  </div>
+  <div id="cuckoo-skill-search-row" class="cuckoo-skill-search-row" style="display:none;">
+    <input id="cuckoo-skill-search-input" class="cuckoo-skill-search-input" type="text" placeholder="搜索 SkillHub 技能…" />
+    <button id="cuckoo-skill-search-btn" class="cuckoo-btn cuckoo-btn-primary">搜索</button>
+  </div>
+  <div class="cuckoo-wm-body cuckoo-agent-body">
+    <div class="cuckoo-agent-left">
+      <div id="cuckoo-skill-list" class="cuckoo-session-list">
+        <div class="cuckoo-session-empty">暂无</div>
+      </div>
+    </div>
+    <div id="cuckoo-skill-detail" class="cuckoo-skill-detail">
+      <div class="cuckoo-session-empty">选择左侧条目查看详情</div>
     </div>
   </div>
 </div>

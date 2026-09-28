@@ -20,6 +20,7 @@ import { startRetryEngine } from './loop/retry.js';
 import { startSessionWatcher, startWatchdog, checkSessionChange } from './loop/watchdog.js';
 import { initSubagentIfNeeded } from './subagent.js';
 import { initAgentFloat } from '../overlay/agent-float.js';
+import { initMessageFold } from '../overlay/message-fold.js';
 
 const require = createRequire(import.meta.url);
 const { webFrame, ipcRenderer } = require('electron');
@@ -147,6 +148,10 @@ function init(): void {
       checkSessionChange();
     } catch (_) {}
   }, 15000);
+
+  // 启动消息折叠（CSS 折叠，不搬移 DOM）
+  try { initMessageFold(); } catch (err) { console.error('[Cuckoo Code] initMessageFold 失败:', err); }
+
 }
 
 if (document.readyState === 'loading') {
@@ -154,3 +159,4 @@ if (document.readyState === 'loading') {
 } else {
   init();
 }
+
