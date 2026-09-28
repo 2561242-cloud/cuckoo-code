@@ -17,6 +17,11 @@ jobs:
         with:
           node-version: 18
       - run: npm install
+      - uses: actions/cache@v4
+        with:
+          path: resources/runtime
+          key: runtime-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/runtime-versions.json') }}
+      - run: node scripts/fetch-runtime.mjs
       - run: npm run build:win
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -39,6 +44,11 @@ jobs:
         with:
           node-version: 18
       - run: npm install
+      - uses: actions/cache@v4
+        with:
+          path: resources/runtime
+          key: runtime-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/runtime-versions.json') }}
+      - run: node scripts/fetch-runtime.mjs
       - run: npm run build:mac
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}

@@ -37,6 +37,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # 缓存自带运行时（uv/node），版本没变则跳过下载
+      - name: Cache runtime binaries
+        uses: actions/cache@v4
+        with:
+          path: resources/runtime
+          key: runtime-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('scripts/runtime-versions.json') }}
+
+      - name: Fetch runtime binaries
+        run: node scripts/fetch-runtime.mjs
+
       - name: Build and Publish (正式版)
         if: ${{ !contains(github.ref_name, '-beta') }}
         run: npm run ${{ matrix.command }}
