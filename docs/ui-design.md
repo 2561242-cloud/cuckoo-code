@@ -117,6 +117,14 @@ iOS 风格：38×22px，圆点 16px，激活蓝色。
 ### 柱状图 \`.ck-bar\`
 横向：左日期 + 中横条 + （悬停 tooltip）。横条圆角 6px，默认 \`opacity: .35\`，悬停 \`1\`。
 
+### 表单（设置页等）
+- **分组容器**：直接复用 \`.ck-card\`（白底 + 发丝边 + 12px 圆角 + 微阴影）
+- **字段** \`.ck-set-field\`：\`flex column\`，label → input 间距 **6px**
+- **标签**：12px，\`--ck-text-2\`
+- **输入框** \`.ck-set-input\`：min-height 32px，圆角 9px，聚焦蓝光圈
+- **多行** \`.ck-set-textarea\`：圆角 9px，可拖拽
+- **区间** \`.ck-set-inline\`：两个输入框 + "至"分隔
+
 ---
 
 ## 五、图标
