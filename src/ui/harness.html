@@ -551,9 +551,9 @@
 
   // ===== Goal（目标）/ Plan（计划）=====
   var GOAL_KEY = 'cuckoo-harness-goal-v1';
-  var GOAL_MAX_ROUNDS = 15;      // 自动推进轮数上限
+  // 目标自动推进：不限轮次，直到 AI 声明完成或用户手动停止
   var GOAL_NUDGE_DELAY = 3000;   // 纯文本回复后等待 ms；期间出现工具调用/新流式则取消催促
-  var goal = null;               // { text, round, maxRounds, done }
+  var goal = null;               // { text, round, done }
   var goalNudgeTimer = null;
   var toolRunningCount = 0;
 
@@ -568,7 +568,7 @@
   }
   function loadGoalState() {
     try { goal = JSON.parse(localStorage.getItem(GOAL_KEY) || 'null'); } catch (e) { goal = null; }
-    if (goal && (!goal.text || typeof goal.maxRounds !== 'number')) goal = null;
+    if (goal && (!goal.text)) goal = null;
   }
 
   function renderGoalBar() {
@@ -577,17 +577,17 @@
     goalbar.className = 'goalbar show ' + (goal.done ? 'done' : 'running');
     goalTextEl.textContent = goal.text;
     goalStateTextEl.textContent = goal.done ? '已完成' : '进行中';
-    goalRoundEl.textContent = '自动推进 ' + goal.round + ' / ' + goal.maxRounds + ' 轮';
+    goalRoundEl.textContent = '自动推进 ' + goal.round + ' 轮';
     goalBtn.textContent = goal.done ? '清除目标' : '停止目标';
     goalBtn.className = 'g-btn' + (goal.done ? '' : ' danger');
   }
 
   function startGoal(text) {
     cancelGoalNudge();
-    goal = { text: text, round: 0, maxRounds: GOAL_MAX_ROUNDS, done: false };
+    goal = { text: text, round: 0, done: false };
     saveGoalState();
     renderGoalBar();
-    appendSystem('目标已设定（自动推进最多 ' + GOAL_MAX_ROUNDS + ' 轮，AI 完成时输出 [[GOAL_DONE]] 结束）');
+    appendSystem('目标已设定（自动多轮推进，AI 完成时输出 [[GOAL_DONE]] 结束）');
     pushHist({ t: 'system', text: '目标已设定：' + text });
   }
 
@@ -614,15 +614,10 @@
       goalNudgeTimer = null;
       if (!goal || goal.done) return;
       if (generating || toolRunningCount > 0) return; // 仍在忙：等下一个事件再调度
-      if (goal.round >= goal.maxRounds) {
-        stopGoal('目标已达自动推进上限（' + goal.maxRounds + ' 轮）。可 /goal 重新设定。');
-        return;
-      }
       goal.round++;
       saveGoalState();
       renderGoalBar();
-      addUser('[自动推进 ' + goal.round + '/' + goal.maxRounds + '] 继续推进目标');
-      pushHist({ t: 'user', text: '[自动推进 ' + goal.round + '/' + goal.maxRounds + '] 继续推进目标' });
+      // 自动推进指令只发给 AI，不写入对话框/历史
       setStatus('生成中…', 'busy');
       if (!cur) {
         cur = createAssistant();
@@ -631,7 +626,7 @@
         scrollBottom(true);
       }
       var nudge = '请继续推进目标：' + goal.text +
-        '\n（第 ' + goal.round + '/' + goal.maxRounds + ' 轮自动推进；若目标已完成，请在回复末尾单独一行输出 [[GOAL_DONE]]；若遇到无法解决的阻碍，请说明原因并暂停）';
+        '\n（若目标已完成，请在回复末尾单独一行输出 [[GOAL_DONE]]；若遇到无法解决的阻碍，请说明原因并暂停）';
       if (api.sendMessage) api.sendMessage(nudge);
     }, GOAL_NUDGE_DELAY);
   }
