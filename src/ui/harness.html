@@ -616,8 +616,11 @@
           cur = null;
           return;
         }
-        // 上传成功：触发发送（可能仅附件，text 为空）
-        if (api.sendMessage) api.sendMessage(text || ' ');
+        // 上传成功：延迟发送，给 AI 网页时间把附件与"发送"绑定（否则附件带不上）
+        if (api.sendMessage) {
+          setStatus('发送中…', 'busy');
+          setTimeout(function () { api.sendMessage(text || ' '); }, 1500);
+        }
       }).catch(function (e) {
         appendSystem('附件上传出错：' + ((e && e.message) || '未知错误'));
         setStatus('就绪', 'ready');
@@ -641,7 +644,18 @@
   function stop() {
     // 立即重置本地状态（不等主进程），给用户即时反馈
     setStatus('就绪', 'ready');
-    cur = null;
+    // 清理未完成的助手气泡（含 pending 加载动画 / 流式光标）
+    if (cur) {
+      var isEmptyPending = cur.pending && cur.body && cur.body.querySelector('.pending-dots');
+      if (isEmptyPending) {
+        // 只剩加载动画的空气泡 → 整个移除
+        if (cur.el && cur.el.parentNode) cur.el.parentNode.removeChild(cur.el);
+      } else if (cur.body) {
+        var cursor = cur.body.querySelector('.streaming-cursor');
+        if (cursor && cursor.parentNode) cursor.parentNode.removeChild(cursor);
+      }
+      cur = null;
+    }
     appendSystem('已停止生成');
     pushHist({ t: 'system', text: '已停止生成' });
     // 后台请求停止 AI 页面（失败也无妨）
