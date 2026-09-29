@@ -12,6 +12,7 @@ import { createRequire } from 'node:module';
 import * as windowState from '../window.js';
 import { scanSkills } from '../../skills/index.js';
 import { registry } from '../../tools/index.js';
+import { getProvider } from '../../providers/registry.js';
 
 const require = createRequire(import.meta.url);
 const { ipcMain } = require('electron');
@@ -222,6 +223,23 @@ function registerHarnessIpc(): void {
       (ctx as any).harnessView.webContents.reloadIgnoringCache();
       return { success: true };
     } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  // 新对话：在 AI 网页中真正开一个新会话（导航到平台首页）
+  ipcMain.handle('harness-new-conversation', async (event: any) => {
+    const ctx = findContext(event.sender);
+    if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) return { success: false };
+    try {
+      const provider = ctx.providerId ? getProvider(ctx.providerId) : null;
+      const url = provider && provider.homeUrl ? provider.homeUrl : null;
+      if (!url) return { success: false, error: 'no-home-url' };
+      console.log('[Cuckoo Harness] 新对话 → 导航到 ' + url);
+      ctx.view.webContents.loadURL(url);
+      return { success: true, url: url };
+    } catch (err: any) {
+      console.log('[Cuckoo Harness] 新对话异常: ' + err.message);
       return { success: false, error: err.message };
     }
   });

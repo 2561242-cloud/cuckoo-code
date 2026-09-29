@@ -589,6 +589,15 @@
     goalBtn.className = 'g-btn' + (goal.done ? '' : ' danger');
   }
 
+  // 构造目标推进指令（发给 AI 的完整文本）
+  function buildGoalSendText(gt) {
+    return '【目标】' + gt + '\n\n请持续推进并完成上述目标，要求：\n' +
+      '1. 优先使用可用工具实际推进（读写文件、执行命令、检索等），而非只输出计划；\n' +
+      '2. 一轮无法完成时直接继续下一轮，无需等待用户确认；\n' +
+      '3. 目标完成时，在回复末尾单独一行输出 [[GOAL_DONE]]；\n' +
+      '4. 遇到无法解决的阻碍时，说明原因并暂停等待。';
+  }
+
   function startGoal(text) {
     cancelGoalNudge();
     goal = { text: text, round: 0, done: false };
@@ -1019,22 +1028,21 @@
     hideSlashMenu();
     input.value = '';
     input.style.height = 'auto';
-    // /goal <目标>：本地设定目标；气泡只显示目标，发给 AI 的是完整推进指令
+    // 目标：支持"/goal xxx"或由 / 菜单进入的"目标输入模式"
     var displayText = text, sendText = text;
-    if (/^\/goal(\s|$)/.test(text)) {
-      var gt = text.replace(/^\/goal\s*/, '').trim();
-      if (!gt) {
+    var goalText = null;
+    if (pendingGoal && text) { goalText = text; }
+    else if (/^\/goal(\s|$)/.test(text)) { goalText = text.replace(/^\/goal\s*/, '').trim(); }
+    if (pendingGoal) { pendingGoal = false; input.placeholder = '输入消息…  / 查看技能与工具'; }
+    if (goalText !== null) {
+      if (!goalText) {
         appendSystem('用法：/goal <目标描述> —— 设定后自动多轮推进，AI 完成时输出 [[GOAL_DONE]] 结束');
         input.focus();
         return;
       }
-      startGoal(gt);
-      displayText = '[目标] ' + gt;
-      sendText = '【目标】' + gt + '\n\n请持续推进并完成上述目标，要求：\n' +
-        '1. 优先使用可用工具实际推进（读写文件、执行命令、检索等），而非只输出计划；\n' +
-        '2. 一轮无法完成时直接继续下一轮，无需等待用户确认；\n' +
-        '3. 目标完成时，在回复末尾单独一行输出 [[GOAL_DONE]]；\n' +
-        '4. 遇到无法解决的阻碍时，说明原因并暂停等待。';
+      startGoal(goalText);
+      displayText = '[目标] ' + goalText;
+      sendText = buildGoalSendText(goalText);
     }
     // 隐藏指令（技能/工具/计划）：附加到发给 AI 的文本，但不进对话气泡
     var hintText = hints.length ? hints.map(function (h) { return h.text; }).join('\n') : '';
@@ -1176,6 +1184,8 @@
   var pendingFiles = []; // { name, mime, size, data(base64) }
   // 待发隐藏指令（技能/工具/计划等）：只显示为 chip，发送时作为隐藏文本附加给 AI，不进对话气泡
   var pendingHints = []; // { label, text }
+  // 目标输入模式：由 / 菜单"设定目标"触发，下一段输入作为目标
+  var pendingGoal = false;
   var hintRow = document.getElementById('hint-row');
   function renderHints() {
     if (!hintRow) return;
@@ -1405,7 +1415,12 @@
               input.value = prefix;
               pendingHints.push({ label: '计划', text: '请先给出完成该任务的分步计划，然后再开始执行：' });
               renderHints();
-            } else if (action === 'goal') { input.value = prefix + '/goal '; }
+            } else if (action === 'goal') {
+              // 进入"目标输入模式"：输入框清空、提示改为输入目标，不写入 /goal 提示词
+              input.value = prefix;
+              pendingGoal = true;
+              input.placeholder = '输入目标描述，回车设定并自动推进…';
+            }
             hideSlashMenu();
             input.focus();
             return;
@@ -1438,6 +1453,8 @@
     stopGoal('');
     if (planPanel) planPanel.classList.remove('show');
     setStatus('就绪', 'ready');
+    // 真正在 AI 网页中开新对话
+    if (api.newConversation) api.newConversation().catch(function () { /* ignore */ });
   });
   // Ctrl+R 重载页面（加载最新 HTML）
   document.addEventListener('keydown', function (e) {

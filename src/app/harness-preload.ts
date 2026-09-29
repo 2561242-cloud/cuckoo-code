@@ -21,6 +21,8 @@ const harnessAPI = {
   attach: (files: any) => ipcRenderer.invoke('harness-attach', { files }),
   /** 重载 harness 页面（加载最新 HTML） */
   reload: () => ipcRenderer.invoke('harness-reload'),
+  /** 新对话：在 AI 网页中开新会话 */
+  newConversation: () => ipcRenderer.invoke('harness-new-conversation'),
   /** 订阅对话事件（user/assistant/tool-start/tool-end/status/reset） */
   onEvent: (cb: (payload: any) => void) => {
     ipcRenderer.on('harness-event', (_e: any, payload: any) => cb(payload));
