@@ -37,6 +37,36 @@ const shellAPI = {
   openProfileWindow: (profileId: string) => ipcRenderer.invoke('open-profile-window', { profileId }),
   deleteProfileWindow: (profileId: string) => ipcRenderer.invoke('delete-profile', { profileId }),
   setProfileAutoOpen: (profileId: string, autoOpen: boolean) => ipcRenderer.invoke('set-profile-auto-open', { profileId, autoOpen }),
+  // ========== 快捷提示词 ==========
+  listSnippets: () => ipcRenderer.invoke('list-snippets'),
+  saveSnippets: (snippets: any) => ipcRenderer.invoke('save-snippets', { snippets }),
+  triggerSnippet: (content: string, autoSend: boolean) => ipcRenderer.invoke('trigger-snippet', { content, autoSend }),
+  onSnippetsChanged: (cb: () => void) => {
+    ipcRenderer.on('shell-snippets-changed', () => cb());
+  },
+  onPlatformMode: (cb: (data: any) => void) => {
+    ipcRenderer.on('shell-platform-mode', (_e: any, data: any) => cb(data));
+  },
+  // ========== 技能 ==========
+  listSkills: () => ipcRenderer.invoke('list-skills'),
+  // ========== MCP ==========
+  listMcpServers: () => ipcRenderer.invoke('list-mcp-servers', {}),
+  enableMcpServer: (name: string) => ipcRenderer.invoke('enable-mcp-server', { name }),
+  disableMcpServer: (name: string) => ipcRenderer.invoke('disable-mcp-server', { name }),
+  appendSnippet: (text: string) => ipcRenderer.invoke('append-to-input', { text }),
+  // ========== 关于 ==========
+  getAppInfo: () => ipcRenderer.invoke('get-app-info'),
+  checkUpdate: () => ipcRenderer.invoke('check-update'),
+  getAssetUrl: (rel: string) => ipcRenderer.invoke('get-asset-url', { rel }),
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', { url }),
+  // ========== 自动压缩 ==========
+  getAutoCompact: () => ipcRenderer.invoke('get-autocompact'),
+  saveAutoCompact: (data: any) => ipcRenderer.invoke('save-autocompact', { data }),
+  triggerCompact: () => ipcRenderer.invoke('trigger-compact'),
+  // ========== 设置 ==========
+  getSettings: () => ipcRenderer.invoke('get-settings'),
+  saveSettings: (data: any) => ipcRenderer.invoke('save-settings', { data }),
+  resetSettings: () => ipcRenderer.invoke('reset-settings'),
 };
 
 try {

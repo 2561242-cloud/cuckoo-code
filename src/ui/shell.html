@@ -19,6 +19,7 @@
     --ck-text: #16181d;
     --ck-text-2: #545a67;
     --ck-text-dim: #8a8f9b;
+    --ck-hover-bg: #e6e8ee;
     --ck-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
     --ck-shadow: 0 1px 3px rgba(16, 24, 40, 0.05), 0 1px 2px rgba(16, 24, 40, 0.03);
     --ck-shadow-lg: 0 4px 12px rgba(16, 24, 40, 0.07);
@@ -43,6 +44,7 @@
       --ck-text: #e4e6eb;
       --ck-text-2: #a8adba;
       --ck-text-dim: #757b8a;
+      --ck-hover-bg: rgba(255, 255, 255, 0.13);
       --ck-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
       --ck-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
       --ck-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.35);
@@ -123,10 +125,17 @@
   .url-input::placeholder { color: var(--ck-text-dim); }
   .url-input::selection { background: var(--ck-primary); color: #fff; }
   .divider { width: 1px; height: 18px; background: var(--ck-border-strong); margin: 0 6px; }
+  /* 平台选择模式：地址栏工具条隐藏导航/地址输入（只留空白） */
+  .toolbar.ck-toolbar-plain .nav-btn,
+  .toolbar.ck-toolbar-plain .url-wrap,
+  .toolbar.ck-toolbar-plain .divider,
+  .toolbar.ck-toolbar-plain #project-picker { display: none; }
 
   /* ===== 状态条 ===== */
+  /* 状态条（暂隐藏：Token 已移到侧边栏 Token 页） */
   .statusbar {
-    display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+    display: none;
+    align-items: center; justify-content: flex-end; gap: 12px;
     height: 28px; padding: 0 16px;
     background: var(--ck-bg-sub);
     border-bottom: 1px solid var(--ck-border);
@@ -161,13 +170,14 @@
   .ck-ab-item:hover { background: var(--ck-surface-hover); }
   .ck-ab-item:active { transform: scale(0.92); }
   .ck-ab-icon { width: 18px; height: 18px; opacity: .45; transition: opacity .15s, color .15s; color: var(--ck-text); }
-  .ck-ab-item:hover .ck-ab-icon { opacity: .8; }
+  .ck-ab-text { font-size: 15px; font-weight: 700; line-height: 1; opacity: .45; transition: opacity .15s, color .15s; color: var(--ck-text); }
+  .ck-ab-item:hover .ck-ab-icon, .ck-ab-item:hover .ck-ab-text { opacity: .8; }
   .ck-ab-item.ck-ab-active { background: var(--ck-primary-soft); }
-  .ck-ab-item.ck-ab-active .ck-ab-icon { opacity: 1; color: var(--ck-primary); }
+  .ck-ab-item.ck-ab-active .ck-ab-icon, .ck-ab-item.ck-ab-active .ck-ab-text { opacity: 1; color: var(--ck-primary); }
   .ck-ab-spacer { flex: 1; }
 
   .ck-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
-  .ck-panel-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .ck-panel-body { flex: 1; overflow-y: auto; padding: 16px 8px; display: flex; flex-direction: column; gap: 14px; }
   .ck-tab { display: none; flex-direction: column; gap: 14px; }
   .ck-tab.ck-tab-active { display: flex; }
   .ck-placeholder { color: var(--ck-text-dim); font-size: 12px; text-align: center; padding: 20px 0; }
@@ -184,13 +194,13 @@
   .ck-label { font-size: 10.5px; font-weight: 600; color: var(--ck-text-dim); letter-spacing: .6px; text-transform: uppercase; }
   .ck-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .ck-divider { border-top: 1px solid var(--ck-border); margin: 1px 0; }
-  .ck-actions { display: flex; gap: 8px; }
+  .ck-actions { display: flex; align-items: center; gap: 8px; }
 
   /* ===== 按钮 ===== */
   .ck-btn {
-    flex: 1; padding: 10px 14px; border: 1px solid transparent;
-    border-radius: 9px; font-size: 12.5px; font-weight: 600;
-    cursor: pointer; transition: all .15s; letter-spacing: .1px;
+    flex: 1; padding: 10px 16px; border: 1px solid transparent;
+    border-radius: 999px; font-size: 12.5px; font-weight: 600;
+    cursor: pointer; transition: all .15s; letter-spacing: 1.5px;
     font-family: inherit;
   }
   .ck-btn:active { transform: scale(0.98); }
@@ -198,9 +208,54 @@
   .ck-btn-primary:hover { background: var(--ck-primary-strong); box-shadow: 0 3px 10px rgba(77,107,254,.32); transform: translateY(-1px); }
   .ck-btn-primary:active { transform: translateY(0) scale(0.98); }
   .ck-btn-secondary { background: var(--ck-bg); color: var(--ck-text); border-color: var(--ck-border-strong); }
-  .ck-btn-secondary:hover { background: var(--ck-surface); border-color: transparent; }
+  .ck-btn-secondary:hover { background: var(--ck-hover-bg); border-color: transparent; }
   .ck-btn-text { background: none; border: none; color: var(--ck-text-dim); padding: 4px 0; text-align: left; font-size: 11px; cursor: pointer; font-family: inherit; transition: color .15s; }
   .ck-btn-text:hover { color: var(--ck-danger); }
+  /* 幽灵按钮（白底/深底 + 主文字色，参考 DeepSeek「开启新对话」） */
+  .ck-btn-ghost {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    background: var(--ck-bg); color: var(--ck-text);
+    border-color: var(--ck-border-strong); font-weight: 500;
+  }
+  .ck-btn-ghost:hover { background: var(--ck-hover-bg); border-color: var(--ck-border-strong); transform: none; }
+  .ck-btn-ghost:active { transform: scale(0.98); }
+  .ck-btn-icon { width: 15px; height: 15px; flex-shrink: 0; }
+  /* 提示词页按钮：无边框（hover 背景效果保持） */
+  #snip-init-project, #snip-add { border-color: transparent; }
+  #snip-init-project:hover, #snip-add:hover { border-color: transparent; }
+  /* 按钮动画组件（.ck-btn-anim）：独占整行的按钮用
+   * 默认内容偏左 → 悬停平滑居中（用伪元素做"弹性空格"，无需改 HTML 结构）
+   * 用法：<button class="ck-btn ... ck-btn-anim"><svg/><span>文字</span></button>
+   */
+  .ck-btn-anim {
+    display: flex; align-items: center; justify-content: center; gap: 0;
+    background: transparent; border-color: transparent; color: var(--ck-primary);
+    box-shadow: none;
+  }
+  .ck-btn-anim:hover {
+    background: var(--ck-hover-bg); border-color: transparent;
+    color: var(--ck-primary); box-shadow: none; transform: none;
+  }
+  .ck-btn-anim > .ck-btn-icon { margin-right: 7px; }
+  .ck-btn-anim > span { white-space: nowrap; }
+  .ck-btn-anim::before, .ck-btn-anim::after { content: ''; flex: 0 0 0; transition: flex-grow .3s ease; }
+  .ck-btn-anim::after { flex-grow: 1; }
+  .ck-btn-anim:hover::before, .ck-btn-anim:hover::after { flex-grow: 1; }
+  /* 方形图标按钮 */
+  .ck-icon-btn {
+    flex: 0 0 32px; width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border: none; border-radius: 9px;
+    background: transparent; color: var(--ck-text-dim);
+    cursor: pointer; transition: all .15s; padding: 0;
+    align-self: center;
+  }
+  .ck-icon-btn:hover { background: var(--ck-surface); color: var(--ck-text); }
+  .ck-icon-btn:active { transform: scale(0.96); }
+  .ck-icon-btn svg { width: 16px; height: 16px; }
+  /* 刷新按钮：悬停正向转一圈，移开反向转回来 */
+  .ck-icon-btn svg { transition: transform .6s ease; }
+  .ck-icon-btn:hover svg { transform: rotate(360deg); }
 
   /* ===== 目录 ===== */
   .ck-dir-path {
@@ -211,7 +266,7 @@
   }
   .ck-mini-btn {
     background: var(--ck-primary-soft); border: none; color: var(--ck-primary);
-    padding: 4px 10px; border-radius: 7px; cursor: pointer;
+    padding: 4px 12px; border-radius: 999px; cursor: pointer;
     font-size: 11px; font-weight: 600; flex-shrink: 0; transition: all .15s;
     font-family: inherit;
   }
@@ -232,6 +287,11 @@
     font-variant-numeric: tabular-nums;
   }
   .ck-token-hero-unit { font-size: 12px; color: var(--ck-text-dim); }
+  /* 「万/亿」单位字：用普通字体（等宽字体无中文，会回退导致不协调） */
+  .ck-token-unit-char {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: .72em; font-weight: 600; letter-spacing: 0; margin-left: 1px;
+  }
   .ck-stat-list {
     display: flex; flex-direction: column;
     background: var(--ck-bg); border: 1px solid var(--ck-border);
@@ -322,16 +382,168 @@
   }
   .ck-list-item:hover { background: var(--ck-primary-soft); }
   .ck-list-empty { color: var(--ck-text-dim); font-size: 12px; text-align: center; padding: 16px 0; }
+  /* 技能卡片（无边框 + 分割线 + 悬停浅底） */
+  .ck-skill-item {
+    display: flex; flex-direction: column; gap: 6px;
+    background: transparent; border: none;
+    border-radius: 0; padding: 11px 12px;
+    cursor: pointer; transition: background .18s, border-radius .2s ease;
+  }
+  .ck-skill-item + .ck-skill-item { border-top: 1px solid var(--ck-border); }
+  .ck-skill-item:hover { background: var(--ck-surface); border-radius: 12px; border-top-color: transparent; }
+  .ck-skill-item:hover + .ck-skill-item { border-top-color: transparent; }
+  .ck-skill-top { display: flex; align-items: center; gap: 8px; }
+  .ck-skill-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ck-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ck-skill-src { font-size: 10px; color: var(--ck-text-dim); padding: 2px 7px; background: var(--ck-surface); border-radius: 6px; flex-shrink: 0; }
+  .ck-skill-desc {
+    font-size: 11.5px; color: var(--ck-text-2); line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  /* MCP 分组标题 */
+  .ck-mcp-group-title {
+    font-size: 10.5px; font-weight: 700; color: var(--ck-text-dim);
+    letter-spacing: .5px; padding: 2px 2px 0;
+  }
+  /* MCP 卡片（无边框 + 分割线 + 悬停浅底） */
+  .ck-mcp-item {
+    display: flex; flex-direction: column; gap: 8px;
+    background: transparent; border: none;
+    border-radius: 0; padding: 11px 12px;
+    cursor: pointer; transition: background .18s, border-radius .2s ease;
+  }
+  .ck-mcp-item + .ck-mcp-item { border-top: 1px solid var(--ck-border); }
+  .ck-mcp-item:hover { background: var(--ck-surface); border-radius: 12px; border-top-color: transparent; }
+  .ck-mcp-item:hover + .ck-mcp-item { border-top-color: transparent; }
+  .ck-mcp-top { display: flex; align-items: center; gap: 8px; }
+  .ck-mcp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--ck-text-dim); }
+  .ck-mcp-dot.on { background: var(--ck-green); box-shadow: 0 0 0 3px rgba(48,164,108,.15); }
+  .ck-mcp-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ck-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ck-mcp-toggle { flex-shrink: 0; }
+  .ck-mcp-bottom { display: flex; align-items: center; gap: 6px; padding-left: 16px; }
+  .ck-mcp-tag {
+    font-size: 10px; color: var(--ck-text-dim);
+    padding: 2px 7px; background: var(--ck-surface); border-radius: 6px;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  /* 设置表单（分组复用 .ck-card） */
+  .ck-set-group-title {
+    font-size: 12px; font-weight: 700; color: var(--ck-text);
+    padding-bottom: 2px;
+  }
+  .ck-set-field { display: flex; flex-direction: column; gap: 6px; }
+  .ck-set-field.ck-set-toggle { flex-direction: row; align-items: center; justify-content: space-between; }
+  .ck-set-key { font-size: 12px; color: var(--ck-text-2); }
+  .ck-set-input {
+    width: 100%; min-height: 32px;
+    background: var(--ck-surface); border: 1px solid transparent;
+    border-radius: 9px; padding: 7px 10px; color: var(--ck-text);
+    font-size: 12.5px; font-family: inherit;
+  }
+  .ck-set-input:focus { outline: none; border-color: var(--ck-primary); box-shadow: 0 0 0 3px var(--ck-primary-soft); }
+  .ck-set-textarea {
+    width: 100%; background: var(--ck-surface); border: 1px solid transparent;
+    border-radius: 9px; padding: 8px 10px; color: var(--ck-text);
+    font-size: 12.5px; font-family: inherit; resize: vertical; line-height: 1.5;
+  }
+  .ck-set-textarea:focus { outline: none; border-color: var(--ck-primary); box-shadow: 0 0 0 3px var(--ck-primary-soft); }
+  .ck-set-inline { display: flex; align-items: center; gap: 8px; }
+  .ck-set-sep { font-size: 12px; color: var(--ck-text-dim); flex-shrink: 0; }
+  /* 关于页 */
+  .ck-about-head { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 0 6px; }
+  .ck-about-logo {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: linear-gradient(135deg, var(--ck-primary), var(--ck-primary-strong));
+    color: #fff; font-size: 26px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ck-about-title { font-size: 15px; font-weight: 700; color: var(--ck-text); }
+  .ck-about-ver { font-size: 11.5px; color: var(--ck-text-dim); }
+  .ck-about-intro { font-size: 12px; color: var(--ck-text-2); line-height: 1.7; margin: 0; }
+  .ck-about-tip { font-size: 11px; color: var(--ck-text-dim); line-height: 1.6; margin: 0; }
+  .ck-about-group {
+    display: flex; flex-direction: column; gap: 8px;
+    background: var(--ck-bg); border: 1px solid var(--ck-border);
+    border-radius: 12px; padding: 14px; box-shadow: var(--ck-shadow-sm);
+  }
+  .ck-about-group-title { font-size: 12.5px; font-weight: 700; color: var(--ck-text); }
+  .ck-about-qr { width: 100%; max-width: 220px; align-self: center; border-radius: 10px; display: block; }
+  .ck-about-link { font-size: 12px; color: var(--ck-primary); cursor: pointer; word-break: break-all; text-decoration: none; }
+  .ck-about-link:hover { text-decoration: underline; }
+  /* 提示词卡片（无边框 + 分割线 + 悬停浅底） */
+  .ck-snip-item {
+    display: flex; flex-direction: column; gap: 6px;
+    background: transparent; border: none;
+    border-radius: 0; padding: 10px 12px;
+    cursor: pointer; transition: background .18s, border-radius .2s ease;
+  }
+  .ck-snip-item + .ck-snip-item { border-top: 1px solid var(--ck-border); }
+  .ck-snip-item:hover { background: var(--ck-surface); border-radius: 12px; border-top-color: transparent; }
+  .ck-snip-item:hover + .ck-snip-item { border-top-color: transparent; }
+  /* 标题行：名称 + 操作按钮（同高） */
+  .ck-snip-top { display: flex; align-items: center; gap: 8px; min-height: 26px; }
+  .ck-snip-name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--ck-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ck-snip-preview {
+    font-size: 11px; color: var(--ck-text-dim); line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden; word-break: break-all;
+  }
+  /* 操作按钮：默认隐藏，悬停卡片才显示 */
+  .ck-snip-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; opacity: 0; pointer-events: none; transition: opacity .15s; }
+  .ck-snip-item:hover .ck-snip-actions { opacity: 1; pointer-events: auto; }
+  .ck-snip-icon-btn {
+    width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
+    border: none; background: transparent; border-radius: 7px;
+    color: var(--ck-text-dim); cursor: pointer; transition: all .15s; padding: 0;
+  }
+  .ck-snip-icon-btn:hover { background: var(--ck-surface); color: var(--ck-text); }
+  .ck-snip-icon-btn svg { width: 14px; height: 14px; }
+  .ck-snip-icon-btn.danger:hover { background: var(--ck-danger); color: #fff; }
+  .ck-snip-badge {
+    font-size: 9.5px; color: var(--ck-primary); background: var(--ck-primary-soft);
+    padding: 1px 6px; border-radius: 5px; margin-left: 6px; font-weight: 600;
+  }
+  /* 编辑弹层 */
+  .ck-modal-mask {
+    position: absolute; inset: 0; z-index: 20;
+    background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .ck-modal-mask.cuckoo-hidden { display: none; }
+  .ck-modal {
+    width: 100%; max-width: 300px; max-height: 90%; background: var(--ck-bg);
+    border: 1px solid var(--ck-border); border-radius: 14px;
+    box-shadow: var(--ck-shadow-lg); padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .ck-modal-title { font-size: 13px; font-weight: 700; color: var(--ck-text); }
+  .ck-field { display: flex; flex-direction: column; gap: 5px; }
+  .ck-field-label { font-size: 10.5px; font-weight: 600; color: var(--ck-text-dim); }
+  .ck-input, .ck-textarea {
+    width: 100%; background: var(--ck-surface); border: 1px solid transparent;
+    border-radius: 8px; padding: 8px 10px; color: var(--ck-text);
+    font-size: 12.5px; font-family: inherit;
+  }
+  .ck-input:focus, .ck-textarea:focus { outline: none; border-color: var(--ck-primary); box-shadow: 0 0 0 3px var(--ck-primary-soft); }
+  .ck-textarea { resize: vertical; min-height: 220px; line-height: 1.6; }
+  .ck-modal-foot { display: flex; gap: 8px; }
+  /* 通用弹框 */
+  .ck-dialog { max-width: 280px; }
+  .ck-dialog-msg { font-size: 12.5px; color: var(--ck-text-2); line-height: 1.6; word-break: break-word; }
+  /* 侧边栏相对定位（弹层锚点） */
+  .ck-panel { position: relative; }
   /* 窗口卡片（两行） */
   .ck-win-item {
     display: flex; flex-direction: column; gap: 9px;
-    background: var(--ck-bg);
-    border: 1px solid var(--ck-border);
-    border-radius: 11px; padding: 12px;
-    cursor: pointer; transition: all .15s;
-    box-shadow: var(--ck-shadow-sm);
+    background: transparent;
+    border: none;
+    border-radius: 0; padding: 12px;
+    cursor: pointer; transition: background .18s, border-radius .2s ease;
   }
-  .ck-win-item:hover { border-color: var(--ck-primary); box-shadow: var(--ck-shadow); }
+  .ck-win-item + .ck-win-item { border-top: 1px solid var(--ck-border); }
+  /* 悬停：浅底色 + 取消上方分割线（连同下一个元素的上边线） */
+  .ck-win-item:hover { background: var(--ck-surface); border-radius: 12px; border-top-color: transparent; }
+  .ck-win-item:hover + .ck-win-item { border-top-color: transparent; }
   .ck-win-top { display: flex; align-items: center; gap: 10px; }
   .ck-win-avatar {
     width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
@@ -348,10 +560,12 @@
     width: 24px; height: 24px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     border-radius: 7px; font-size: 12px; color: var(--ck-text-dim);
-    cursor: pointer; transition: all .15s;
+    cursor: pointer; transition: opacity .15s, background .15s, color .15s;
+    opacity: 0; pointer-events: none;   /* 默认隐藏，悬停卡片才出现 */
   }
+  .ck-win-item:hover .ck-win-del { opacity: 1; pointer-events: auto; }
   .ck-win-del:hover { background: var(--ck-danger); color: #fff; }
-  .ck-win-bottom { display: flex; align-items: center; gap: 8px; padding-left: 40px; }
+  .ck-win-bottom { display: flex; align-items: center; gap: 8px; }
   .ck-win-provider {
     font-size: 10.5px; color: var(--ck-text-dim);
     padding: 2px 8px; background: var(--ck-surface); border-radius: 6px;
@@ -361,15 +575,20 @@
   .ck-win-check {
     display: flex; align-items: center; gap: 4px; margin-left: auto;
     font-size: 11px; color: var(--ck-text-dim); cursor: pointer; flex-shrink: 0;
+    opacity: 0; pointer-events: none;   /* 未勾选时默认隐藏，悬停卡片才出现 */
+    transition: opacity .15s;
   }
+  .ck-win-item:hover .ck-win-check { opacity: 1; pointer-events: auto; }
+  /* 已勾选「默认打开」：始终可见 */
+  .ck-win-check.ck-win-check-on { opacity: 1; pointer-events: auto; }
   .ck-win-check input { accent-color: var(--ck-primary); cursor: pointer; margin: 0; }
   /* 收起：只隐藏面板，保留图标栏（宽度从 320 → 46） */
   .ck-sidebar.ck-collapsed { width: 46px; }
   .ck-sidebar.ck-collapsed .ck-panel { display: none; }
   /* 滚动条（跟随主题） */
-  .ck-panel-body::-webkit-scrollbar { width: 8px; }
+  .ck-panel-body::-webkit-scrollbar { width: 4px; }
   .ck-panel-body::-webkit-scrollbar-track { background: transparent; }
-  .ck-panel-body::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 4px; }
+  .ck-panel-body::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
   .ck-panel-body::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
 </style>
 </head>
@@ -424,37 +643,68 @@
       </div>
     </div>
     <div class="main-area">
-      <div class="ck-sidebar" id="ck-sidebar">
+      <div class="ck-sidebar ck-collapsed" id="ck-sidebar">
         <div class="ck-activitybar">
-          <button class="ck-ab-item ck-ab-active" data-tab="home" title="主页">
-            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+          <button class="ck-ab-item ck-ab-active" data-tab="snippets" title="提示词">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          </button>
+          <button class="ck-ab-item" data-tab="skills" title="技能">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </button>
+          <button class="ck-ab-item" data-tab="mcp" title="MCP（连接器）">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6"/><path d="M8 7H7a5 5 0 0 0 0 10h1"/><path d="M16 7h1a5 5 0 0 1 0 10h-1"/></svg>
           </button>
           <button class="ck-ab-item" data-tab="windows" title="窗口">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
           </button>
-          <button class="ck-ab-item" data-tab="token" title="Token">
-            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-          </button>
-          <button class="ck-ab-item" data-tab="tools" title="工具">
-            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-          </button>
-          <button class="ck-ab-item" data-tab="history" title="历史">
-            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l3 2"/></svg>
+          <button class="ck-ab-item" data-tab="token" title="Token（词元）">
+            <span class="ck-ab-text">元</span>
           </button>
           <div class="ck-ab-spacer"></div>
+          <button class="ck-ab-item" data-tab="about" title="关于">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+          </button>
           <button class="ck-ab-item" data-tab="settings" title="设置">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </button>
         </div>
         <div class="ck-panel">
-          <div class="ck-panel-body">
-
-            <!-- ===== 主页 ===== -->
-            <div class="ck-tab ck-tab-active" data-panel="home">
-              <div class="ck-actions">
-                <button class="ck-btn ck-btn-primary">初始化项目</button>
+          <div class="ck-modal-mask cuckoo-hidden" id="snip-modal">
+            <div class="ck-modal">
+              <span class="ck-modal-title" id="snip-modal-title">编辑提示词</span>
+              <div class="ck-field">
+                <span class="ck-field-label">名称</span>
+                <input class="ck-input" id="snip-name" placeholder="如：生成项目说明" />
+              </div>
+              <div class="ck-field">
+                <span class="ck-field-label">内容</span>
+                <textarea class="ck-textarea" id="snip-content" placeholder="点击后将填入输入框的文本"></textarea>
+              </div>
+              <div class="ck-auto-head">
+                <span class="ck-field-label">自动发送</span>
+                <label class="ck-switch">
+                  <input type="checkbox" id="snip-autosend" checked />
+                  <span class="ck-switch-track"></span>
+                </label>
+              </div>
+              <div class="ck-modal-foot">
+                <button class="ck-btn ck-btn-secondary" id="snip-cancel">取消</button>
+                <button class="ck-btn ck-btn-primary" id="snip-save">保存</button>
               </div>
             </div>
+          </div>
+          <!-- 通用弹框（替代原生 alert/confirm） -->
+          <div class="ck-modal-mask cuckoo-hidden" id="ck-dialog">
+            <div class="ck-modal ck-dialog">
+              <span class="ck-modal-title" id="ck-dialog-title">提示</span>
+              <div class="ck-dialog-msg" id="ck-dialog-msg"></div>
+              <div class="ck-modal-foot">
+                <button class="ck-btn ck-btn-secondary cuckoo-hidden" id="ck-dialog-cancel">取消</button>
+                <button class="ck-btn ck-btn-primary" id="ck-dialog-ok">确定</button>
+              </div>
+            </div>
+          </div>
+          <div class="ck-panel-body">
 
             <!-- ===== Token ===== -->
             <div class="ck-tab" data-panel="token">
@@ -465,7 +715,10 @@
                   <span class="ck-token-hero-unit">tokens</span>
                 </div>
               </div>
-              <button class="ck-btn ck-btn-primary" id="tk-compact">压缩上下文</button>
+              <button class="ck-btn ck-btn-anim" id="tk-compact">
+                <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v4M8 7H4M8 7l-4-4"/><path d="M16 21v-4M16 17h4M16 17l4 4"/><path d="M4 14h16"/></svg>
+                <span>压缩上下文</span>
+              </button>
 
               <div class="ck-stat-list">
                 <div class="ck-stat-item">
@@ -499,7 +752,10 @@
                   <input type="number" id="tk-auto-threshold" value="80" min="1" />
                   <span>万 tokens 时触发</span>
                 </div>
-                <button class="ck-btn ck-btn-secondary" id="tk-auto-save">保存设置</button>
+                <button class="ck-btn ck-btn-anim" id="tk-auto-save">
+                  <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+                  <span>保存设置</span>
+                </button>
               </div>
 
               <div class="ck-chart-block">
@@ -510,55 +766,175 @@
             <!-- ===== 窗口 ===== -->
             <div class="ck-tab" data-panel="windows">
               <div class="ck-actions">
-                <button class="ck-btn ck-btn-primary" id="win-new">新建窗口</button>
-              </div>
-              <div class="ck-row">
-                <span class="ck-label">窗口列表</span>
-                <button class="ck-mini-btn" id="win-refresh">刷新</button>
+                <button class="ck-btn ck-btn-anim" id="win-new">
+                  <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                  <span>新建窗口</span>
+                </button>
+                <button class="ck-icon-btn" id="win-refresh" title="刷新列表">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
               </div>
               <div class="ck-list" id="win-list">
                 <div class="ck-list-empty">暂无窗口</div>
               </div>
             </div>
 
-            <!-- ===== 工具 ===== -->
-            <div class="ck-tab" data-panel="tools">
+            <!-- ===== 提示词 ===== -->
+            <div class="ck-tab ck-tab-active" data-panel="snippets">
               <div class="ck-actions">
-                <button class="ck-btn ck-btn-secondary">窗口管理</button>
-                <button class="ck-btn ck-btn-secondary">MCP</button>
+                <button class="ck-btn ck-btn-anim" id="snip-init-project">
+                  <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/></svg>
+                  <span>重新项目初始化</span>
+                </button>
               </div>
+              <div class="ck-divider"></div>
               <div class="ck-actions">
-                <button class="ck-btn ck-btn-primary">生成项目说明</button>
+                <button class="ck-btn ck-btn-anim" id="snip-add">
+                  <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                  <span>新建快捷提示词</span>
+                </button>
+                <button class="ck-icon-btn" id="snip-refresh" title="刷新（同步其他窗口的改动）">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
               </div>
-              <div class="ck-actions">
-                <button class="ck-btn ck-btn-secondary">沉浸式交流</button>
-              </div>
-              <div class="ck-actions">
-                <button class="ck-btn ck-btn-secondary">卡住了?点我</button>
+              <div class="ck-list" id="snip-list">
+                <div class="ck-list-empty">加载中…</div>
               </div>
             </div>
 
-            <!-- ===== 历史 ===== -->
-            <div class="ck-tab" data-panel="history">
-              <div class="ck-card">
-                <span class="ck-label">历史记录</span>
-                <div class="ck-list">
-                  <div class="ck-list-empty">暂无历史</div>
-                </div>
-                <button class="ck-btn-text">清空历史</button>
+            <!-- ===== 技能 ===== -->
+            <div class="ck-tab" data-panel="skills">
+              <div class="ck-actions">
+                <span class="ck-set-group-title" style="flex:1;">技能</span>
+                <button class="ck-icon-btn" id="skill-refresh" title="刷新">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
+              </div>
+              <div class="ck-list" id="skill-list">
+                <div class="ck-list-empty">加载中…</div>
+              </div>
+            </div>
+
+            <!-- ===== MCP ===== -->
+            <div class="ck-tab" data-panel="mcp">
+              <div class="ck-actions">
+                <span class="ck-set-group-title" style="flex:1;">MCP（连接器）</span>
+                <button class="ck-icon-btn" id="mcp-refresh" title="刷新">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
+              </div>
+              <div class="ck-list" id="mcp-list">
+                <div class="ck-list-empty">加载中…</div>
               </div>
             </div>
 
             <!-- ===== 设置 ===== -->
             <div class="ck-tab" data-panel="settings">
-              <div class="ck-actions">
-                <button class="ck-btn ck-btn-secondary">打开设置</button>
-              </div>
-              <div class="ck-divider"></div>
               <div class="ck-card">
-                <span class="ck-label">技能与代理（Skills / Agents）</span>
-                <button class="ck-btn ck-btn-secondary">刷新技能与代理</button>
-                <span style="font-size:11px;color:var(--ck-text-dim);">重新扫描技能/代理目录，并把最新清单发给 AI</span>
+                <div class="ck-set-group-title">失败自动重试</div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">启用自动重试</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="st-retry-enabled" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">普通失败间隔（秒）</span>
+                  <div class="ck-set-inline">
+                    <input type="number" class="ck-set-input" id="st-retry-delay-min" min="0" step="1" />
+                    <span class="ck-set-sep">至</span>
+                    <input type="number" class="ck-set-input" id="st-retry-delay-max" min="0" step="1" />
+                  </div>
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">普通失败重试次数（负数=无限）</span>
+                  <input type="number" class="ck-set-input" id="st-retry-count" step="1" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">操作频繁重试间隔（秒）</span>
+                  <input type="number" class="ck-set-input" id="st-retry-429-delay" min="0" step="1" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">操作频繁重试次数（负数=无限）</span>
+                  <input type="number" class="ck-set-input" id="st-retry-429-count" step="1" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">重试提示词</span>
+                  <textarea class="ck-set-textarea" id="st-retry-prompt" rows="3"></textarea>
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">AI 回复超时后重试（秒）</span>
+                  <input type="number" class="ck-set-input" id="st-xhr-idle-timeout" min="0" step="1" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">超时重试提示词</span>
+                  <input type="text" class="ck-set-input" id="st-watchdog-prompt" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">超时重试次数（负数=无限）</span>
+                  <input type="number" class="ck-set-input" id="st-watchdog-count" step="1" />
+                </div>
+              </div>
+
+              <div class="ck-card">
+                <div class="ck-set-group-title">发送延迟</div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">延迟区间（秒）</span>
+                  <div class="ck-set-inline">
+                    <input type="number" class="ck-set-input" id="st-send-delay-min" min="0" step="0.1" />
+                    <span class="ck-set-sep">至</span>
+                    <input type="number" class="ck-set-input" id="st-send-delay-max" min="0" step="0.1" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="ck-card">
+                <div class="ck-set-group-title">附件上传间隔</div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">上传后检测等待（秒）</span>
+                  <div class="ck-set-inline">
+                    <input type="number" class="ck-set-input" id="st-attach-delay-min" min="0" step="0.1" />
+                    <span class="ck-set-sep">至</span>
+                    <input type="number" class="ck-set-input" id="st-attach-delay-max" min="0" step="0.1" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="ck-actions">
+                <button class="ck-btn ck-btn-primary" id="st-save">保存设置</button>
+                <button class="ck-btn ck-btn-secondary" id="st-reset">恢复默认</button>
+                <button class="ck-icon-btn" id="st-refresh" title="刷新（重新读取当前设置）">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- ===== 关于 ===== -->
+            <div class="ck-tab" data-panel="about">
+              <div class="ck-about-head">
+                <div class="ck-about-logo">C</div>
+                <div class="ck-about-title">Cuckoo Code</div>
+                <div class="ck-about-ver">版本 <span id="about-version">—</span></div>
+              </div>
+
+              <div class="ck-actions">
+                <button class="ck-btn ck-btn-anim" id="about-check-update">
+                  <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                  <span>检查更新</span>
+                </button>
+              </div>
+              <p class="ck-about-tip">更新需能连接 GitHub；如无法连接，请加下方 QQ 群自行下载。</p>
+
+              <div class="ck-about-group">
+                <div class="ck-about-group-title">开源地址</div>
+                <p class="ck-about-tip">本系统为开源项目，欢迎点 Star 支持。</p>
+                <a class="ck-about-link" id="about-github">github.com/wangyongpeng90/cuckoo-code</a>
+              </div>
+
+              <div class="ck-about-group">
+                <div class="ck-about-group-title">QQ 群：1104042537</div>
+                <img class="ck-about-qr" id="about-qq" alt="QQ 群" />
               </div>
             </div>
 
@@ -570,6 +946,38 @@
   </div>
 <script>
   var api = window.shellAPI || {};
+
+  // ===== 通用弹框（替代原生 alert/confirm）=====
+  var _dlgResolve = null;
+  function ckDialog(opts) {
+    return new Promise(function (resolve) {
+      var mask = document.getElementById('ck-dialog');
+      var titleEl = document.getElementById('ck-dialog-title');
+      var msgEl = document.getElementById('ck-dialog-msg');
+      var okBtn = document.getElementById('ck-dialog-ok');
+      var cancelBtn = document.getElementById('ck-dialog-cancel');
+      if (!mask) { resolve(true); return; }
+      if (titleEl) titleEl.textContent = opts.title || '提示';
+      if (msgEl) msgEl.textContent = opts.message || '';
+      if (cancelBtn) cancelBtn.classList.toggle('cuckoo-hidden', !opts.confirm);
+      function cleanup() {
+        mask.classList.add('cuckoo-hidden');
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+        mask.removeEventListener('click', onMask);
+      }
+      function onOk() { cleanup(); resolve(true); }
+      function onCancel() { cleanup(); resolve(false); }
+      function onMask(e) { if (e.target === mask) { cleanup(); resolve(false); } }
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+      mask.addEventListener('click', onMask);
+      mask.classList.remove('cuckoo-hidden');
+    });
+  }
+  function ckConfirm(message, title) { return ckDialog({ title: title || '确认', message: message, confirm: true }); }
+  function ckAlert(message, title) { return ckDialog({ title: title || '提示', message: message, confirm: false }); }
+
   var input = document.getElementById('url-input');
   var btnBack = document.getElementById('btn-back');
   var btnForward = document.getElementById('btn-forward');
@@ -618,6 +1026,13 @@
   var windowEl = document.getElementById('sb-window');
   var todayEl = document.getElementById('sb-today');
   var systemEl = document.getElementById('sb-system');
+  // 大数字用：把「万/亿」拆成独立 span（用普通字体，避免等宽字体下中文不协调）
+  function formatTokenCountHTML(n) {
+    if (!isFinite(n) || n < 0) return '0';
+    if (n >= 100000000) return (n / 100000000).toFixed(2) + '<span class="ck-token-unit-char">亿</span>';
+    if (n >= 10000) return (n / 10000).toFixed(2) + '<span class="ck-token-unit-char">万</span>';
+    return String(Math.round(n));
+  }
   // ===== 近 10 日柱状图 =====
   function formatShort(n) {
     if (!isFinite(n) || n <= 0) return '0';
@@ -632,9 +1047,11 @@
       chart.innerHTML = '<div class="ck-list-empty" style="width:100%;">暂无数据</div>';
       return;
     }
-    var max = Math.max.apply(null, daily.map(function (d) { return d.value || 0; }));
+    // 按日期降序排列（最新日期在上）
+    var sorted = daily.slice().sort(function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); });
+    var max = Math.max.apply(null, sorted.map(function (d) { return d.value || 0; }));
     if (max <= 0) max = 1;
-    chart.innerHTML = daily.map(function (d) {
+    chart.innerHTML = sorted.map(function (d) {
       var v = d.value || 0;
       var pct = Math.max(1, Math.round((v / max) * 100));
       var day = (d.date || '').slice(5).replace('-', '/');
@@ -661,7 +1078,7 @@
       if (windowEl) windowEl.textContent = formatTokenCount(data.windowCumulative);
       if (todayEl) todayEl.textContent = formatTokenCount(data.todayCumulative);
       // 同步到 Token 页
-      if (tkContext) tkContext.textContent = formatTokenCount(data.context);
+      if (tkContext) tkContext.innerHTML = formatTokenCountHTML(data.context);
       if (tkCumulative) tkCumulative.textContent = formatTokenCount(data.cumulative);
       if (tkToday) tkToday.textContent = formatTokenCount(data.todayCumulative);
       if (tkWindow) tkWindow.textContent = formatTokenCount(data.windowCumulative);
@@ -682,6 +1099,129 @@
       if (r && r.success && tkSystem) tkSystem.textContent = formatTokenCount(r.systemTotal);
     }).catch(function () {});
   }
+
+  // ===== 提示词（Snippets）=====
+  var snippets = [];
+  var editingSnipId = null; // null = 新建
+
+  function escapeAttr(s) { return escapeHtml(s).replace(/"/g, '&quot;'); }
+
+  async function loadSnippets() {
+    if (!api.listSnippets) return;
+    try {
+      var res = await api.listSnippets();
+      snippets = (res && res.success && Array.isArray(res.snippets)) ? res.snippets : [];
+    } catch (e) { snippets = []; }
+    renderSnippets();
+  }
+
+  function renderSnippets() {
+    var listEl = document.getElementById('snip-list');
+    if (!listEl) return;
+    if (!snippets.length) {
+      listEl.innerHTML = '<div class="ck-list-empty">还没有提示词，点上方新建</div>';
+      return;
+    }
+    listEl.innerHTML = snippets.map(function (s) {
+      var badge = s.autoSend ? '<span class="ck-snip-badge">自动发送</span>' : '';
+      return '<div class="ck-snip-item" data-id="' + escapeAttr(s.id) + '">' +
+        '<div class="ck-snip-top">' +
+          '<span class="ck-snip-name">' + escapeHtml(s.name) + badge + '</span>' +
+          '<div class="ck-snip-actions">' +
+            '<button class="ck-snip-icon-btn" data-edit="' + escapeAttr(s.id) + '" title="编辑">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>' +
+            '</button>' +
+            '<button class="ck-snip-icon-btn danger" data-del="' + escapeAttr(s.id) + '" title="删除">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+        '<span class="ck-snip-preview">' + escapeHtml(s.content) + '</span>' +
+      '</div>';
+    }).join('');
+
+    // 点击卡片 → 触发提示词
+    listEl.querySelectorAll('.ck-snip-item').forEach(function (el) {
+      el.addEventListener('click', async function (e) {
+        if (e.target.closest('[data-edit]') || e.target.closest('[data-del]')) return;
+        var id = el.dataset.id;
+        var s = snippets.filter(function (x) { return x.id === id; })[0];
+        if (!s || !api.triggerSnippet) return;
+        try { await api.triggerSnippet(s.content, s.autoSend); } catch (err) {}
+      });
+    });
+    // 编辑
+    listEl.querySelectorAll('[data-edit]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var s = snippets.filter(function (x) { return x.id === btn.dataset.edit; })[0];
+        if (s) openSnipModal(s);
+      });
+    });
+    // 删除
+    listEl.querySelectorAll('[data-del]').forEach(function (btn) {
+      btn.addEventListener('click', async function (e) {
+        e.stopPropagation();
+        var id = btn.dataset.del;
+        var s = snippets.filter(function (x) { return x.id === id; })[0];
+        if (!(await ckConfirm('确定删除提示词「' + (s ? s.name : '') + '」？'))) return;
+        snippets = snippets.filter(function (x) { return x.id !== id; });
+        if (api.saveSnippets) { try { await api.saveSnippets(snippets); } catch (err) {} }
+        renderSnippets();
+      });
+    });
+  }
+
+  // 弹层：打开 / 关闭 / 保存
+  function openSnipModal(s) {
+    editingSnipId = s ? s.id : null;
+    var modal = document.getElementById('snip-modal');
+    document.getElementById('snip-modal-title').textContent = s ? '编辑提示词' : '新建提示词';
+    document.getElementById('snip-name').value = s ? s.name : '';
+    document.getElementById('snip-content').value = s ? s.content : '';
+    document.getElementById('snip-autosend').checked = s ? s.autoSend !== false : true;
+    if (modal) modal.classList.remove('cuckoo-hidden');
+    setTimeout(function () { document.getElementById('snip-name').focus(); }, 50);
+  }
+  function closeSnipModal() {
+    var modal = document.getElementById('snip-modal');
+    if (modal) modal.classList.add('cuckoo-hidden');
+  }
+  async function saveSnipModal() {
+    var name = document.getElementById('snip-name').value.trim();
+    var content = document.getElementById('snip-content').value;
+    var autoSend = document.getElementById('snip-autosend').checked;
+    if (!name) { await ckAlert('请填写名称'); return; }
+    if (!content.trim()) { await ckAlert('请填写内容'); return; }
+    if (editingSnipId) {
+      snippets = snippets.map(function (x) {
+        return x.id === editingSnipId ? { id: x.id, name: name, content: content, autoSend: autoSend } : x;
+      });
+    } else {
+      snippets.push({ id: 'snip-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8), name: name, content: content, autoSend: autoSend });
+    }
+    if (api.saveSnippets) { try { await api.saveSnippets(snippets); } catch (e) {} }
+    renderSnippets();
+    closeSnipModal();
+  }
+  var snipInitBtn = document.getElementById('snip-init-project');
+  if (snipInitBtn) snipInitBtn.addEventListener('click', async function () {
+    if (!api.initProject) return;
+    snipInitBtn.disabled = true;
+    var old = snipInitBtn.textContent;
+    snipInitBtn.textContent = '初始化中…';
+    try { await api.initProject(); } catch (e) {}
+    snipInitBtn.textContent = old;
+    snipInitBtn.disabled = false;
+  });
+  var snipAddBtn = document.getElementById('snip-add');
+  if (snipAddBtn) snipAddBtn.addEventListener('click', function () { openSnipModal(null); });
+  var snipCancelBtn = document.getElementById('snip-cancel');
+  if (snipCancelBtn) snipCancelBtn.addEventListener('click', closeSnipModal);
+  var snipSaveBtn = document.getElementById('snip-save');
+  if (snipSaveBtn) snipSaveBtn.addEventListener('click', saveSnipModal);
+  var snipRefreshBtn = document.getElementById('snip-refresh');
+  if (snipRefreshBtn) snipRefreshBtn.addEventListener('click', loadSnippets);
 
   // ===== 侧边栏：标签切换 + 收起/展开 =====
   var abItems = document.querySelectorAll('.ck-ab-item');
@@ -704,6 +1244,12 @@
       var isActive = item.classList.contains('ck-ab-active');
       var onTabSwitch = function (t) {
         if (t === 'windows') { try { renderWindowList(); } catch (e) {} }
+        if (t === 'snippets') { try { loadSnippets(); } catch (e) {} }
+        if (t === 'settings') { try { loadSettings(); } catch (e) {} }
+        if (t === 'mcp') { try { loadMcpServers(); } catch (e) {} }
+        if (t === 'token') { try { loadAutoCompact(); } catch (e) {} }
+        if (t === 'about') { try { loadAbout(); } catch (e) {} }
+        if (t === 'skills') { try { loadSkills(); } catch (e) {} }
       };
       // 收起状态下点图标 → 展开并切到该标签
       if (isCollapsed) {
@@ -734,12 +1280,198 @@
   });
   // （收起：点击当前激活的图标即可）
 
+  // ===== 平台选择模式：隐藏侧边栏 + 项目选择器 + 地址栏导航 =====
+  function setPlatformSelectingMode(selecting) {
+    var sb = document.getElementById('ck-sidebar');
+    if (sb) { if (selecting) sb.classList.add('cuckoo-hidden'); else sb.classList.remove('cuckoo-hidden'); }
+    var picker = document.getElementById('project-picker');
+    if (picker) { picker.style.display = selecting ? 'none' : ''; }
+    // 平台选择时隐藏导航按钮和地址栏（只留平台选择页）
+    var toolbar = document.querySelector('.toolbar');
+    if (toolbar) toolbar.classList.toggle('ck-toolbar-plain', !!selecting);
+  }
+  if (api.onPlatformMode) api.onPlatformMode(function (d) { setPlatformSelectingMode(d && d.selecting); });
+
+  // ===== 关于页 =====
+  async function loadAbout() {
+    if (api.getAppInfo) {
+      try {
+        var r = await api.getAppInfo();
+        var verEl = document.getElementById('about-version');
+        if (r && r.success && verEl) verEl.textContent = r.version || '—';
+      } catch (e) {}
+    }
+    if (api.getAssetUrl) {
+      try {
+        var ru = await api.getAssetUrl('assets/qq-group.jpg');
+        var img = document.getElementById('about-qq');
+        if (ru && ru.success && img) img.src = ru.url;
+      } catch (e) {}
+    }
+  }
+  var aboutCheckBtn = document.getElementById('about-check-update');
+  if (aboutCheckBtn) aboutCheckBtn.addEventListener('click', async function () {
+    if (!api.checkUpdate) return;
+    aboutCheckBtn.disabled = true;
+    try {
+      var r = await api.checkUpdate();
+      if (r && !r.success) await ckAlert((r && r.error) || '检查更新失败');
+    } catch (e) { await ckAlert('检查更新失败: ' + (e.message || e)); }
+    aboutCheckBtn.disabled = false;
+  });
+  var aboutGithub = document.getElementById('about-github');
+  if (aboutGithub) aboutGithub.addEventListener('click', function () {
+    if (api.openExternal) api.openExternal('https://github.com/wangyongpeng90/cuckoo-code');
+  });
+
+  // ===== Token 页：自动压缩 + 压缩按钮 =====
+  async function loadAutoCompact() {
+    if (!api.getAutoCompact) return;
+    try {
+      var r = await api.getAutoCompact();
+      if (r && r.success && r.data) {
+        var enEl = document.getElementById('tk-auto-enabled');
+        var thEl = document.getElementById('tk-auto-threshold');
+        if (enEl) enEl.checked = r.data.enabled === true;
+        if (thEl) thEl.value = r.data.threshold;
+      }
+    } catch (e) {}
+  }
+  var tkCompactBtn = document.getElementById('tk-compact');
+  if (tkCompactBtn) tkCompactBtn.addEventListener('click', async function () {
+    if (!api.triggerCompact) return;
+    if (!(await ckConfirm('确定压缩上下文？将生成摘要并在新会话继续。', '压缩上下文'))) return;
+    try { await api.triggerCompact(); } catch (e) {}
+  });
+  var tkAutoSaveBtn = document.getElementById('tk-auto-save');
+  if (tkAutoSaveBtn) tkAutoSaveBtn.addEventListener('click', async function () {
+    if (!api.saveAutoCompact) return;
+    var enEl = document.getElementById('tk-auto-enabled');
+    var thEl = document.getElementById('tk-auto-threshold');
+    var enabled = !!(enEl && enEl.checked);
+    var threshold = parseFloat(thEl ? thEl.value : '80');
+    if (!Number.isFinite(threshold) || threshold <= 0) { await ckAlert('阈值需为正数（万）'); return; }
+    tkAutoSaveBtn.disabled = true;
+    try {
+      var r = await api.saveAutoCompact({ enabled: enabled, threshold: threshold });
+      if (r && r.success) {
+        tkAutoSaveBtn.textContent = '已保存';
+        setTimeout(function () { tkAutoSaveBtn.textContent = '保存设置'; }, 1200);
+      } else {
+        await ckAlert((r && r.error) || '保存失败');
+      }
+    } catch (e) { await ckAlert('保存失败: ' + (e.message || e)); }
+    tkAutoSaveBtn.disabled = false;
+  });
+
+  // ===== 技能 =====
+  async function loadSkills() {
+    var listEl = document.getElementById('skill-list');
+    if (!listEl || !api.listSkills) return;
+    try {
+      var r = await api.listSkills();
+      var skills = (r && r.success) ? r.skills : [];
+      if (!skills || skills.length === 0) {
+        listEl.innerHTML = '<div class="ck-list-empty">未发现技能<br>（.cuckoo/skills/ 或 ~/.cuckoo/skills/）</div>';
+        return;
+      }
+      var skillCard = function (s) {
+        return '<div class="ck-skill-item" data-name="' + escapeHtml(s.name) + '">' +
+          '<div class="ck-skill-top">' +
+            '<span class="ck-skill-name">' + escapeHtml(s.name) + '</span>' +
+          '</div>' +
+          '<div class="ck-skill-desc">' + escapeHtml(s.description || '（无描述）') + '</div>' +
+        '</div>';
+      };
+      var userSkills = skills.filter(function (s) { return s.source !== 'project'; });
+      var projSkills = skills.filter(function (s) { return s.source === 'project'; });
+      var html = '';
+      if (userSkills.length) html += '<div class="ck-mcp-group-title">用户级</div>' + userSkills.map(skillCard).join('');
+      if (projSkills.length) html += '<div class="ck-mcp-group-title">项目级</div>' + projSkills.map(skillCard).join('');
+      listEl.innerHTML = html;
+      // 点击 → 追加"请使用 xxx 技能"到输入框
+      listEl.querySelectorAll('.ck-skill-item').forEach(function (el) {
+        el.addEventListener('click', async function () {
+          var name = el.dataset.name;
+          if (api.appendSnippet) {
+            try { await api.appendSnippet('请使用 ' + name + ' 技能'); } catch (e) {}
+          }
+        });
+      });
+    } catch (e) {
+      listEl.innerHTML = '<div class="ck-list-empty">加载失败</div>';
+    }
+  }
+  var skillRefreshBtn = document.getElementById('skill-refresh');
+  if (skillRefreshBtn) skillRefreshBtn.addEventListener('click', loadSkills);
+
+  // ===== MCP =====
+  async function loadMcpServers() {
+    var listEl = document.getElementById('mcp-list');
+    if (!listEl || !api.listMcpServers) return;
+    try {
+      var r = await api.listMcpServers();
+      var servers = (r && r.success) ? r.servers : [];
+      if (!servers || servers.length === 0) {
+        listEl.innerHTML = '<div class="ck-list-empty">未配置 MCP server</div>';
+        return;
+      }
+      var cardHtml = function (s) {
+        var dotCls = s.connected ? 'ck-mcp-dot on' : 'ck-mcp-dot';
+        return '<div class="ck-mcp-item" data-name="' + escapeHtml(s.name) + '">' +
+          '<div class="ck-mcp-top">' +
+            '<span class="' + dotCls + '"></span>' +
+            '<span class="ck-mcp-name">' + escapeHtml(s.name) + '</span>' +
+          '</div>' +
+          '<div class="ck-mcp-bottom">' +
+            '<span class="ck-mcp-tag">' + escapeHtml(s.type || 'stdio') + '</span>' +
+            '<span class="ck-mcp-tag">' + (s.toolCount || 0) + ' 工具</span>' +
+          '</div>' +
+        '</div>';
+      };
+      var userServers = servers.filter(function (s) { return s.source !== 'project'; });
+      var projServers = servers.filter(function (s) { return s.source === 'project'; });
+      var html = '';
+      if (userServers.length) {
+        html += '<div class="ck-mcp-group-title">用户级</div>' + userServers.map(cardHtml).join('');
+      }
+      if (projServers.length) {
+        html += '<div class="ck-mcp-group-title">项目级</div>' + projServers.map(cardHtml).join('');
+      }
+      listEl.innerHTML = html;
+
+      // 点击卡片 → 追加 @name 到输入框
+      listEl.querySelectorAll('.ck-mcp-item').forEach(function (el) {
+        el.addEventListener('click', async function () {
+          var name = el.dataset.name;
+          if (api.appendSnippet) {
+            try { await api.appendSnippet('请使用 ' + name + ' 这个 MCP'); } catch (err) {}
+          }
+        });
+      });
+    } catch (e) {
+      listEl.innerHTML = '<div class="ck-list-empty">加载失败</div>';
+    }
+  }
+  var mcpRefreshBtn = document.getElementById('mcp-refresh');
+  if (mcpRefreshBtn) mcpRefreshBtn.addEventListener('click', loadMcpServers);
+
   // ===== 窗口列表 =====
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
     });
   }
+  // 各平台 logo 配色（渐变）；自定义/未知平台返回空（用默认）
+  var PROVIDER_COLORS = {
+    deepseek: 'linear-gradient(135deg, #4d6bfe, #3b5bdb)',
+    claude: 'linear-gradient(135deg, #d97757, #c05a3a)',
+    chatgpt: 'linear-gradient(135deg, #10a37f, #0d8a6b)',
+  };
+  function providerAvatarStyle(providerId) {
+    return PROVIDER_COLORS[providerId] || '';
+  }
+
   async function renderWindowList() {
     var listEl = document.getElementById('win-list');
     if (!listEl || !api.listProfiles) return;
@@ -759,15 +1491,16 @@
         var pname = providerMap[p.providerId] || '未选平台';
         var checked = p.autoOpen === true ? ' checked' : '';
         var initial = (p.name || '?').trim().charAt(0).toUpperCase();
+        var avatarStyle = providerAvatarStyle(p.providerId);
         return '<div class="ck-win-item" data-profile-id="' + escapeHtml(p.id) + '">' +
           '<div class="ck-win-top">' +
-            '<span class="ck-win-avatar">' + escapeHtml(initial) + '</span>' +
+            '<span class="ck-win-avatar"' + (avatarStyle ? ' style="background:' + avatarStyle + '"' : '') + '>' + escapeHtml(initial) + '</span>' +
             '<span class="ck-win-name">' + escapeHtml(p.name) + '</span>' +
             '<span class="ck-win-del" data-profile-id="' + escapeHtml(p.id) + '" title="删除窗口">✕</span>' +
           '</div>' +
           '<div class="ck-win-bottom">' +
             '<span class="ck-win-provider">' + escapeHtml(pname) + '</span>' +
-            '<label class="ck-win-check" title="启动时默认打开">' +
+            '<label class="ck-win-check' + (p.autoOpen === true ? ' ck-win-check-on' : '') + '" title="启动时默认打开">' +
               '<input type="checkbox" data-profile-id="' + escapeHtml(p.id) + '"' + checked + ' />默认打开' +
             '</label>' +
           '</div>' +
@@ -779,9 +1512,15 @@
         cb.addEventListener('change', async function () {
           var pid = cb.dataset.profileId;
           var on = cb.checked;
+          var label = cb.closest('.ck-win-check');
           try {
             var r = await api.setProfileAutoOpen(pid, on);
-            if (!r || !r.success) { cb.checked = !on; }
+            if (!r || !r.success) {
+              cb.checked = !on;
+            } else {
+              // 已勾选 → 常驻显示；取消勾选 → 恢复悬停才显示
+              if (label) label.classList.toggle('ck-win-check-on', on);
+            }
           } catch (e) { cb.checked = !on; }
         });
       });
@@ -797,6 +1536,8 @@
         btn.addEventListener('click', async function (e) {
           e.stopPropagation();
           var pid = btn.dataset.profileId;
+          var name = (btn.closest('.ck-win-item').querySelector('.ck-win-name') || {}).textContent || '该窗口';
+          if (!(await ckConfirm('确定删除窗口「' + name + '」？此操作不可恢复。'))) return;
           try {
             var r = await api.deleteProfileWindow(pid);
             if (r && r.success) renderWindowList();
@@ -813,6 +1554,100 @@
   });
   var winRefreshBtn = document.getElementById('win-refresh');
   if (winRefreshBtn) winRefreshBtn.addEventListener('click', renderWindowList);
+
+  // 预加载提示词 + 自动压缩配置
+  try { loadSnippets(); } catch (e) {}
+  try { loadAutoCompact(); } catch (e) {}
+  // 其他窗口改了提示词 → 本窗口同步刷新
+  if (api.onSnippetsChanged) api.onSnippetsChanged(function () { try { loadSnippets(); } catch (e) {} });
+
+  // ===== 设置页 =====
+  // 字段映射：DOM id 后缀 → 数据 key（显式，避免正则转换出错）
+  var SET_FIELDS = [
+    ['retry-delay-min', 'retryDelayMin'],
+    ['retry-delay-max', 'retryDelayMax'],
+    ['retry-count', 'retryCount'],
+    ['retry-429-delay', 'retry429Delay'],
+    ['retry-429-count', 'retry429Count'],
+    ['retry-prompt', 'retryPrompt'],
+    ['xhr-idle-timeout', 'xhrIdleTimeout'],
+    ['watchdog-prompt', 'watchdogPrompt'],
+    ['watchdog-count', 'watchdogCount'],
+    ['send-delay-min', 'sendDelayMin'],
+    ['send-delay-max', 'sendDelayMax'],
+    ['attach-delay-min', 'attachDelayMin'],
+    ['attach-delay-max', 'attachDelayMax'],
+  ];
+  function setVal(id, v) {
+    var el = document.getElementById('st-' + id);
+    if (el) el.value = (v === null || v === undefined) ? '' : v;
+  }
+  function getVal(id) {
+    var el = document.getElementById('st-' + id);
+    return el ? el.value : '';
+  }
+  function renderSettings(data) {
+    if (!data) return;
+    var enEl = document.getElementById('st-retry-enabled');
+    if (enEl) enEl.checked = data.retryEnabled !== false;
+    SET_FIELDS.forEach(function (pair) {
+      setVal(pair[0], data[pair[1]]);
+    });
+  }
+  async function loadSettings() {
+    if (!api.getSettings) return;
+    try {
+      var r = await api.getSettings();
+      if (r && r.success && r.data) renderSettings(r.data);
+    } catch (e) {}
+  }
+  function collectSettings() {
+    function num(id) { var v = getVal(id); var n = parseFloat(v); return Number.isFinite(n) ? n : 0; }
+    var enEl = document.getElementById('st-retry-enabled');
+    return {
+      retryEnabled: !!(enEl && enEl.checked),
+      retryDelayMin: num('retry-delay-min'),
+      retryDelayMax: num('retry-delay-max'),
+      retryCount: parseInt(getVal('retry-count'), 10) || 0,
+      retry429Delay: num('retry-429-delay'),
+      retry429Count: parseInt(getVal('retry-429-count'), 10) || 0,
+      retryPrompt: getVal('retry-prompt'),
+      xhrIdleTimeout: num('xhr-idle-timeout'),
+      watchdogPrompt: getVal('watchdog-prompt'),
+      watchdogCount: parseInt(getVal('watchdog-count'), 10) || 0,
+      sendDelayMin: num('send-delay-min'),
+      sendDelayMax: num('send-delay-max'),
+      attachDelayMin: num('attach-delay-min'),
+      attachDelayMax: num('attach-delay-max'),
+    };
+  }
+  var stSaveBtn = document.getElementById('st-save');
+  if (stSaveBtn) stSaveBtn.addEventListener('click', async function () {
+    if (!api.saveSettings) return;
+    stSaveBtn.disabled = true;
+    try {
+      var r = await api.saveSettings(collectSettings());
+      if (r && r.success) {
+        if (r.data) renderSettings(r.data);
+        stSaveBtn.textContent = '已保存';
+        setTimeout(function () { stSaveBtn.textContent = '保存设置'; }, 1200);
+      } else {
+        await ckAlert((r && r.error) || '保存失败');
+      }
+    } catch (e) { await ckAlert('保存失败: ' + (e.message || e)); }
+    stSaveBtn.disabled = false;
+  });
+  var stRefreshBtn = document.getElementById('st-refresh');
+  if (stRefreshBtn) stRefreshBtn.addEventListener('click', loadSettings);
+  var stResetBtn = document.getElementById('st-reset');
+  if (stResetBtn) stResetBtn.addEventListener('click', async function () {
+    if (!api.resetSettings) return;
+    if (!(await ckConfirm('确定恢复默认设置？'))) return;
+    try {
+      var r = await api.resetSettings();
+      if (r && r.success && r.data) renderSettings(r.data);
+    } catch (e) {}
+  });
 
   // ===== 项目目录（地址栏最左）=====
   function projectBaseName(dirPath) {

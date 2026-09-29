@@ -1,11 +1,11 @@
 ---
-id: 017
+id: 018
 type: feature
 title: 纯净对话模式（Harness 模式，类 Codex 体验）
-status: done
+status: doing
 branch: feat/017-harness-mode
 created: 2026-09-29
-updated: 2026-09-29
+updated: 2026-09-30
 ---
 
 ## 背景

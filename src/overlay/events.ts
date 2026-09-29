@@ -574,4 +574,40 @@ function bindEvents() {
   });
 }
 
-export { bindEvents, wireEvents, refreshTokenForCurrentSession, setIsSubagentWindow };
+// ========== 自动压缩（供 IPC：壳页面 Token 页调用） ==========
+/** 读自动压缩配置（不解 DOM） */
+function getAutoCompactConfig(): { enabled: boolean; threshold: number } {
+  let enabled = false;
+  let threshold = 80;
+  try {
+    enabled = localStorage.getItem('cuckoo-auto-compact-enabled') === '1';
+    const th = localStorage.getItem('cuckoo-auto-compact-threshold');
+    if (th !== null) { const v = parseFloat(th); if (Number.isFinite(v) && v > 0) threshold = v; }
+  } catch (_) {}
+  return { enabled, threshold };
+}
+
+/** 保存自动压缩配置（更新内存 + localStorage） */
+function applyAutoCompactConfig(data: any): { success: boolean; error?: string; data?: any } {
+  const enabled = !!(data && data.enabled);
+  let th = data ? parseFloat(data.threshold) : 80;
+  if (!Number.isFinite(th) || th <= 0) return { success: false, error: '阈值需为正数（万）' };
+  autoCompactEnabled = enabled;
+  autoCompactThresholdWan = th;
+  try {
+    localStorage.setItem('cuckoo-auto-compact-enabled', enabled ? '1' : '0');
+    localStorage.setItem('cuckoo-auto-compact-threshold', String(th));
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+  return { success: true, data: { enabled, threshold: th } };
+}
+
+/** 手动触发压缩（调用压缩流程） */
+function triggerCompaction(): void {
+  runCompaction(state.currentProjectDir || undefined).catch((e: any) => {
+    console.error('[Cuckoo Code] 压缩失败:', e && e.message);
+  });
+}
+
+export { bindEvents, wireEvents, refreshTokenForCurrentSession, setIsSubagentWindow, getAutoCompactConfig, applyAutoCompactConfig, triggerCompaction };

@@ -11,8 +11,9 @@ import './api.js';
 import { createRequire } from 'node:module';
 import * as ui from '../overlay/panel.js';
 import * as projectDir from '../overlay/project-dir.js';
-import { bindEvents, refreshTokenForCurrentSession, setIsSubagentWindow } from '../overlay/events.js';
+import { bindEvents, refreshTokenForCurrentSession, setIsSubagentWindow, getAutoCompactConfig, applyAutoCompactConfig, triggerCompaction } from '../overlay/events.js';
 import * as chatInput from '../overlay/chat-input.js';
+import * as settingsPanel from '../overlay/panels/settings.js';
 import { wireEvents } from '../overlay/events.js';
 import { getProviderByUrl } from '../providers/registry.js';
 import { startInterceptObserver, onInterceptedResponse } from './intercept/observer.js';
@@ -111,6 +112,78 @@ function init(): void {
 
     // URL 变化：主进程 did-navigate/-in-page 会推 'cuckoo-url-changed'
     ipcRenderer.on('cuckoo-url-changed', handleUrlChanged);
+    // 设置读写（壳页面设置页 → 主进程转发 → 这里读写 localStorage，再回执）
+    ipcRenderer.on('cuckoo-get-settings', (_e: any, { reqId }: any) => {
+      try {
+        const data = settingsPanel.getSettingsData();
+        ipcRenderer.send('cuckoo-settings-result', { reqId, ok: true, data });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-settings-result', { reqId, ok: false, error: err.message });
+      }
+    });
+    ipcRenderer.on('cuckoo-save-settings', (_e: any, { reqId, data }: any) => {
+      try {
+        const res = settingsPanel.applySettingsData(data);
+        ipcRenderer.send('cuckoo-settings-result', { reqId, ok: res.success, data: res.success ? settingsPanel.getSettingsData() : null, error: res.error });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-settings-result', { reqId, ok: false, error: err.message });
+      }
+    });
+    ipcRenderer.on('cuckoo-reset-settings', (_e: any, { reqId }: any) => {
+      try {
+        const data = settingsPanel.resetSettingsData();
+        ipcRenderer.send('cuckoo-settings-result', { reqId, ok: true, data });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-settings-result', { reqId, ok: false, error: err.message });
+      }
+    });
+    // 自动压缩配置读写（壳页面 Token 页 → 主进程转发 → 这里读写）
+    ipcRenderer.on('cuckoo-get-autocompact', (_e: any, { reqId }: any) => {
+      try {
+        ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: true, data: getAutoCompactConfig() });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: false, error: err.message });
+      }
+    });
+    ipcRenderer.on('cuckoo-save-autocompact', (_e: any, { reqId, data }: any) => {
+      try {
+        const res = applyAutoCompactConfig(data);
+        ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: res.success, data: res.data, error: res.error });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: false, error: err.message });
+      }
+    });
+    ipcRenderer.on('cuckoo-trigger-compact', (_e: any, { reqId }: any) => {
+      try {
+        triggerCompaction();
+        ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: true });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: false, error: err.message });
+      }
+    });
+    // 追加文本到输入框末尾（MCP 名等，不发送）
+    ipcRenderer.on('cuckoo-append-input', (_e: any, data: any) => {
+      try {
+        const text = data && data.text;
+        if (typeof text === 'string' && text) {
+          chatInput.appendTextToInput(text);
+        }
+      } catch (err: any) {
+        console.error('[Cuckoo Code] 追加文本失败:', err.message);
+      }
+    });
+    // 快捷提示词：主进程（由壳页面触发）→ 填入输入框（+ 可选发送）
+    ipcRenderer.on('cuckoo-trigger-snippet', (_e: any, data: any) => {
+      try {
+        const content = data && data.content;
+        const autoSend = !!(data && data.autoSend);
+        if (typeof content === 'string' && content) {
+          chatInput.insertSnippet(content, autoSend);
+        }
+      } catch (err: any) {
+        console.error('[Cuckoo Code] 处理快捷提示词失败:', err.message);
+      }
+    });
     window.addEventListener('popstate', handleUrlChanged);
     window.addEventListener('hashchange', handleUrlChanged);
     // 首次延迟执行，确保 overlay 已注入

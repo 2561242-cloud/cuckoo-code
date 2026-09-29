@@ -3,12 +3,16 @@
  * 壳页面通过 window.shellAPI 调用这些通道操作下方 WebContentsView 中的 AI 页面。
  */
 import { createRequire } from 'node:module';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import * as windowState from '../window.js';
 import { getProvider } from '../../providers/registry.js';
 import { setWindowCumulative, getTotal, cleanupSubagentKeys } from '../token-stats.js';
+import { resolveAsset } from '../../infra/paths.js';
+import * as updater from '../../updater/index.js';
 
 const require = createRequire(import.meta.url);
-const { ipcMain } = require('electron');
+const { ipcMain, app, shell } = require('electron');
 
 /** 取事件来源对应的 AI 页面 view */
 function viewOf(event: any): any {
@@ -134,6 +138,45 @@ function registerShellIpc(): void {
     try {
       await view.webContents.loadURL(provider.homeUrl);
       return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  // 应用信息（关于页：版本号）
+  ipcMain.handle('get-app-info', async () => {
+    let version = '';
+    try { version = app.getVersion(); } catch (_) {}
+    return { success: true, version };
+  });
+
+  // 打开外部链接（关于页：GitHub 源码地址）
+  ipcMain.handle('open-external', async (_event: any, { url }: any) => {
+    try {
+      if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return { success: false };
+      await shell.openExternal(url);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  // 检查更新（关于页按钮）
+  ipcMain.handle('check-update', async () => {
+    try {
+      await updater.checkForUpdates();
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  // 取 assets 图片的 file:// URL（关于页 QQ 群图片）
+  ipcMain.handle('get-asset-url', async (_event: any, { rel }: any) => {
+    try {
+      if (typeof rel !== 'string' || !rel) return { success: false };
+      const abs = resolveAsset(rel);
+      return { success: true, url: pathToFileURL(abs).href };
     } catch (err: any) {
       return { success: false, error: err.message };
     }

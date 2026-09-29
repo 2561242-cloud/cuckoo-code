@@ -10,6 +10,8 @@ import { registerRendererIpc } from './renderer.js';
 import { registerShellIpc } from './shell.js';
 import { registerSubagentIpc } from './subagent.js';
 import { registerHarnessIpc } from './harness.js';
+import { registerSnippetsIpc } from './snippets.js';
+import { registerSettingsIpc } from './settings.js';
 
 function registerIpcHandlers(): void {
   registerProjectIpc();
@@ -20,6 +22,8 @@ function registerIpcHandlers(): void {
   registerShellIpc();
   registerSubagentIpc();
   registerHarnessIpc();
+  registerSnippetsIpc();
+  registerSettingsIpc();
 }
 
 export { registerIpcHandlers };
