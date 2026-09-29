@@ -6,191 +6,226 @@
 <title>Cuckoo Harness</title>
 <style>
   :root {
-    --bg: #0d0e12;
-    --bg-sub: #14161c;
-    --surface: #191c23;
-    --surface-2: #1f232c;
-    --border: rgba(255,255,255,0.08);
-    --border-strong: rgba(255,255,255,0.14);
-    --text: #e6e8ee;
-    --text-2: #a2a8b6;
-    --text-dim: #6b7280;
-    --primary: #6b83ff;
-    --primary-soft: rgba(107,131,255,0.16);
-    --green: #46b47e;
-    --red: #ff6369;
-    --amber: #e5a24d;
+    --bg: #1a1a1a;
+    --bg-elev: #212121;
+    --surface: #262626;
+    --surface-hover: #2e2e2e;
+    --border: #333333;
+    --border-soft: #2a2a2a;
+    --text: #ececec;
+    --text-2: #b4b4b4;
+    --text-dim: #7a7a7a;
+    --accent: #d97757;
+    --accent-soft: rgba(217,119,87,0.14);
+    --green: #7fb069;
+    --red: #e06c75;
+    --amber: #d9a05b;
+    --user-bg: #2b2b2b;
+    --mono: "SFMono-Regular", "SF Mono", "Cascadia Code", "Consolas", "Liberation Mono", monospace;
+    --sans: -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
   }
   * { box-sizing: border-box; }
   html, body {
     margin: 0; height: 100%;
-    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    font-family: var(--sans);
     background: var(--bg); color: var(--text);
-    overflow: hidden;
-    font-size: 14px;
+    overflow: hidden; font-size: 14px;
+    -webkit-font-smoothing: antialiased;
   }
   .app { display: flex; flex-direction: column; height: 100vh; }
 
+  /* ===== 顶栏 ===== */
   .topbar {
     display: flex; align-items: center; gap: 10px;
-    height: 44px; padding: 0 14px;
-    background: var(--bg-sub);
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0; user-select: none;
-    -webkit-app-region: drag;
+    height: 40px; padding: 0 16px;
+    background: var(--bg); border-bottom: 1px solid var(--border-soft);
+    flex-shrink: 0; user-select: none; -webkit-app-region: drag;
   }
-  .brand { font-weight: 700; font-size: 13px; letter-spacing: .3px; color: var(--text); display: flex; align-items: center; gap: 7px; }
-  .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); box-shadow: 0 0 8px var(--green); }
+  .brand { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: var(--text-2); letter-spacing: .2px; }
+  .brand svg { width: 15px; height: 15px; color: var(--accent); }
   .topbar .spacer { flex: 1; }
-  .status { font-size: 11.5px; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .status { font-size: 11.5px; color: var(--text-dim); display: flex; align-items: center; gap: 6px; }
+  .status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); }
   .status.busy { color: var(--amber); }
+  .status.busy .dot { background: var(--amber); animation: pulse 1.2s ease-in-out infinite; }
+  .status.ready .dot { background: var(--green); }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
   .tb-btn {
     -webkit-app-region: no-drag;
-    height: 28px; padding: 0 12px; border-radius: 7px;
-    border: 1px solid var(--border-strong); background: transparent;
-    color: var(--text-2); font-size: 12px; cursor: pointer;
-    font-family: inherit; transition: all .15s;
+    height: 26px; padding: 0 11px; border-radius: 6px;
+    border: 1px solid var(--border); background: transparent;
+    color: var(--text-2); font-size: 11.5px; cursor: pointer;
+    font-family: inherit; transition: all .14s;
   }
-  .tb-btn:hover { background: var(--surface-2); color: var(--text); }
-  .tb-btn:active { transform: scale(.97); }
+  .tb-btn:hover { background: var(--surface); color: var(--text); border-color: var(--border); }
 
-  .stream {
-    flex: 1; overflow-y: auto; padding: 24px 0 12px;
+  /* ===== 消息流 ===== */
+  .stream { flex: 1; overflow-y: auto; padding: 20px 0 8px; }
+  .stream::-webkit-scrollbar { width: 9px; }
+  .stream::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 5px; border: 2px solid var(--bg); background-clip: padding-box; }
+  .stream::-webkit-scrollbar-thumb:hover { background: #4a4a4a; background-clip: padding-box; border: 2px solid var(--bg); }
+  .wrap { max-width: 780px; margin: 0 auto; padding: 0 24px; }
+
+  .empty { text-align: center; color: var(--text-dim); padding: 22vh 20px 0; font-size: 13px; line-height: 1.9; }
+  .empty .glyph { margin-bottom: 16px; color: var(--accent); }
+  .empty .glyph svg { width: 40px; height: 40px; }
+  .empty .t1 { color: var(--text-2); font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .empty .t2 { font-size: 12px; }
+  .empty kbd {
+    font-family: var(--mono); font-size: 11px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; color: var(--text-2);
   }
-  .stream::-webkit-scrollbar { width: 10px; }
-  .stream::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 5px; border: 3px solid transparent; background-clip: padding-box; }
-  .stream::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.22); background-clip: padding-box; border: 3px solid transparent; }
-  .wrap { max-width: 820px; margin: 0 auto; padding: 0 20px; }
-  .empty { text-align: center; color: var(--text-dim); padding: 80px 20px; font-size: 13px; line-height: 1.9; }
-  .empty .big { margin-bottom: 14px; }
-  .empty .big svg { width: 44px; height: 44px; color: var(--primary); }
-  .msg.assistant .role .glyph svg { width: 12px; height: 12px; display: block; }
-  .tool-icon svg { width: 15px; height: 15px; display: block; }
-  .tool-caret svg { width: 10px; height: 10px; display: block; }
-  #send svg { width: 18px; height: 18px; display: block; }
 
-  .msg { margin-bottom: 20px; animation: fade .18s ease; }
-  @keyframes fade { from { opacity: 0; transform: translateY(4px);} to { opacity: 1; transform: none; } }
+  .msg { margin-bottom: 18px; animation: fade .16s ease; }
+  @keyframes fade { from{opacity:0; transform:translateY(3px)} to{opacity:1; transform:none} }
 
+  /* 用户消息：右对齐 */
   .msg.user { display: flex; justify-content: flex-end; }
   .msg.user .bubble {
-    max-width: 78%;
-    background: var(--primary);
-    color: #fff;
-    padding: 10px 14px; border-radius: 14px 14px 4px 14px;
+    max-width: 80%; background: var(--user-bg); color: var(--text);
+    padding: 9px 13px; border-radius: 10px;
     white-space: pre-wrap; word-break: break-word; line-height: 1.6;
-    box-shadow: 0 2px 10px rgba(107,131,255,.25);
+    border: 1px solid var(--border-soft);
   }
 
-  .msg.assistant .role {
+  /* 助手消息：左对齐，无气泡，前缀标记 */
+  .msg.assistant { position: relative; }
+  .msg.assistant .prefix {
     display: flex; align-items: center; gap: 7px;
-    font-size: 11px; font-weight: 600; color: var(--text-dim);
-    letter-spacing: .5px; text-transform: uppercase; margin-bottom: 8px;
+    font-size: 11px; font-weight: 600; color: var(--accent);
+    letter-spacing: .4px; margin-bottom: 7px;
   }
-  .msg.assistant .role .glyph { color: var(--primary); }
-  .msg.assistant .body { line-height: 1.7; color: var(--text); word-break: break-word; }
+  .msg.assistant .prefix svg { width: 12px; height: 12px; }
+  .msg.assistant .body { line-height: 1.72; color: var(--text); word-break: break-word; }
   .msg.assistant .body p { margin: 0 0 10px; }
   .msg.assistant .body p:last-child { margin-bottom: 0; }
   .msg.assistant .body code {
-    background: var(--surface-2); padding: 1px 5px; border-radius: 4px;
-    font-family: "SF Mono", "Consolas", monospace; font-size: 12.5px;
-    color: #c9d1ff;
+    background: var(--surface); padding: 1.5px 5px; border-radius: 4px;
+    font-family: var(--mono); font-size: 12.5px; color: #e0a58a;
   }
   .msg.assistant .body pre {
-    background: var(--bg-sub); border: 1px solid var(--border);
-    border-radius: 9px; padding: 12px 14px; overflow-x: auto; margin: 10px 0;
+    background: #141414; border: 1px solid var(--border-soft);
+    border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 10px 0;
   }
-  .msg.assistant .body pre code {
-    background: none; padding: 0; color: var(--text-2); font-size: 12.5px; line-height: 1.6;
-  }
+  .msg.assistant .body pre code { background: none; padding: 0; color: var(--text-2); font-size: 12.5px; line-height: 1.62; }
+  .msg.assistant .body strong { color: #fff; font-weight: 600; }
+  .msg.assistant .body ul { margin: 8px 0; padding-left: 20px; }
+  .msg.assistant .body li { margin: 3px 0; }
 
-  .tool {
-    max-width: 820px; margin: 0 auto 14px; padding: 0 20px;
+  /* 流式光标 */
+  .streaming-cursor {
+    display: inline-block; width: 7px; height: 15px; margin-left: 2px;
+    background: var(--accent); vertical-align: text-bottom;
+    animation: blink 1s step-end infinite;
   }
-  .tool-card {
-    border: 1px solid var(--border); border-radius: 10px;
-    background: var(--bg-sub); overflow: hidden;
-    animation: fade .18s ease;
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* 思考过程块 */
+  .think {
+    margin-bottom: 10px; border-left: 2px solid var(--border);
+    background: rgba(255,255,255,0.018); border-radius: 0 6px 6px 0;
   }
+  .think-head {
+    display: flex; align-items: center; gap: 7px;
+    padding: 6px 12px; cursor: pointer; user-select: none;
+    font-size: 11.5px; color: var(--text-dim); font-style: italic;
+  }
+  .think-head:hover { color: var(--text-2); }
+  .think-head svg { width: 11px; height: 11px; transition: transform .15s; flex-shrink: 0; }
+  .think.open .think-head svg.caret { transform: rotate(90deg); }
+  .think-body {
+    display: none; padding: 2px 12px 10px 12px;
+    font-size: 12.5px; line-height: 1.7; color: var(--text-dim);
+    white-space: pre-wrap; word-break: break-word; font-style: italic;
+  }
+  .think.open .think-body { display: block; }
+
+  /* 工具调用卡片 */
+  .tool { margin-bottom: 12px; animation: fade .16s ease; }
+  .tool-card { border: 1px solid var(--border-soft); border-radius: 8px; background: var(--bg-elev); overflow: hidden; }
   .tool-head {
     display: flex; align-items: center; gap: 9px;
-    padding: 9px 13px; cursor: pointer; user-select: none;
-    background: var(--surface);
+    padding: 8px 12px; cursor: pointer; user-select: none;
   }
-  .tool-head:hover { background: var(--surface-2); }
-  .tool-icon { width: 16px; height: 16px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; }
-  .tool-title { flex: 1; font-size: 12.5px; font-weight: 600; color: var(--text-2); font-family: "SF Mono", "Consolas", monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .tool-badge { font-size: 10.5px; padding: 2px 7px; border-radius: 5px; font-weight: 600; flex-shrink: 0; }
-  .tool-badge.run { background: rgba(229,162,77,.15); color: var(--amber); }
-  .tool-badge.ok { background: rgba(70,180,126,.15); color: var(--green); }
-  .tool-badge.err { background: rgba(255,99,105,.15); color: var(--red); }
-  .tool-caret { color: var(--text-dim); font-size: 10px; transition: transform .15s; flex-shrink: 0; }
-  .tool-card.open .tool-caret { transform: rotate(90deg); }
-  .tool-body { display: none; border-top: 1px solid var(--border); }
+  .tool-head:hover { background: var(--surface); }
+  .tool-icon { width: 14px; height: 14px; flex-shrink: 0; color: var(--text-dim); display: flex; }
+  .tool-icon svg { width: 14px; height: 14px; }
+  .tool-name { font-size: 12px; font-weight: 600; color: var(--text-2); font-family: var(--mono); flex-shrink: 0; }
+  .tool-arg { flex: 1; font-size: 12px; color: var(--text-dim); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tool-badge { font-size: 10px; padding: 1.5px 6px; border-radius: 4px; font-weight: 600; flex-shrink: 0; }
+  .tool-badge.run { background: rgba(217,160,91,.16); color: var(--amber); }
+  .tool-badge.ok { background: rgba(127,176,105,.16); color: var(--green); }
+  .tool-badge.err { background: rgba(224,108,117,.16); color: var(--red); }
+  .tool-caret { color: var(--text-dim); flex-shrink: 0; display: flex; }
+  .tool-caret svg { width: 9px; height: 9px; transition: transform .15s; }
+  .tool-card.open .tool-caret svg { transform: rotate(90deg); }
+  .tool-body { display: none; border-top: 1px solid var(--border-soft); }
   .tool-card.open .tool-body { display: block; }
-  .tool-sec { padding: 10px 13px; }
-  .tool-sec + .tool-sec { border-top: 1px solid var(--border); }
-  .tool-sec-label { font-size: 10px; font-weight: 600; color: var(--text-dim); letter-spacing: .6px; text-transform: uppercase; margin-bottom: 7px; }
+  .tool-sec { padding: 10px 12px; }
+  .tool-sec + .tool-sec { border-top: 1px solid var(--border-soft); }
+  .tool-sec-label { font-size: 9.5px; font-weight: 600; color: var(--text-dim); letter-spacing: .6px; text-transform: uppercase; margin-bottom: 6px; }
   .tool-pre {
-    background: var(--bg); border: 1px solid var(--border); border-radius: 7px;
-    padding: 10px 12px; margin: 0; overflow-x: auto; max-height: 320px; overflow-y: auto;
-    font-family: "SF Mono", "Consolas", monospace; font-size: 12px; line-height: 1.6;
+    background: #141414; border-radius: 6px; padding: 10px 12px; margin: 0;
+    overflow: auto; max-height: 340px;
+    font-family: var(--mono); font-size: 12px; line-height: 1.6;
     color: var(--text-2); white-space: pre-wrap; word-break: break-word;
   }
-  .tool-pre.err { color: #ffb3b6; }
+  .tool-pre.err { color: #e8a0a6; }
 
-  .composer {
-    flex-shrink: 0; padding: 12px 20px 18px;
-    background: var(--bg-sub); border-top: 1px solid var(--border);
-  }
+  /* ===== 输入区 ===== */
+  .composer { flex-shrink: 0; padding: 10px 24px 20px; }
   .composer-inner {
-    max-width: 820px; margin: 0 auto;
-    display: flex; align-items: flex-end; gap: 10px;
-    background: var(--surface); border: 1px solid var(--border-strong);
-    border-radius: 12px; padding: 10px 12px;
+    max-width: 780px; margin: 0 auto;
+    display: flex; align-items: flex-end; gap: 8px;
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 10px 10px 14px;
     transition: border-color .15s, box-shadow .15s;
   }
-  .composer-inner:focus-within { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft); }
+  .composer-inner:focus-within { border-color: #444; box-shadow: 0 0 0 3px rgba(255,255,255,0.03); }
   #input {
     flex: 1; border: none; outline: none; background: transparent; resize: none;
     color: var(--text); font-family: inherit; font-size: 14px; line-height: 1.6;
-    max-height: 200px; min-height: 24px; padding: 2px 0;
+    max-height: 200px; min-height: 22px; padding: 1px 0;
   }
   #input::placeholder { color: var(--text-dim); }
   #send {
-    flex-shrink: 0; width: 34px; height: 34px; border-radius: 9px; border: none;
-    background: var(--primary); color: #fff; cursor: pointer;
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; border: none;
+    background: var(--accent); color: #fff; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    transition: all .15s; font-size: 15px;
+    transition: opacity .14s, transform .1s;
   }
-  #send:hover { background: #7d92ff; }
-  #send:active { transform: scale(.94); }
-  #send:disabled { opacity: .4; cursor: default; }
-  .hint { max-width: 820px; margin: 7px auto 0; font-size: 11px; color: var(--text-dim); text-align: center; }
+  #send svg { width: 16px; height: 16px; }
+  #send:hover { opacity: .88; }
+  #send:active { transform: scale(.93); }
+  #send:disabled { opacity: .35; cursor: default; }
+  .composer-hint { max-width: 780px; margin: 7px auto 0; font-size: 10.5px; color: var(--text-dim); text-align: center; }
 </style>
 </head>
 <body>
 <div class="app">
   <div class="topbar">
-    <div class="brand"><span class="dot"></span>Cuckoo Harness</div>
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16M4 5v13a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V5M9 9l3 3M15 9l-3 3"/></svg>
+      Cuckoo Harness
+    </div>
     <div class="spacer"></div>
-    <div class="status" id="status">就绪</div>
-    <button class="tb-btn" id="btn-web" title="返回网页模式（Ctrl+Shift+H）">网页模式</button>
+    <div class="status ready" id="status"><span class="dot"></span><span id="status-text">就绪</span></div>
+    <button class="tb-btn" id="btn-web" title="返回网页模式 (Ctrl+Shift+H)">网页模式</button>
   </div>
   <div class="stream" id="stream">
     <div class="empty" id="empty">
-      <div class="big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 6v12a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V6M8 10l3 3M16 10l-3 3"/></svg></div>
-      纯净对话模式<br>
-      只显示你与模型的对话和工具调用<br>
-      <span style="font-size:11px">AI 网页在后台运行 · 按 Ctrl+Shift+H 切回</span>
+      <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+      <div class="t1">纯净对话模式</div>
+      <div class="t2">只显示你与模型的对话、思考过程与工具调用</div>
+      <div class="t2" style="margin-top:10px">AI 网页在后台运行 · 按 <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> 切回</div>
     </div>
   </div>
   <div class="composer">
     <div class="composer-inner">
-      <textarea id="input" rows="1" placeholder="输入消息…  Enter 发送，Shift+Enter 换行"></textarea>
+      <textarea id="input" rows="1" placeholder="输入消息…"></textarea>
       <button id="send" title="发送"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M8 3l-4 4M8 3l4 4"/></svg></button>
     </div>
-    <div class="hint">此模式下隐藏系统提示词与工具回传等底层指令，仅保留纯净对话</div>
+    <div class="composer-hint">Enter 发送 · Shift+Enter 换行 · 隐藏系统提示词与工具回传等底层指令</div>
   </div>
 </div>
 <script>
@@ -201,11 +236,14 @@
   var input = document.getElementById('input');
   var sendBtn = document.getElementById('send');
   var statusEl = document.getElementById('status');
+  var statusText = document.getElementById('status-text');
   var btnWeb = document.getElementById('btn-web');
 
-  var toolSeq = 0;
   var BT = String.fromCharCode(96);
   var FENCE = BT + BT + BT;
+  var toolSeq = 0;
+  // 当前流式中的助手消息节点
+  var cur = null;
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -217,26 +255,39 @@
     var blocks = [];
     var reFence = new RegExp(FENCE + '([\w-]*)\n?([\s\S]*?)' + FENCE, 'g');
     src = src.replace(reFence, function (m, lang, code) {
-      var i = blocks.length;
       blocks.push('<pre><code>' + esc(code) + '</code></pre>');
-      return '@@BLOCK' + i + '@@';
+      return '@@BLOCK' + (blocks.length - 1) + '@@';
     });
     src = esc(src);
     var reInline = new RegExp(BT + '([^' + BT + '\n]+)' + BT, 'g');
     src = src.replace(reInline, '<code>$1</code>');
     src = src.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    // 无序列表
+    var lines = src.split('\n');
+    var out = [], listBuf = [];
+    function flushList() {
+      if (listBuf.length) { out.push('<ul>' + listBuf.join('') + '</ul>'); listBuf = []; }
+    }
+    for (var i = 0; i < lines.length; i++) {
+      var m = /^\s*[-*]\s+(.*)$/.exec(lines[i]);
+      if (m) { listBuf.push('<li>' + m[1] + '</li>'); }
+      else { flushList(); out.push(lines[i]); }
+    }
+    flushList();
+    src = out.join('\n');
     var parts = src.split(/\n{2,}/).map(function (p) {
+      if (p.indexOf('<ul>') === 0) return p;
       return '<p>' + p.replace(/\n/g, '<br>') + '</p>';
     }).join('');
     return parts.replace(/@@BLOCK(\d+)@@/g, function (m, i) { return blocks[+i] || ''; });
   }
 
-  function scrollBottom() {
-    stream.scrollTop = stream.scrollHeight;
-  }
+  function scrollBottom() { stream.scrollTop = stream.scrollHeight; }
+  function clearEmpty() { if (empty && empty.parentNode) { empty.parentNode.removeChild(empty); empty = null; } }
 
-  function clearEmpty() {
-    if (empty && empty.parentNode) { empty.parentNode.removeChild(empty); empty = null; }
+  function setStatus(text, state) {
+    statusText.textContent = text;
+    statusEl.className = 'status' + (state ? ' ' + state : '');
   }
 
   function addUser(text) {
@@ -248,11 +299,57 @@
     scrollBottom();
   }
 
-  function addAssistant(text) {
+  var PREFIX_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l1.8 4.6L14.5 8l-4.7 2.4L8 15l-1.8-4.6L1.5 8l4.7-2.4z"/></svg>';
+
+  function createAssistant() {
     clearEmpty();
     var d = document.createElement('div');
     d.className = 'msg assistant';
-    d.innerHTML = '<div class="role"><span class="glyph"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l1.8 4.6L14.5 8l-4.7 2.4L8 15l-1.8-4.6L1.5 8l4.7-2.4z"/></svg></span>Assistant</div><div class="body">' + renderMarkdown(text) + '</div>';
+    d.innerHTML =
+      '<div class="prefix">' + PREFIX_SVG + 'Cuckoo</div>' +
+      '<div class="think" style="display:none">' +
+        '<div class="think-head"><svg class="caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg><span class="think-label">思考中…</span></div>' +
+        '<div class="think-body"></div>' +
+      '</div>' +
+      '<div class="body"></div>';
+    stream.appendChild(d);
+    var thinkEl = d.querySelector('.think');
+    thinkEl.querySelector('.think-head').addEventListener('click', function () { thinkEl.classList.toggle('open'); });
+    return { el: d, thinkEl: thinkEl, thinkBody: d.querySelector('.think-body'), thinkLabel: d.querySelector('.think-label'), body: d.querySelector('.body') };
+  }
+
+  // 流式更新：think/text 均为全量快照
+  function onStream(think, text, finished) {
+    if (!think && !text && !finished) return; // 空心跳，忽略
+    if (!cur) cur = createAssistant();
+    if (think) {
+      cur.thinkEl.style.display = '';
+      cur.thinkBody.textContent = think;
+      cur.thinkLabel.textContent = text ? '已思考 (' + think.length + ' 字)' : '思考中…';
+      // 正文尚未出现时，自动展开思考；正文出现后自动折叠
+      if (!text) cur.thinkEl.classList.add('open');
+      else if (cur.thinkEl.classList.contains('open') && !cur.userToggled) cur.thinkEl.classList.remove('open');
+    }
+    if (text) {
+      cur.body.innerHTML = renderMarkdown(text) + (finished ? '' : '<span class="streaming-cursor"></span>');
+    }
+    scrollBottom();
+    if (finished) cur = null;
+  }
+
+  function onAssistantDone(text) {
+    var t = (text || '').trim();
+    if (cur) {
+      if (t) cur.body.innerHTML = renderMarkdown(t);
+      cur = null;
+      scrollBottom();
+      return;
+    }
+    if (!t) return;
+    clearEmpty();
+    var d = document.createElement('div');
+    d.className = 'msg assistant';
+    d.innerHTML = '<div class="prefix">' + PREFIX_SVG + 'Cuckoo</div><div class="body">' + renderMarkdown(t) + '</div>';
     stream.appendChild(d);
     scrollBottom();
   }
@@ -260,25 +357,25 @@
   function addToolStart(code) {
     clearEmpty();
     var id = 'tool-' + (++toolSeq);
-    var firstLine = String(code || '').split('\n')[0].slice(0, 80) || '工具调用';
+    var first = String(code || '').split('\n')[0].trim().slice(0, 90) || '工具调用';
     var wrap = document.createElement('div');
     wrap.className = 'tool';
     wrap.innerHTML =
       '<div class="tool-card open" id="' + id + '">' +
         '<div class="tool-head">' +
-          '<span class="tool-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.4"/><path d="M8 1.2v1.6M8 13.2v1.6M1.2 8h1.6M13.2 8h1.6M3.2 3.2l1.1 1.1M11.7 11.7l1.1 1.1M12.8 3.2l-1.1 1.1M4.3 11.7l-1.1 1.1"/></svg></span>' +
-          '<span class="tool-title">' + esc(firstLine) + '</span>' +
-          '<span class="tool-badge run">执行中</span>' +
-          '<span class="tool-caret"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg></span>' +
+          '<span class="tool-icon"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h4l3 3v9H3V2z"/><path d="M6 7h4M6 10h4"/></svg></span>' +
+          '<span class="tool-name">tool</span>' +
+          '<span class="tool-arg">' + esc(first) + '</span>' +
+          '<span class="tool-badge run">运行中</span>' +
+          '<span class="tool-caret"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg></span>' +
         '</div>' +
         '<div class="tool-body">' +
-          '<div class="tool-sec"><div class="tool-sec-label">代码</div><pre class="tool-pre">' + esc(code) + '</pre></div>' +
-          '<div class="tool-sec out-sec" style="display:none"><div class="tool-sec-label">结果</div><pre class="tool-pre out-pre"></pre></div>' +
+          '<div class="tool-sec"><div class="tool-sec-label">Code</div><pre class="tool-pre">' + esc(code) + '</pre></div>' +
+          '<div class="tool-sec out-sec" style="display:none"><div class="tool-sec-label">Result</div><pre class="tool-pre out-pre"></pre></div>' +
         '</div>' +
       '</div>';
     stream.appendChild(wrap);
-    var head = wrap.querySelector('.tool-head');
-    head.addEventListener('click', function () { wrap.querySelector('.tool-card').classList.toggle('open'); });
+    wrap.querySelector('.tool-head').addEventListener('click', function () { wrap.querySelector('.tool-card').classList.toggle('open'); });
     scrollBottom();
     return id;
   }
@@ -287,26 +384,22 @@
     var cards = stream.querySelectorAll('.tool-card.open');
     var target = null;
     for (var i = cards.length - 1; i >= 0; i--) {
-      var badge = cards[i].querySelector('.tool-badge');
-      if (badge && badge.classList.contains('run')) { target = cards[i]; break; }
+      var b = cards[i].querySelector('.tool-badge');
+      if (b && b.classList.contains('run')) { target = cards[i]; break; }
     }
     if (!target) return;
-    var b = target.querySelector('.tool-badge');
-    b.className = 'tool-badge ' + (success ? 'ok' : 'err');
-    b.textContent = success ? '完成' : '失败';
+    var badge = target.querySelector('.tool-badge');
+    badge.className = 'tool-badge ' + (success ? 'ok' : 'err');
+    badge.textContent = success ? '完成' : '失败';
     var outSec = target.querySelector('.out-sec');
     var outPre = target.querySelector('.out-pre');
     if (outSec && outPre) {
       outSec.style.display = '';
       outPre.textContent = success ? (output || '(无输出)') : (error || '未知错误');
-      if (!success) { outPre.classList.add('err'); target.classList.add('open'); }
+      if (!success) { outPre.classList.add('err'); }
+      else { target.classList.remove('open'); } // 成功时自动折叠，界面更干净
     }
     scrollBottom();
-  }
-
-  function setStatus(text, busy) {
-    statusEl.textContent = text;
-    statusEl.className = 'status' + (busy ? ' busy' : '');
   }
 
   if (api.onEvent) {
@@ -314,10 +407,12 @@
       if (!payload) return;
       switch (payload.type) {
         case 'user': addUser(payload.text); break;
-        case 'assistant': addAssistant(payload.text); setStatus('就绪'); break;
-        case 'tool-start': addToolStart(payload.code); setStatus('工具执行中…', true); break;
-        case 'tool-end': addToolEnd(payload.success, payload.output, payload.error); setStatus('就绪'); break;
-        case 'status': setStatus(payload.text, !!payload.busy); break;
+        case 'stream': onStream(payload.think, payload.text, payload.finished); break;
+        case 'assistant-done': onAssistantDone(payload.text); break;
+        case 'assistant': onAssistantDone(payload.text); break;
+        case 'tool-start': addToolStart(payload.code); setStatus('工具运行中', 'busy'); break;
+        case 'tool-end': addToolEnd(payload.success, payload.output, payload.error); setStatus('生成中', 'busy'); break;
+        case 'status': setStatus(payload.text, payload.busy ? 'busy' : 'ready'); break;
       }
     });
   }
@@ -327,25 +422,26 @@
     if (!text) return;
     input.value = '';
     input.style.height = 'auto';
-    setStatus('等待模型…', true);
+    addUser(text);
+    setStatus('生成中', 'busy');
     if (api.sendMessage) api.sendMessage(text);
   }
 
   sendBtn.addEventListener('click', send);
   input.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
-      e.preventDefault();
-      send();
-    }
+    if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
   });
   input.addEventListener('input', function () {
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 200) + 'px';
   });
-
-  btnWeb.addEventListener('click', function () {
-    if (api.exitToWeb) api.exitToWeb();
+  // 用户手动点过思考块后，不再自动折叠
+  document.addEventListener('click', function (e) {
+    var th = e.target && e.target.closest && e.target.closest('.think-head');
+    if (th && cur) cur.userToggled = true;
   });
+
+  btnWeb.addEventListener('click', function () { if (api.exitToWeb) api.exitToWeb(); });
 
   input.focus();
   if (api.ready) api.ready();

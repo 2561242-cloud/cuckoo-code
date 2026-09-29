@@ -10,7 +10,7 @@
  * 依赖遵循 bridge 规则（可用 observer / overlay）。
  */
 import { createRequire } from 'node:module';
-import { onInterceptedResponse, onToolCall } from './intercept/observer.js';
+import { onInterceptedResponse, onToolCall, onStream } from './intercept/observer.js';
 import { sendToChat } from '../overlay/chat-input.js';
 
 const require = createRequire(import.meta.url);
@@ -37,10 +37,15 @@ export function initHarnessBridge(): void {
   if (inited) return;
   inited = true;
 
-  // AI 回复 → 上报（去掉工具代码块，仅保留模型文本）
+  // 流式增量 → 上报（实时渲染，含思考过程）
+  // 流式阶段的 text 也剥离工具代码块（未闭合的围栏由完成时的 assistant-done 兜底修正）
+  onStream((ev: any) => {
+    report({ type: 'stream', think: ev.think || '', text: stripToolBlocks(ev.text || ''), finished: !!ev.finished });
+  });
+
+  // AI 回复完成 → 上报最终文本（去掉工具代码块）
   onInterceptedResponse((text: string) => {
-    const clean = stripToolBlocks(text || '');
-    if (clean) report({ type: 'assistant', text: clean });
+    report({ type: 'assistant-done', text: stripToolBlocks(text || '') });
   });
 
   // 工具调用事件 → 上报

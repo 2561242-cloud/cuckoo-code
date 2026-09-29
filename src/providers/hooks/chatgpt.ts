@@ -32,6 +32,19 @@ function install(): void {
     } catch (e) { /* ignore */ }
   }
 
+  // 流式增量事件（纯新增，供纯净模式实时渲染；节流 ~80ms）
+  var lastStreamAt = 0;
+  function dispatchStream(text, finished) {
+    var now = Date.now();
+    if (!finished && now - lastStreamAt < 80) return;
+    lastStreamAt = now;
+    try {
+      window.dispatchEvent(new CustomEvent('cuckoo-ai-stream', {
+        detail: { think: '', text: text || '', finished: !!finished }
+      }));
+    } catch (e) { /* ignore */ }
+  }
+
   // 返回 { data: string|null, done: boolean }
   function parseBlock(block) {
     var data = extractData(block);
@@ -126,6 +139,7 @@ function install(): void {
     function feed(chunk) {
       var frames = frameDecoder.push(chunk);
       for (var i = 0; i < frames.length; i++) flushFrame(frames[i]);
+      dispatchStream(extractor.text, extractor.finished);
       if (extractor.finished && !dispatched) {
         dispatched = true;
         dispatch(extractor.text, true);
@@ -209,6 +223,7 @@ function install(): void {
       lastLen = raw.length;
       var frames = frameDecoder.push(chunk);
       for (var i = 0; i < frames.length; i++) flushFrame(frames[i]);
+      dispatchStream(extractor.text, extractor.finished);
       if (extractor.finished && !dispatched) {
         dispatched = true;
         dispatch(extractor.text, true);

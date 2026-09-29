@@ -33,6 +33,19 @@ function install(): void {
     } catch (e) { /* ignore */ }
   }
 
+  // 流式增量事件（纯新增，供纯净模式实时渲染；节流 ~80ms）
+  var lastStreamAt = 0;
+  function dispatchStream(think, text, finished) {
+    var now = Date.now();
+    if (!finished && now - lastStreamAt < 80) return;
+    lastStreamAt = now;
+    try {
+      window.dispatchEvent(new CustomEvent('cuckoo-ai-stream', {
+        detail: { think: think || '', text: text || '', finished: !!finished }
+      }));
+    } catch (e) { /* ignore */ }
+  }
+
   // ---------- 回复文本提取（Anthropic 流式事件格式）----------
   // 关注：
   //   content_block_delta + delta.type==='text_delta' → delta.text
@@ -40,6 +53,7 @@ function install(): void {
   // 忽略 thinking_delta（思考内容）
   function createExtractor() {
     var text = '';
+    var thinkText = '';
     var finished = false;
 
     function consume(parsed) {
@@ -49,8 +63,10 @@ function install(): void {
         var d = parsed.delta;
         if (d.type === 'text_delta' && typeof d.text === 'string') {
           text += d.text;
+        } else if (d.type === 'thinking_delta' && typeof d.thinking === 'string') {
+          thinkText += d.thinking;
         }
-        // thinking_delta / signature_delta 忽略
+        // signature_delta 忽略
         return;
       }
       if (type === 'message_stop') { finished = true; return; }
@@ -60,6 +76,7 @@ function install(): void {
     return {
       consume: consume,
       get text() { return text; },
+      get think() { return thinkText; },
       get finished() { return finished; }
     };
   }
@@ -78,6 +95,7 @@ function install(): void {
         var parsed = parseBlock(frames[i]);
         if (parsed) extractor.consume(parsed);
       }
+      dispatchStream(extractor.think, extractor.text, extractor.finished);
       if (extractor.finished && !dispatched) {
         dispatched = true;
         dispatch(extractor.text, true);
@@ -158,6 +176,7 @@ function install(): void {
         var parsed = parseBlock(frames[i]);
         if (parsed) extractor.consume(parsed);
       }
+      dispatchStream(extractor.think, extractor.text, extractor.finished);
       if (extractor.finished && !dispatched) {
         dispatched = true;
         dispatch(extractor.text, true);

@@ -82,6 +82,25 @@ AI 回复 → hook → observer → onInterceptedResponse
 - [x] 可切回网页模式
 - [x] typecheck / test / lint / compile 全通过
 
+## 后续迭代（2026-09-29 同日）
+
+### 流式输出 + 思考过程
+
+初版只显示最终回复（hook 仅在结束时派发一次）。为对齐主流 harness 体验，补充：
+
+- **hook 新增流式事件** \`cuckoo-ai-stream\`（deepseek/claude/chatgpt 三平台，纯新增，节流 80ms）
+  - deepseek：暴露已有 \`thinkText\`；claude：新增捕获 \`thinking_delta\`
+  - \`dispatchStream(think, text, finished)\`，text/think 均为全量快照
+- **observer 新增 \`onStream\` 回调**（向后兼容，无监听者零开销）
+- **harness-bridge** 上报 \`stream\` 事件；完成时发 \`assistant-done\`
+- **UI**：流式渲染 + 光标；思考过程折叠块（正文出现后自动折叠，可手动展开）
+
+### UI 重做（Claude Code 风格）
+
+- 暖色强调（#d97757）、深色极简、助手消息无气泡（前缀标记 + 正文）
+- 工具卡片：名称 + 参数 + 状态徽章，成功自动折叠
+- 全部图标为内联 SVG（无 emoji）
+
 ## 遗留 / 后续
 
 - 对话往返的真机端到端验证需在**已登录 AI 平台**的会话中进行（dev 隔离 profile 未登录，仅验证到页面加载与渲染）。

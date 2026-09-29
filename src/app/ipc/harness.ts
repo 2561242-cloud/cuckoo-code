@@ -20,10 +20,18 @@ function getHarnessView(sender: any): any {
   return ctx ? (ctx as any).harnessView : null;
 }
 
-/** 按 sender 找到对应窗口上下文（含 AI view） */
+/**
+ * 按 sender 找到对应窗口上下文（含 AI view）。
+ * 注意：harness view 不在官方 getContextByWebContents 的匹配范围内，故自行遍历上下文。
+ */
 function findContext(sender: any): any {
-  // sender 可能是 harness 页、AI 页、壳页
-  return windowState.getContextByWebContents(sender);
+  for (const ctx of windowState.getAllContexts()) {
+    const c: any = ctx;
+    if (c.harnessView && c.harnessView.webContents === sender) return c;
+    if (c.view && c.view.webContents === sender) return c;
+    if (c.win && c.win.webContents === sender) return c;
+  }
+  return null;
 }
 
 function registerHarnessIpc(): void {

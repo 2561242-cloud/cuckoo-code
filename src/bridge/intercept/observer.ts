@@ -147,6 +147,23 @@ async function processInterceptedResponse(text: string, force?: boolean): Promis
   } catch (e) { /* ignore */ }
 }
 
+// 流式增量监听器（供纯净模式实时渲染；无监听者时零开销）
+const streamListeners = new Set<(ev: any) => void>();
+
+/** 注册"流式增量"监听器（{ think, text, finished }） */
+function onStream(cb: (ev: any) => void): () => void {
+  streamListeners.add(cb);
+  return () => streamListeners.delete(cb);
+}
+
+/** 派发流式增量（无监听者时直接返回） */
+function emitStream(ev: any): void {
+  if (streamListeners.size === 0) return;
+  for (const cb of streamListeners) {
+    try { cb(ev); } catch (_) { /* ignore */ }
+  }
+}
+
 // 工具调用监听器（供纯净模式等上报工具开始/结束；无监听者时零开销）
 const toolCallListeners = new Set<(ev: any) => void>();
 
@@ -224,6 +241,13 @@ function startInterceptObserver(): void {
       console.error('[Cuckoo Code][拦截] 处理回复事件出错:', err);
     }
   });
+  window.addEventListener('cuckoo-ai-stream', (ev: any) => {
+    try {
+      const detail = ev && ev.detail;
+      if (!detail) return;
+      emitStream({ think: detail.think || '', text: detail.text || '', finished: !!detail.finished });
+    } catch (_) { /* ignore */ }
+  });
   window.addEventListener('cuckoo-ai-error', (ev: any) => {
     try {
       const detail = ev && ev.detail;
@@ -243,4 +267,4 @@ function getLastInterceptedText(): string {
   return lastInterceptedText;
 }
 
-export { startInterceptObserver, processInterceptedResponse, getLastInterceptedText, onInterceptedResponse, onAiError, onToolCall };
+export { startInterceptObserver, processInterceptedResponse, getLastInterceptedText, onInterceptedResponse, onAiError, onToolCall, onStream };
