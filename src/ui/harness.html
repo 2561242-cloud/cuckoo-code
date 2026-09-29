@@ -1351,7 +1351,7 @@
     var actions = [
       { action: 'attach', name: '添加附件', keys: '添加附件 attach 附件 文件 上传 图片', desc: '选择图片 / 文件上传' },
       { action: 'plan', name: '制定计划', keys: '制定计划 plan 计划 分步 步骤', desc: '让模型先给出分步计划' },
-      { action: 'goal', name: '设定目标', keys: '设定目标 goal 目标 自动推进 多轮', desc: '自动多轮推进直至完成' }
+      { action: 'goal', name: '设定目标', keys: '设定目标 制定目标 目标 goal goalmode 自动推进 多轮', desc: '自动多轮推进直至完成' }
     ];
     var acts = [];
     for (var a = 0; a < actions.length; a++) {
@@ -1420,6 +1420,7 @@
               input.value = prefix;
               pendingGoal = true;
               input.placeholder = '输入目标描述，回车设定并自动推进…';
+              appendSystem('请输入目标描述（回车设定，之后自动多轮推进）');
             }
             hideSlashMenu();
             input.focus();
