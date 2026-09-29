@@ -11,7 +11,7 @@ import './api.js';
 import { createRequire } from 'node:module';
 import * as ui from '../overlay/panel.js';
 import * as projectDir from '../overlay/project-dir.js';
-import { bindEvents, refreshTokenForCurrentSession, setIsSubagentWindow } from '../overlay/events.js';
+import { bindEvents, refreshTokenForCurrentSession, setIsSubagentWindow, getAutoCompactConfig, applyAutoCompactConfig, triggerCompaction } from '../overlay/events.js';
 import * as chatInput from '../overlay/chat-input.js';
 import * as settingsPanel from '../overlay/panels/settings.js';
 import { wireEvents } from '../overlay/events.js';
@@ -134,6 +134,30 @@ function init(): void {
         ipcRenderer.send('cuckoo-settings-result', { reqId, ok: true, data });
       } catch (err: any) {
         ipcRenderer.send('cuckoo-settings-result', { reqId, ok: false, error: err.message });
+      }
+    });
+    // 自动压缩配置读写（壳页面 Token 页 → 主进程转发 → 这里读写）
+    ipcRenderer.on('cuckoo-get-autocompact', (_e: any, { reqId }: any) => {
+      try {
+        ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: true, data: getAutoCompactConfig() });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: false, error: err.message });
+      }
+    });
+    ipcRenderer.on('cuckoo-save-autocompact', (_e: any, { reqId, data }: any) => {
+      try {
+        const res = applyAutoCompactConfig(data);
+        ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: res.success, data: res.data, error: res.error });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: false, error: err.message });
+      }
+    });
+    ipcRenderer.on('cuckoo-trigger-compact', (_e: any, { reqId }: any) => {
+      try {
+        triggerCompaction();
+        ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: true });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-autocompact-result', { reqId, ok: false, error: err.message });
       }
     });
     // 追加文本到输入框末尾（MCP 名等，不发送）

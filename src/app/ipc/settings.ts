@@ -57,6 +57,7 @@ function requestFromAiPage(shellEvent: any, channel: string, data?: any): Promis
 function registerSettingsIpc(): void {
   // AI 页面回执入口
   ipcMain.on('cuckoo-settings-result', onResult);
+  ipcMain.on('cuckoo-autocompact-result', onResult);
 
   // 读设置
   ipcMain.handle('get-settings', async (event: any) => {
@@ -74,6 +75,22 @@ function registerSettingsIpc(): void {
   ipcMain.handle('reset-settings', async (event: any) => {
     const r = await requestFromAiPage(event, 'cuckoo-reset-settings');
     return r.ok ? { success: true, data: r.data } : { success: false, error: r.error };
+  });
+
+  // 自动压缩配置：读
+  ipcMain.handle('get-autocompact', async (event: any) => {
+    const r = await requestFromAiPage(event, 'cuckoo-get-autocompact');
+    return r.ok ? { success: true, data: r.data } : { success: false, error: r.error };
+  });
+  // 自动压缩配置：保存
+  ipcMain.handle('save-autocompact', async (event: any, { data }: any) => {
+    const r = await requestFromAiPage(event, 'cuckoo-save-autocompact', data);
+    return r.ok ? { success: true, data: r.data } : { success: false, error: r.error };
+  });
+  // 手动触发压缩
+  ipcMain.handle('trigger-compact', async (event: any) => {
+    const r = await requestFromAiPage(event, 'cuckoo-trigger-compact');
+    return r.ok ? { success: true } : { success: false, error: r.error };
   });
 }
 

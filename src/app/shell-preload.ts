@@ -51,6 +51,10 @@ const shellAPI = {
   enableMcpServer: (name: string) => ipcRenderer.invoke('enable-mcp-server', { name }),
   disableMcpServer: (name: string) => ipcRenderer.invoke('disable-mcp-server', { name }),
   appendSnippet: (text: string) => ipcRenderer.invoke('append-to-input', { text }),
+  // ========== 自动压缩 ==========
+  getAutoCompact: () => ipcRenderer.invoke('get-autocompact'),
+  saveAutoCompact: (data: any) => ipcRenderer.invoke('save-autocompact', { data }),
+  triggerCompact: () => ipcRenderer.invoke('trigger-compact'),
   // ========== 设置 ==========
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (data: any) => ipcRenderer.invoke('save-settings', { data }),

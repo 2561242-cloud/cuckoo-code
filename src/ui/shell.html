@@ -1134,6 +1134,7 @@
         if (t === 'snippets') { try { loadSnippets(); } catch (e) {} }
         if (t === 'settings') { try { loadSettings(); } catch (e) {} }
         if (t === 'mcp') { try { loadMcpServers(); } catch (e) {} }
+        if (t === 'token') { try { loadAutoCompact(); } catch (e) {} }
         if (t === 'skills') { try { loadSkills(); } catch (e) {} }
       };
       // 收起状态下点图标 → 展开并切到该标签
@@ -1164,6 +1165,46 @@
     });
   });
   // （收起：点击当前激活的图标即可）
+
+  // ===== Token 页：自动压缩 + 压缩按钮 =====
+  async function loadAutoCompact() {
+    if (!api.getAutoCompact) return;
+    try {
+      var r = await api.getAutoCompact();
+      if (r && r.success && r.data) {
+        var enEl = document.getElementById('tk-auto-enabled');
+        var thEl = document.getElementById('tk-auto-threshold');
+        if (enEl) enEl.checked = r.data.enabled === true;
+        if (thEl) thEl.value = r.data.threshold;
+      }
+    } catch (e) {}
+  }
+  var tkCompactBtn = document.getElementById('tk-compact');
+  if (tkCompactBtn) tkCompactBtn.addEventListener('click', async function () {
+    if (!api.triggerCompact) return;
+    if (!(await ckConfirm('确定压缩上下文？将生成摘要并在新会话继续。', '压缩上下文'))) return;
+    try { await api.triggerCompact(); } catch (e) {}
+  });
+  var tkAutoSaveBtn = document.getElementById('tk-auto-save');
+  if (tkAutoSaveBtn) tkAutoSaveBtn.addEventListener('click', async function () {
+    if (!api.saveAutoCompact) return;
+    var enEl = document.getElementById('tk-auto-enabled');
+    var thEl = document.getElementById('tk-auto-threshold');
+    var enabled = !!(enEl && enEl.checked);
+    var threshold = parseFloat(thEl ? thEl.value : '80');
+    if (!Number.isFinite(threshold) || threshold <= 0) { await ckAlert('阈值需为正数（万）'); return; }
+    tkAutoSaveBtn.disabled = true;
+    try {
+      var r = await api.saveAutoCompact({ enabled: enabled, threshold: threshold });
+      if (r && r.success) {
+        tkAutoSaveBtn.textContent = '已保存';
+        setTimeout(function () { tkAutoSaveBtn.textContent = '保存设置'; }, 1200);
+      } else {
+        await ckAlert((r && r.error) || '保存失败');
+      }
+    } catch (e) { await ckAlert('保存失败: ' + (e.message || e)); }
+    tkAutoSaveBtn.disabled = false;
+  });
 
   // ===== 技能 =====
   async function loadSkills() {
@@ -1386,8 +1427,9 @@
   var winRefreshBtn = document.getElementById('win-refresh');
   if (winRefreshBtn) winRefreshBtn.addEventListener('click', renderWindowList);
 
-  // 预加载提示词
+  // 预加载提示词 + 自动压缩配置
   try { loadSnippets(); } catch (e) {}
+  try { loadAutoCompact(); } catch (e) {}
   // 其他窗口改了提示词 → 本窗口同步刷新
   if (api.onSnippetsChanged) api.onSnippetsChanged(function () { try { loadSnippets(); } catch (e) {} });
 
