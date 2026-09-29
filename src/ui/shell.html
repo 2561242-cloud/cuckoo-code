@@ -342,6 +342,34 @@
   }
   .ck-list-item:hover { background: var(--ck-primary-soft); }
   .ck-list-empty { color: var(--ck-text-dim); font-size: 12px; text-align: center; padding: 16px 0; }
+  /* 设置分组 */
+  .ck-set-group {
+    display: flex; flex-direction: column; gap: 11px;
+    background: var(--ck-bg); border: 1px solid var(--ck-border);
+    border-radius: 12px; padding: 14px;
+    box-shadow: var(--ck-shadow-sm);
+  }
+  .ck-set-group-title {
+    font-size: 12.5px; font-weight: 700; color: var(--ck-text);
+    padding-bottom: 2px;
+  }
+  .ck-set-field { display: flex; flex-direction: column; gap: 5px; }
+  .ck-set-field.ck-set-toggle { flex-direction: row; align-items: center; justify-content: space-between; }
+  .ck-set-key { font-size: 11.5px; color: var(--ck-text-2); }
+  .ck-set-input {
+    width: 100%; background: var(--ck-surface); border: 1px solid transparent;
+    border-radius: 8px; padding: 7px 10px; color: var(--ck-text);
+    font-size: 12.5px; font-family: inherit;
+  }
+  .ck-set-input:focus { outline: none; border-color: var(--ck-primary); box-shadow: 0 0 0 3px var(--ck-primary-soft); }
+  .ck-set-textarea {
+    width: 100%; background: var(--ck-surface); border: 1px solid transparent;
+    border-radius: 8px; padding: 8px 10px; color: var(--ck-text);
+    font-size: 12.5px; font-family: inherit; resize: vertical; line-height: 1.5;
+  }
+  .ck-set-textarea:focus { outline: none; border-color: var(--ck-primary); box-shadow: 0 0 0 3px var(--ck-primary-soft); }
+  .ck-set-inline { display: flex; align-items: center; gap: 8px; }
+  .ck-set-sep { font-size: 11.5px; color: var(--ck-text-dim); flex-shrink: 0; }
   /* 提示词卡片 */
   .ck-snip-item {
     display: flex; align-items: flex-start; gap: 9px;
@@ -636,14 +664,80 @@
 
             <!-- ===== 设置 ===== -->
             <div class="ck-tab" data-panel="settings">
-              <div class="ck-actions">
-                <button class="ck-btn ck-btn-secondary">打开设置</button>
+              <div class="ck-set-group">
+                <div class="ck-set-group-title">失败自动重试</div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">启用自动重试</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="st-retry-enabled" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">普通失败间隔（秒）</span>
+                  <div class="ck-set-inline">
+                    <input type="number" class="ck-set-input" id="st-retry-delay-min" min="0" step="1" />
+                    <span class="ck-set-sep">至</span>
+                    <input type="number" class="ck-set-input" id="st-retry-delay-max" min="0" step="1" />
+                  </div>
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">普通失败重试次数（负数=无限）</span>
+                  <input type="number" class="ck-set-input" id="st-retry-count" step="1" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">操作频繁重试间隔（秒）</span>
+                  <input type="number" class="ck-set-input" id="st-retry-429-delay" min="0" step="1" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">操作频繁重试次数（负数=无限）</span>
+                  <input type="number" class="ck-set-input" id="st-retry-429-count" step="1" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">重试提示词</span>
+                  <textarea class="ck-set-textarea" id="st-retry-prompt" rows="3"></textarea>
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">AI 回复超时后重试（秒）</span>
+                  <input type="number" class="ck-set-input" id="st-xhr-idle-timeout" min="0" step="1" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">超时重试提示词</span>
+                  <input type="text" class="ck-set-input" id="st-watchdog-prompt" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">超时重试次数（负数=无限）</span>
+                  <input type="number" class="ck-set-input" id="st-watchdog-count" step="1" />
+                </div>
               </div>
-              <div class="ck-divider"></div>
-              <div class="ck-card">
-                <span class="ck-label">技能与代理（Skills / Agents）</span>
-                <button class="ck-btn ck-btn-secondary">刷新技能与代理</button>
-                <span style="font-size:11px;color:var(--ck-text-dim);">重新扫描技能/代理目录，并把最新清单发给 AI</span>
+
+              <div class="ck-set-group">
+                <div class="ck-set-group-title">发送延迟</div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">延迟区间（秒）</span>
+                  <div class="ck-set-inline">
+                    <input type="number" class="ck-set-input" id="st-send-delay-min" min="0" step="0.1" />
+                    <span class="ck-set-sep">至</span>
+                    <input type="number" class="ck-set-input" id="st-send-delay-max" min="0" step="0.1" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="ck-set-group">
+                <div class="ck-set-group-title">附件上传间隔</div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">上传后检测等待（秒）</span>
+                  <div class="ck-set-inline">
+                    <input type="number" class="ck-set-input" id="st-attach-delay-min" min="0" step="0.1" />
+                    <span class="ck-set-sep">至</span>
+                    <input type="number" class="ck-set-input" id="st-attach-delay-max" min="0" step="0.1" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="ck-actions">
+                <button class="ck-btn ck-btn-primary" id="st-save">保存设置</button>
+                <button class="ck-btn ck-btn-secondary" id="st-reset">恢复默认</button>
               </div>
             </div>
 
@@ -903,6 +997,7 @@
       var onTabSwitch = function (t) {
         if (t === 'windows') { try { renderWindowList(); } catch (e) {} }
         if (t === 'snippets') { try { loadSnippets(); } catch (e) {} }
+        if (t === 'settings') { try { loadSettings(); } catch (e) {} }
       };
       // 收起状态下点图标 → 展开并切到该标签
       if (isCollapsed) {
@@ -1030,6 +1125,82 @@
   try { loadSnippets(); } catch (e) {}
   // 其他窗口改了提示词 → 本窗口同步刷新
   if (api.onSnippetsChanged) api.onSnippetsChanged(function () { try { loadSnippets(); } catch (e) {} });
+
+  // ===== 设置页 =====
+  var SET_FIELDS = [
+    'retry-delay-min', 'retry-delay-max', 'retry-count', 'retry-429-delay', 'retry-429-count',
+    'retry-prompt', 'xhr-idle-timeout', 'watchdog-prompt', 'watchdog-count',
+    'send-delay-min', 'send-delay-max', 'attach-delay-min', 'attach-delay-max',
+  ];
+  function setVal(id, v) {
+    var el = document.getElementById('st-' + id);
+    if (el) el.value = (v === null || v === undefined) ? '' : v;
+  }
+  function getVal(id) {
+    var el = document.getElementById('st-' + id);
+    return el ? el.value : '';
+  }
+  function renderSettings(data) {
+    if (!data) return;
+    var enEl = document.getElementById('st-retry-enabled');
+    if (enEl) enEl.checked = data.retryEnabled !== false;
+    SET_FIELDS.forEach(function (id) {
+      var key = id.replace(/-([a-z])/g, function (m, c) { return c.toUpperCase(); });
+      setVal(id, data[key]);
+    });
+  }
+  async function loadSettings() {
+    if (!api.getSettings) return;
+    try {
+      var r = await api.getSettings();
+      if (r && r.success && r.data) renderSettings(r.data);
+    } catch (e) {}
+  }
+  function collectSettings() {
+    function num(id) { var v = getVal(id); var n = parseFloat(v); return Number.isFinite(n) ? n : 0; }
+    var enEl = document.getElementById('st-retry-enabled');
+    return {
+      retryEnabled: !!(enEl && enEl.checked),
+      retryDelayMin: num('retry-delay-min'),
+      retryDelayMax: num('retry-delay-max'),
+      retryCount: parseInt(getVal('retry-count'), 10) || 0,
+      retry429Delay: num('retry-429-delay'),
+      retry429Count: parseInt(getVal('retry-429-count'), 10) || 0,
+      retryPrompt: getVal('retry-prompt'),
+      xhrIdleTimeout: num('xhr-idle-timeout'),
+      watchdogPrompt: getVal('watchdog-prompt'),
+      watchdogCount: parseInt(getVal('watchdog-count'), 10) || 0,
+      sendDelayMin: num('send-delay-min'),
+      sendDelayMax: num('send-delay-max'),
+      attachDelayMin: num('attach-delay-min'),
+      attachDelayMax: num('attach-delay-max'),
+    };
+  }
+  var stSaveBtn = document.getElementById('st-save');
+  if (stSaveBtn) stSaveBtn.addEventListener('click', async function () {
+    if (!api.saveSettings) return;
+    stSaveBtn.disabled = true;
+    try {
+      var r = await api.saveSettings(collectSettings());
+      if (r && r.success) {
+        if (r.data) renderSettings(r.data);
+        stSaveBtn.textContent = '已保存';
+        setTimeout(function () { stSaveBtn.textContent = '保存设置'; }, 1200);
+      } else {
+        alert((r && r.error) || '保存失败');
+      }
+    } catch (e) { alert('保存失败: ' + (e.message || e)); }
+    stSaveBtn.disabled = false;
+  });
+  var stResetBtn = document.getElementById('st-reset');
+  if (stResetBtn) stResetBtn.addEventListener('click', async function () {
+    if (!api.resetSettings) return;
+    if (!confirm('确定恢复默认设置？')) return;
+    try {
+      var r = await api.resetSettings();
+      if (r && r.success && r.data) renderSettings(r.data);
+    } catch (e) {}
+  });
 
   // ===== 项目目录（地址栏最左）=====
   function projectBaseName(dirPath) {

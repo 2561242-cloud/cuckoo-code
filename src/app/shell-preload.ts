@@ -44,6 +44,10 @@ const shellAPI = {
   onSnippetsChanged: (cb: () => void) => {
     ipcRenderer.on('shell-snippets-changed', () => cb());
   },
+  // ========== 设置 ==========
+  getSettings: () => ipcRenderer.invoke('get-settings'),
+  saveSettings: (data: any) => ipcRenderer.invoke('save-settings', { data }),
+  resetSettings: () => ipcRenderer.invoke('reset-settings'),
 };
 
 try {

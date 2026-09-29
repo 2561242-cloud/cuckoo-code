@@ -13,6 +13,7 @@ import * as ui from '../overlay/panel.js';
 import * as projectDir from '../overlay/project-dir.js';
 import { bindEvents, refreshTokenForCurrentSession, setIsSubagentWindow } from '../overlay/events.js';
 import * as chatInput from '../overlay/chat-input.js';
+import * as settingsPanel from '../overlay/panels/settings.js';
 import { wireEvents } from '../overlay/events.js';
 import { getProviderByUrl } from '../providers/registry.js';
 import { startInterceptObserver, onInterceptedResponse } from './intercept/observer.js';
@@ -110,6 +111,31 @@ function init(): void {
 
     // URL 变化：主进程 did-navigate/-in-page 会推 'cuckoo-url-changed'
     ipcRenderer.on('cuckoo-url-changed', handleUrlChanged);
+    // 设置读写（壳页面设置页 → 主进程转发 → 这里读写 localStorage，再回执）
+    ipcRenderer.on('cuckoo-get-settings', (_e: any, { reqId }: any) => {
+      try {
+        const data = settingsPanel.getSettingsData();
+        ipcRenderer.send('cuckoo-settings-result', { reqId, ok: true, data });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-settings-result', { reqId, ok: false, error: err.message });
+      }
+    });
+    ipcRenderer.on('cuckoo-save-settings', (_e: any, { reqId, data }: any) => {
+      try {
+        const res = settingsPanel.applySettingsData(data);
+        ipcRenderer.send('cuckoo-settings-result', { reqId, ok: res.success, data: res.success ? settingsPanel.getSettingsData() : null, error: res.error });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-settings-result', { reqId, ok: false, error: err.message });
+      }
+    });
+    ipcRenderer.on('cuckoo-reset-settings', (_e: any, { reqId }: any) => {
+      try {
+        const data = settingsPanel.resetSettingsData();
+        ipcRenderer.send('cuckoo-settings-result', { reqId, ok: true, data });
+      } catch (err: any) {
+        ipcRenderer.send('cuckoo-settings-result', { reqId, ok: false, error: err.message });
+      }
+    });
     // 快捷提示词：主进程（由壳页面触发）→ 填入输入框（+ 可选发送）
     ipcRenderer.on('cuckoo-trigger-snippet', (_e: any, data: any) => {
       try {
