@@ -723,6 +723,9 @@
   // 用状态位而非实时 isNearBottom() 判定，避免内容瞬时增长超过阈值时被误判为
   // "已离开底部"，导致刚点击回到底部后马上又弹出按钮。
   var pinBottom = true;
+  // 程序化改变内容高度（如工具卡折叠）时，浏览器的 scrollTop clamp 会触发 scroll 事件，
+  // 从而错误地把 pinBottom 改成 true（把正在看历史的位置拉到底）。用此标志抑制该副作用。
+  var suppressPin = false;
   function isNearBottom() {
     return (stream.scrollHeight - stream.scrollTop - stream.clientHeight) < 90;
   }
@@ -924,8 +927,29 @@
       if (!success) outPre.classList.add('err');
     }
     // 执行完成后统一自动折叠（成功/失败都折叠，用户可点击展开）
+    // 关键：折叠会让内容变矮，需在抑制 pinBottom 副作用的前提下保持用户当前视图位置
+    var wasPinned = pinBottom;
+    var prevTop = stream.scrollTop;
+    suppressPin = true;
     target.classList.remove('open');
-    scrollBottom();
+    if (wasPinned) {
+      stream.scrollTop = stream.scrollHeight;
+    } else {
+      // 原本不在底部 → 锁定原位置（折叠只影响下方内容高度）
+      stream.scrollTop = prevTop;
+    }
+    // 下一帧解除抑制并校正（内容高度已稳定）
+    requestAnimationFrame(function () {
+      if (wasPinned) {
+        stream.scrollTop = stream.scrollHeight;
+        pinBottom = true;
+      } else {
+        stream.scrollTop = Math.min(prevTop, Math.max(0, stream.scrollHeight - stream.clientHeight));
+        pinBottom = false;
+      }
+      suppressPin = false;
+      updateScrollBtn();
+    });
   }
 
   if (api.onEvent) {
@@ -1368,6 +1392,7 @@
     scrollBtn.addEventListener('click', function () { pinBottom = true; stream.scrollTop = stream.scrollHeight; updateScrollBtn(); });
   }
   stream.addEventListener('scroll', function () {
+    if (suppressPin) return; // 折叠等程序化高度变化引发的滚动，不改跟随状态
     pinBottom = isNearBottom();
     updateScrollBtn();
   });
