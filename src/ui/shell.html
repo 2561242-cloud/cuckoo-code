@@ -1047,8 +1047,8 @@
       chart.innerHTML = '<div class="ck-list-empty" style="width:100%;">暂无数据</div>';
       return;
     }
-    // 按 value 降序排列（用量大的在上）
-    var sorted = daily.slice().sort(function (a, b) { return (b.value || 0) - (a.value || 0); });
+    // 按日期降序排列（最新日期在上）
+    var sorted = daily.slice().sort(function (a, b) { return String(b.date || '').localeCompare(String(a.date || '')); });
     var max = Math.max.apply(null, sorted.map(function (d) { return d.value || 0; }));
     if (max <= 0) max = 1;
     chart.innerHTML = sorted.map(function (d) {
