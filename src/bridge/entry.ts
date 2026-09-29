@@ -110,6 +110,18 @@ function init(): void {
 
     // URL 变化：主进程 did-navigate/-in-page 会推 'cuckoo-url-changed'
     ipcRenderer.on('cuckoo-url-changed', handleUrlChanged);
+    // 快捷提示词：主进程（由壳页面触发）→ 填入输入框（+ 可选发送）
+    ipcRenderer.on('cuckoo-trigger-snippet', (_e: any, data: any) => {
+      try {
+        const content = data && data.content;
+        const autoSend = !!(data && data.autoSend);
+        if (typeof content === 'string' && content) {
+          chatInput.insertSnippet(content, autoSend);
+        }
+      } catch (err: any) {
+        console.error('[Cuckoo Code] 处理快捷提示词失败:', err.message);
+      }
+    });
     window.addEventListener('popstate', handleUrlChanged);
     window.addEventListener('hashchange', handleUrlChanged);
     // 首次延迟执行，确保 overlay 已注入

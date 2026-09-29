@@ -37,6 +37,13 @@ const shellAPI = {
   openProfileWindow: (profileId: string) => ipcRenderer.invoke('open-profile-window', { profileId }),
   deleteProfileWindow: (profileId: string) => ipcRenderer.invoke('delete-profile', { profileId }),
   setProfileAutoOpen: (profileId: string, autoOpen: boolean) => ipcRenderer.invoke('set-profile-auto-open', { profileId, autoOpen }),
+  // ========== 快捷提示词 ==========
+  listSnippets: () => ipcRenderer.invoke('list-snippets'),
+  saveSnippets: (snippets: any) => ipcRenderer.invoke('save-snippets', { snippets }),
+  triggerSnippet: (content: string, autoSend: boolean) => ipcRenderer.invoke('trigger-snippet', { content, autoSend }),
+  onSnippetsChanged: (cb: () => void) => {
+    ipcRenderer.on('shell-snippets-changed', () => cb());
+  },
 };
 
 try {

@@ -253,6 +253,57 @@ function waitForInitialPromptAndSend(): void {
   }, 500);
 }
 /**
+ * 把光标移到输入框末尾（填入提示词后，方便用户接着补充）
+ */
+function moveCaretToEnd(input: any): void {
+  try {
+    if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
+      const len = input.value ? input.value.length : 0;
+      input.setSelectionRange(len, len);
+      return;
+    }
+    if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
+      const sel = window.getSelection();
+      if (sel) {
+        const range = document.createRange();
+        range.selectNodeContents(input);
+        range.collapse(false); // 折叠到末尾
+        sel.removeAllRanges();
+        sel.addRange(range);
+      }
+    }
+  } catch (err: any) {
+    console.error('[Cuckoo Code] 移动光标到末尾失败:', err.message);
+  }
+}
+
+/**
+ * 插入快捷提示词：填入输入框 + 光标移到末尾；autoSend=true 时自动发送。
+ * @param content 提示词内容
+ * @param autoSend 是否自动发送（默认 false = 只填入）
+ * @returns 是否成功填入
+ */
+async function insertSnippet(content: string, autoSend?: boolean): Promise<boolean> {
+  const input = findInputArea();
+  if (!input) {
+    console.log('[Cuckoo Code] 找不到输入框，无法插入提示词');
+    return false;
+  }
+  if (!(await setInputContent(input, content))) {
+    return false;
+  }
+  moveCaretToEnd(input);
+  if (autoSend) {
+    // 稍等片刻，让输入框内容稳定后再触发发送
+    setTimeout(function () { triggerSend(input); }, 300);
+    console.log('[Cuckoo Code] 提示词已填入并触发发送, 长度=' + content.length);
+  } else {
+    console.log('[Cuckoo Code] 提示词已填入（未发送）, 长度=' + content.length);
+  }
+  return true;
+}
+
+/**
  * 触发发送消息
  */
 function triggerSend(input: any): void {
@@ -336,6 +387,7 @@ ipcRenderer.on('initial-prompt', (_event: any, content: string) => {
 export {
   randomDelay,
   setInputContent,
+  insertSnippet,
   sendToChat,
   sendMessageToChat,
   sendCombinedJsResultsToChat,
