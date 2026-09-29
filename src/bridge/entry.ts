@@ -136,6 +136,17 @@ function init(): void {
         ipcRenderer.send('cuckoo-settings-result', { reqId, ok: false, error: err.message });
       }
     });
+    // 追加文本到输入框末尾（MCP 名等，不发送）
+    ipcRenderer.on('cuckoo-append-input', (_e: any, data: any) => {
+      try {
+        const text = data && data.text;
+        if (typeof text === 'string' && text) {
+          chatInput.appendTextToInput(text);
+        }
+      } catch (err: any) {
+        console.error('[Cuckoo Code] 追加文本失败:', err.message);
+      }
+    });
     // 快捷提示词：主进程（由壳页面触发）→ 填入输入框（+ 可选发送）
     ipcRenderer.on('cuckoo-trigger-snippet', (_e: any, data: any) => {
       try {

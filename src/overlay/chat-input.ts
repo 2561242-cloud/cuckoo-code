@@ -252,6 +252,43 @@ function waitForInitialPromptAndSend(): void {
     }
   }, 500);
 }
+/** 读取输入框当前文本 */
+function getInputText(input: any): string {
+  try {
+    if (input.tagName === 'TEXTAREA' || input.tagName === 'INPUT') {
+      return input.value || '';
+    }
+    if (input.isContentEditable || input.getAttribute('contenteditable') === 'true') {
+      return input.innerText || input.textContent || '';
+    }
+  } catch (_) {}
+  return '';
+}
+
+/**
+ * 在输入框现有内容末尾追加一段文本（不发送），光标移到末尾。
+ * 用于快捷提示词/MCP 名等"追加"场景。
+ * @param text 要追加的文本
+ * @returns 是否成功
+ */
+async function appendTextToInput(text: string): Promise<boolean> {
+  const input = findInputArea();
+  if (!input) {
+    console.log('[Cuckoo Code] 找不到输入框，无法追加文本');
+    return false;
+  }
+  const current = getInputText(input);
+  // 若已有内容且不以空白结尾，补一个空格
+  const sep = current && !/\s$/.test(current) ? ' ' : '';
+  const next = current + sep + text;
+  const ok = await setInputContent(input, next);
+  if (ok) {
+    moveCaretToEnd(input);
+    console.log('[Cuckoo Code] 已追加文本到输入框, 追加长度=' + text.length);
+  }
+  return ok;
+}
+
 /**
  * 把光标移到输入框末尾（填入提示词后，方便用户接着补充）
  */
@@ -388,6 +425,7 @@ export {
   randomDelay,
   setInputContent,
   insertSnippet,
+  appendTextToInput,
   sendToChat,
   sendMessageToChat,
   sendCombinedJsResultsToChat,

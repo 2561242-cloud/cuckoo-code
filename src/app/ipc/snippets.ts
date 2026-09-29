@@ -33,6 +33,21 @@ function registerSnippetsIpc(): void {
     return { success: ok, error: ok ? null : '保存失败' };
   });
 
+  // 追加文本到 AI 输入框末尾（不发送）：MCP 名等
+  ipcMain.handle('append-to-input', async (event: any, { text }: any) => {
+    if (typeof text !== 'string' || !text) return { success: false, error: '文本为空' };
+    const ctx = windowState.getContextByWebContents(event.sender);
+    if (!ctx || !ctx.view || !ctx.view.webContents || ctx.view.webContents.isDestroyed()) {
+      return { success: false, error: '未找到 AI 页面' };
+    }
+    try {
+      ctx.view.webContents.send('cuckoo-append-input', { text });
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
   // 触发某条提示词：通知对应窗口的 AI 页面填入输入框（+ 可选发送）
   ipcMain.handle('trigger-snippet', async (event: any, { content, autoSend }: any) => {
     if (typeof content !== 'string' || !content) {

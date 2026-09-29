@@ -342,6 +342,25 @@
   }
   .ck-list-item:hover { background: var(--ck-primary-soft); }
   .ck-list-empty { color: var(--ck-text-dim); font-size: 12px; text-align: center; padding: 16px 0; }
+  /* MCP 卡片 */
+  .ck-mcp-item {
+    display: flex; flex-direction: column; gap: 9px;
+    background: var(--ck-bg); border: 1px solid var(--ck-border);
+    border-radius: 11px; padding: 12px;
+    cursor: pointer; transition: all .15s; box-shadow: var(--ck-shadow-sm);
+  }
+  .ck-mcp-item:hover { border-color: var(--ck-primary); box-shadow: var(--ck-shadow); }
+  .ck-mcp-top { display: flex; align-items: center; gap: 9px; }
+  .ck-mcp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--ck-text-dim); }
+  .ck-mcp-dot.on { background: var(--ck-green); box-shadow: 0 0 0 3px rgba(48,164,108,.15); }
+  .ck-mcp-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ck-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ck-mcp-bottom { display: flex; align-items: center; gap: 6px; padding-left: 17px; }
+  .ck-mcp-tag {
+    font-size: 10px; color: var(--ck-text-dim);
+    padding: 2px 7px; background: var(--ck-surface); border-radius: 6px;
+  }
+  .ck-mcp-toggle { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+  .ck-mcp-toggle-label { font-size: 10.5px; color: var(--ck-text-dim); }
   /* 设置表单（分组复用 .ck-card） */
   .ck-set-group-title {
     font-size: 12px; font-weight: 700; color: var(--ck-text);
@@ -535,6 +554,9 @@
           <button class="ck-ab-item" data-tab="snippets" title="提示词">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           </button>
+          <button class="ck-ab-item" data-tab="mcp" title="MCP">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 12l9-5"/><path d="M12 12v10"/><path d="M12 12L3 7"/></svg>
+          </button>
           <div class="ck-ab-spacer"></div>
           <button class="ck-ab-item" data-tab="settings" title="设置">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -653,6 +675,19 @@
                 </button>
               </div>
               <div class="ck-list" id="snip-list">
+                <div class="ck-list-empty">加载中…</div>
+              </div>
+            </div>
+
+            <!-- ===== MCP ===== -->
+            <div class="ck-tab" data-panel="mcp">
+              <div class="ck-actions">
+                <span class="ck-set-group-title" style="flex:1;">MCP 工具</span>
+                <button class="ck-icon-btn" id="mcp-refresh" title="刷新">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
+              </div>
+              <div class="ck-list" id="mcp-list">
                 <div class="ck-list-empty">加载中…</div>
               </div>
             </div>
@@ -996,6 +1031,7 @@
         if (t === 'windows') { try { renderWindowList(); } catch (e) {} }
         if (t === 'snippets') { try { loadSnippets(); } catch (e) {} }
         if (t === 'settings') { try { loadSettings(); } catch (e) {} }
+        if (t === 'mcp') { try { loadMcpServers(); } catch (e) {} }
       };
       // 收起状态下点图标 → 展开并切到该标签
       if (isCollapsed) {
@@ -1025,6 +1061,84 @@
     });
   });
   // （收起：点击当前激活的图标即可）
+
+  // ===== MCP =====
+  async function loadMcpServers() {
+    var listEl = document.getElementById('mcp-list');
+    if (!listEl || !api.listMcpServers) return;
+    try {
+      var r = await api.listMcpServers();
+      var servers = (r && r.success) ? r.servers : [];
+      if (!servers || servers.length === 0) {
+        listEl.innerHTML = '<div class="ck-list-empty">未配置 MCP server</div>';
+        return;
+      }
+      listEl.innerHTML = servers.map(function (s) {
+        var dotCls = s.connected ? 'ck-mcp-dot on' : 'ck-mcp-dot';
+        var srcTag = s.source === 'project' ? '项目' : '用户';
+        return '<div class="ck-mcp-item" data-name="' + escapeHtml(s.name) + '">' +
+          '<div class="ck-mcp-top">' +
+            '<span class="' + dotCls + '"></span>' +
+            '<span class="ck-mcp-name">' + escapeHtml(s.name) + '</span>' +
+          '</div>' +
+          '<div class="ck-mcp-bottom">' +
+            '<span class="ck-mcp-tag">' + srcTag + '</span>' +
+            '<span class="ck-mcp-tag">' + escapeHtml(s.type || 'stdio') + '</span>' +
+            '<span class="ck-mcp-tag">' + (s.toolCount || 0) + ' 工具</span>' +
+            '<div class="ck-mcp-toggle" data-toggle="' + escapeHtml(s.name) + '">' +
+              '<span class="ck-mcp-toggle-label">' + (s.enabled ? '已启用' : '已禁用') + '</span>' +
+              '<label class="ck-switch">' +
+                '<input type="checkbox" data-toggle-cb="' + escapeHtml(s.name) + '"' + (s.enabled ? ' checked' : '') + ' />' +
+                '<span class="ck-switch-track"></span>' +
+              '</label>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+
+      // 点击卡片主体 → 追加 @name 到输入框
+      listEl.querySelectorAll('.ck-mcp-item').forEach(function (el) {
+        el.addEventListener('click', async function (e) {
+          if (e.target.closest('[data-toggle]')) return;
+          var name = el.dataset.name;
+          if (api.appendSnippet) {
+            try { await api.appendSnippet('@' + name); } catch (err) {}
+          }
+        });
+      });
+      // 启停开关 → 确认后执行
+      listEl.querySelectorAll('[data-toggle-cb]').forEach(function (cb) {
+        cb.addEventListener('click', function (e) { e.stopPropagation(); });
+        cb.addEventListener('change', async function () {
+          var name = cb.dataset.toggleCb;
+          var want = cb.checked;
+          var verb = want ? '启用' : '禁用';
+          if (!confirm('确定' + verb + ' MCP「' + name + '」？')) {
+            cb.checked = !want; // 回滚
+            return;
+          }
+          cb.disabled = true;
+          try {
+            var fn = want ? api.enableMcpServer : api.disableMcpServer;
+            var r2 = fn ? await fn(name) : { success: false };
+            if (!r2 || !r2.success) {
+              alert((r2 && r2.error) || (verb + '失败'));
+              cb.checked = !want;
+            }
+          } catch (err) {
+            alert(verb + '失败: ' + (err.message || err));
+            cb.checked = !want;
+          }
+          cb.disabled = false;
+          loadMcpServers();
+        });
+      });
+    } catch (e) {
+      listEl.innerHTML = '<div class="ck-list-empty">加载失败</div>';
+    }
+  }
+  var mcpRefreshBtn = document.getElementById('mcp-refresh');
+  if (mcpRefreshBtn) mcpRefreshBtn.addEventListener('click', loadMcpServers);
 
   // ===== 窗口列表 =====
   function escapeHtml(s) {

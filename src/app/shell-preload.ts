@@ -44,6 +44,11 @@ const shellAPI = {
   onSnippetsChanged: (cb: () => void) => {
     ipcRenderer.on('shell-snippets-changed', () => cb());
   },
+  // ========== MCP ==========
+  listMcpServers: () => ipcRenderer.invoke('list-mcp-servers', {}),
+  enableMcpServer: (name: string) => ipcRenderer.invoke('enable-mcp-server', { name }),
+  disableMcpServer: (name: string) => ipcRenderer.invoke('disable-mcp-server', { name }),
+  appendSnippet: (text: string) => ipcRenderer.invoke('append-to-input', { text }),
   // ========== 设置 ==========
   getSettings: () => ipcRenderer.invoke('get-settings'),
   saveSettings: (data: any) => ipcRenderer.invoke('save-settings', { data }),
