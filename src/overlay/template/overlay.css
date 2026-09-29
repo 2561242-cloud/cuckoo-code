@@ -223,35 +223,46 @@
 /* 工具调用执行期间的全局遮罩：阻止用户操作，提示等待 */
 .cuckoo-tool-mask {
   position: fixed; inset: 0; z-index: 2147483648;
-  display: flex; align-items: center; justify-content: center;
+  display: flex; align-items: flex-start; justify-content: center;
+  padding-top: 16px;
   background: transparent;
-  cursor: default; user-select: none;
+  pointer-events: none;   /* 滚轮/事件穿透（点击由 JS 捕获拦截） */
+  user-select: none;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
-  color: var(--ck-text);
 }
 .cuckoo-tool-mask-box {
-  display: flex; flex-direction: column; align-items: center; gap: 14px;
-  padding: 22px 32px; border-radius: 16px;
-  background: rgba(17, 19, 34, 0.95);
-  border: 1px solid rgba(139, 147, 255, 0.35);
-  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.55);
+  pointer-events: auto;   /* 盒子本身可交互（停止按钮） */
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 18px; border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid rgba(16, 24, 40, 0.07);
+  box-shadow: 0 4px 16px rgba(16, 24, 40, 0.1);
 }
 .cuckoo-tool-mask-spinner {
-  width: 28px; height: 28px; border-radius: 50%;
-  border: 3px solid rgba(139,147,255,0.25); border-top-color: #8b93ff;
+  width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+  border: 2.5px solid rgba(77, 107, 254, 0.2); border-top-color: #4d6bfe;
   animation: cuckoo-spin 0.8s linear infinite;
 }
-.cuckoo-tool-mask-text { font-size: 13px; font-weight: 600; color: #dde1ff; letter-spacing: 0.3px; }
+.cuckoo-tool-mask-text { font-size: 12.5px; font-weight: 600; color: #16181d; letter-spacing: 0.3px; }
 .cuckoo-tool-mask-cancel {
-  margin-top: 4px; padding: 7px 24px; border-radius: 10px;
-  border: 1px solid rgba(255, 107, 122, 0.5);
-  background: rgba(255, 107, 122, 0.12);
-  color: #ff6b7a; font-size: 12.5px; font-weight: 600;
+  padding: 5px 14px; border-radius: 999px;
+  border: 1px solid rgba(229, 72, 77, 0.4);
+  background: transparent;
+  color: #e5484d; font-size: 12px; font-weight: 600;
   cursor: pointer; letter-spacing: 0.3px;
-  transition: all 0.2s ease;
+  transition: all 0.18s ease;
 }
-.cuckoo-tool-mask-cancel:hover { background: rgba(255, 107, 122, 0.22); }
+.cuckoo-tool-mask-cancel:hover { background: #e5484d; color: #fff; }
 .cuckoo-tool-mask-cancel:active { transform: scale(0.97); }
+@media (prefers-color-scheme: dark) {
+  .cuckoo-tool-mask-box {
+    background: #1a1a1a;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+  .cuckoo-tool-mask-text { color: #e4e6eb; }
+  .cuckoo-tool-mask-spinner { border-color: rgba(107, 131, 255, 0.25); border-top-color: #6b83ff; }
+}
 @keyframes cuckoo-spin { to { transform: rotate(360deg); } }
 @keyframes cuckoo-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 @keyframes cuckoo-attention {
@@ -333,25 +344,52 @@
 .cuckoo-first-time-dialog {
   position: fixed; top: 0; left: 0; right: 0; z-index: 2147483647;
   display: flex; align-items: flex-start; justify-content: center;
-  padding-top: 24px;
+  padding-top: 20px;
   pointer-events: none;
 }
 .cuckoo-first-time-dialog.cuckoo-hidden { display: none !important; }
 .cuckoo-first-time-box {
-  position: relative; max-width: 420px; width: 90%;
-  background: rgba(17, 19, 34, 0.98);
-  border: 1px solid rgba(139, 147, 255, 0.35);
-  border-radius: 18px;
-  padding: 28px 24px 22px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(139, 147, 255, 0.08);
-  color: var(--ck-text); font-size: 14px; line-height: 1.6;
+  position: relative; max-width: 400px; width: 90%;
+  background: #ffffff;
+  border: 1px solid rgba(16, 24, 40, 0.08);
+  border-radius: 14px;
+  padding: 22px 20px 18px;
+  box-shadow: 0 6px 24px rgba(16, 24, 40, 0.12);
+  color: #16181d; font-size: 13px; line-height: 1.6;
   text-align: center;
   pointer-events: auto;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
-.cuckoo-first-time-close { position: absolute; top: 10px; right: 10px; }
-.cuckoo-first-time-text { margin-bottom: 18px; color: #dde1ff; }
+.cuckoo-first-time-close {
+  position: absolute; top: 8px; right: 8px;
+  width: 26px; height: 26px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; color: #8a8f9b;
+  font-size: 16px; cursor: pointer; transition: all .15s; line-height: 1;
+}
+.cuckoo-first-time-close:hover { background: rgba(16, 24, 40, 0.06); color: #16181d; }
+.cuckoo-first-time-text { margin-bottom: 16px; color: #545a67; }
 .cuckoo-first-time-box .cuckoo-actions { justify-content: center; }
-.cuckoo-first-time-box .cuckoo-btn { flex: 0 0 auto; min-width: 150px; }
+.cuckoo-first-time-box .cuckoo-btn {
+  flex: 0 0 auto; min-width: 140px;
+  padding: 9px 18px; border-radius: 999px; border: none;
+  background: #4d6bfe; color: #fff; font-size: 13px; font-weight: 600;
+  cursor: pointer; transition: all .18s;
+}
+.cuckoo-first-time-box .cuckoo-btn:hover { background: #3b5bdb; box-shadow: 0 3px 10px rgba(77,107,254,.32); }
+@media (prefers-color-scheme: dark) {
+  .cuckoo-first-time-box {
+    background: #1a1a1a;
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
+    color: #e4e6eb;
+  }
+  .cuckoo-first-time-text { color: #a8adba; }
+  .cuckoo-first-time-close { color: #757b8a; }
+  .cuckoo-first-time-close:hover { background: rgba(255, 255, 255, 0.08); color: #e4e6eb; }
+  .cuckoo-first-time-box .cuckoo-btn { background: #6b83ff; }
+  .cuckoo-first-time-box .cuckoo-btn:hover { background: #8b9dff; }
+}
 .cuckoo-retry-countdown {
   position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
   z-index: 2147483647; pointer-events: auto;
