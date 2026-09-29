@@ -129,15 +129,29 @@ function registerHarnessIpc(): void {
     return { success: true };
   });
 
-  // 停止生成：向 AI 页面注入脚本，查找停止按钮并点击（兜底发送 Escape）
+  // 停止生成：定位 AI 页面的"停止"按钮，用主进程 sendInputEvent 发真实鼠标点击
+  // （React 站点不响应合成 .click()，必须用 isTrusted=true 的真实事件）
   ipcMain.handle('harness-stop', async (event: any) => {
     const ctx = findContext(event.sender);
     if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) return { success: false };
+    const wc = ctx.view.webContents;
     try {
       const code = '(' + attachStopFn.toString() + ')(document, window)';
-      const r = await ctx.view.webContents.executeJavaScript(code);
-      console.log('[Cuckoo Harness] harness-stop 结果: ' + JSON.stringify(r));
-      return { success: !!(r && r.clicked), result: r };
+      const r = await wc.executeJavaScript(code);
+      console.log('[Cuckoo Harness] harness-stop 定位结果: ' + JSON.stringify(r));
+      if (r && r.found && typeof r.x === 'number') {
+        // 真实鼠标点击（isTrusted=true）
+        wc.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y });
+        wc.sendInputEvent({ type: 'mouseDown', x: r.x, y: r.y, button: 'left', clickCount: 1 });
+        wc.sendInputEvent({ type: 'mouseUp', x: r.x, y: r.y, button: 'left', clickCount: 1 });
+        console.log('[Cuckoo Harness] 已发送真实点击 (' + r.x + ',' + r.y + ') 标签=' + r.tag);
+        return { success: true, method: 'sendInputEvent', result: r };
+      }
+      // 未定位到：兜底发送 Escape（真实按键）
+      wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape', key: 'Escape' });
+      wc.sendInputEvent({ type: 'keyUp', keyCode: 'Escape', key: 'Escape' });
+      console.log('[Cuckoo Harness] 未定位到停止按钮，已发送 Escape');
+      return { success: false, method: 'escape', result: r };
     } catch (err: any) {
       console.log('[Cuckoo Harness] harness-stop 异常: ' + err.message);
       return { success: false, error: err.message };
@@ -218,12 +232,13 @@ function registerHarnessIpc(): void {
 }
 
 /**
- * 停止生成：多策略查找 AI 页面的"停止"按钮并点击（注入 AI 页面执行）。
- * 返回诊断信息：{ clicked, reason, candidates }，便于主进程日志排查。
+ * 停止生成：定位 AI 页面的"停止"按钮，返回其视口坐标 { found, x, y, tag, candidates }。
+ * 实际点击由主进程 sendInputEvent 完成（真实鼠标事件，React 站点才响应合成事件）。
  */
 function attachStopFn(doc: any, win: any) {
   try {
     var vh = win.innerHeight || 800;
+    var vw = win.innerWidth || 1200;
     var kw = /(停止|停止生成|stop|cancel|abort|结束|中断)/i;
     var cands = doc.querySelectorAll('button, [role="button"]');
     var scored = [];
@@ -232,6 +247,7 @@ function attachStopFn(doc: any, win: any) {
       if (!el) continue;
       var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
       if (!rect || rect.width === 0 || rect.height === 0) continue;
+      if (rect.left < 0 || rect.top < 0 || rect.left > vw || rect.top > vh) continue;
       var isBtn = (el.tagName === 'BUTTON');
       var cls = (typeof el.className === 'string') ? el.className : '';
       var aria = (el.getAttribute && el.getAttribute('aria-label')) || '';
@@ -249,9 +265,9 @@ function attachStopFn(doc: any, win: any) {
       var hasRect = false;
       try { hasRect = !!(el.querySelector && el.querySelector('svg rect')); } catch (e) { /* ignore */ }
       if (hasRect) score += 5;
-      // 位于视口下方（输入区附近）
-      if (rect.top > vh * 0.4) score += 3;
-      if (score > 0) scored.push({ el: el, score: score, sig: sig.slice(0, 80), isBtn: isBtn, hasRect: hasRect });
+      // 位于视口下方（输入区附近，发送/停止按钮所在）
+      if (rect.top > vh * 0.5) score += 4;
+      if (score > 0) scored.push({ el: el, score: score, sig: sig.slice(0, 80), isBtn: isBtn, hasRect: hasRect, rect: rect });
     }
     scored.sort(function (a, b) { return b.score - a.score; });
     var diag = scored.slice(0, 6).map(function (s) { return s.score + ':' + s.sig; });
@@ -262,14 +278,13 @@ function attachStopFn(doc: any, win: any) {
     }
     if (!pick && scored.length > 0) pick = scored[0];
     if (pick) {
-      try { pick.el.click(); } catch (e) { /* ignore */ }
-      return { clicked: true, reason: 'scored', candidates: diag };
+      var cx = Math.round(pick.rect.left + pick.rect.width / 2);
+      var cy = Math.round(pick.rect.top + pick.rect.height / 2);
+      return { found: true, x: cx, y: cy, tag: (pick.el.tagName || '') + '.' + String(pick.el.className || '').slice(0, 40), candidates: diag };
     }
-    // 兜底：Escape
-    try { doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); } catch (e) { /* ignore */ }
-    return { clicked: false, reason: 'no-button', candidates: diag };
+    return { found: false, candidates: diag };
   } catch (e: any) {
-    return { clicked: false, reason: 'error:' + (e && e.message) };
+    return { found: false, reason: 'error:' + (e && e.message) };
   }
 }
 
