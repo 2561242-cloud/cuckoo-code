@@ -12,12 +12,73 @@ import { createRequire } from 'node:module';
 import * as windowState from '../window.js';
 import { scanSkills } from '../../skills/index.js';
 import { registry } from '../../tools/index.js';
-import { buildInjectCode } from '../../tools/impl/attach-file.js';
 
 const require = createRequire(import.meta.url);
 const { ipcMain } = require('electron');
 
-/** 该窗口的 harness view 是否可见（用于状态查询） */
+/**
+ * 注入到 AI 页面执行的上传函数（harness 专用，比官方 attachFile 更健壮）。
+ * 先找 input[type=file]，找不到则尝试点击上传按钮再等（很多站点输入框是懒创建的）。
+ * 用函数 toString 注入，避免多行字符串转义问题。
+ */
+function attachFn(doc: any, win: any, b64: any, fileName: any, mimeType: any, timeoutMs: any, waitMs: any) {
+  return (async function () {
+    try {
+      var bin = win.atob(b64);
+      var bytes = new win.Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      var file = new win.File([bytes], fileName, { type: mimeType });
+      function findInput() { return doc.querySelector('input[type=file]'); }
+      var input = findInput();
+      if (!input) {
+        var keys = ['attach', 'upload', 'paperclip', 'file', 'image', '图片', '文件', '上传', '添加'];
+        var cands = doc.querySelectorAll('button, [role=button], [class*=attach], [class*=upload], [class*=file], [class*=plus], [class*=add]');
+        for (var ci = 0; ci < cands.length; ci++) {
+          var b = cands[ci];
+          if (!b || b.offsetWidth === 0) continue;
+          var sig = String(b.className || '') + ' ' + (b.getAttribute('aria-label') || '') + ' ' + (b.getAttribute('title') || '');
+          var low = sig.toLowerCase();
+          for (var ki = 0; ki < keys.length; ki++) {
+            if (low.indexOf(keys[ki].toLowerCase()) !== -1) { b.click(); break; }
+          }
+          input = findInput();
+          if (input) break;
+        }
+        if (!input) {
+          var dl = win.Date.now() + 2500;
+          while (win.Date.now() < dl && !input) { await new Promise(function (r) { win.setTimeout(r, 120); }); input = findInput(); }
+        }
+      }
+      if (!input) return { success: false, error: '未找到文件上传输入框（已尝试点击上传按钮）' };
+      var dt = new win.DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files;
+      input.dispatchEvent(new win.Event('change', { bubbles: true }));
+      function fileVisible() {
+        var node = input;
+        for (var d = 0; d < 12 && node; d++) {
+          if (node.innerText && node.innerText.indexOf(fileName) !== -1) return true;
+          node = node.parentElement;
+        }
+        var bt = doc.body ? doc.body.innerText : '';
+        return bt.indexOf(fileName) !== -1;
+      }
+      await new Promise(function (r) { win.setTimeout(r, waitMs); });
+      function accepted() { return fileVisible() || (input.files && input.files.length > 0); }
+      if (accepted()) return { success: true, fileName: fileName };
+      var deadline = win.Date.now() + timeoutMs;
+      while (win.Date.now() < deadline) {
+        await new Promise(function (r) { win.setTimeout(r, 300); });
+        if (accepted()) return { success: true, fileName: fileName };
+      }
+      return { success: false, error: '上传超时，未检测到附件出现' };
+    } catch (err: any) {
+      return { success: false, error: err && err.message ? err.message : String(err) };
+    }
+  })();
+}
+
+/** 该窗口的 harness view（用于状态查询） */
 function getHarnessView(sender: any): any {
   const ctx = windowState.getContextByWebContents(sender);
   return ctx ? (ctx as any).harnessView : null;
@@ -39,7 +100,6 @@ function findContext(sender: any): any {
 
 function registerHarnessIpc(): void {
   // 用户在 harness 输入 → 转给 AI 页面（bridge 会调 sendToChat）
-  // 注：允许空文本（仅附件场景：附件已上传，只需触发发送）
   ipcMain.handle('harness-send', (event: any, payload: any) => {
     console.log('[Cuckoo Harness] 收到用户消息，长度=' + ((payload && payload.text) || '').length);
     const text = (payload && payload.text) || '';
@@ -47,12 +107,11 @@ function registerHarnessIpc(): void {
     if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) {
       return { success: false, error: 'no-ai-view' };
     }
-    // 转发给 AI 页面，由 bridge/harness-bridge 执行 sendToChat（用户消息由 harness 页面本地回显）
     ctx.view.webContents.send('harness-user-message', { text: text });
     return { success: true };
   });
 
-  // AI 页面的 bridge 上报事件（回复/工具开始/工具结束）→ 转给 harness 页面
+  // AI 页面的 bridge 上报事件 → 转给 harness 页面
   ipcMain.handle('harness-event-report', (event: any, payload: any) => {
     const ctx = findContext(event.sender);
     if (!ctx) return { success: false };
@@ -68,35 +127,15 @@ function registerHarnessIpc(): void {
     const ctx = findContext(event.sender);
     if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) return { success: false };
     try {
-      const clickStopFn = function (doc: any, win: any) {
-        try {
-          var kw = /(停止|stop|停止生成|cancel|abort)/i;
-          var els = doc.querySelectorAll('button, [role="button"], a, div');
-          for (var i = els.length - 1; i >= 0; i--) {
-            var el = els[i];
-            if (!el || el.offsetWidth === 0) continue;
-            var cls = (typeof el.className === 'string') ? el.className : '';
-            var aria = (el.getAttribute && el.getAttribute('aria-label')) || '';
-            var title = (el.getAttribute && el.getAttribute('title')) || '';
-            var txt = (el.textContent || '').slice(0, 12);
-            var sig = cls + ' ' + aria + ' ' + title + ' ' + txt;
-            if (kw.test(sig) && /stop|停止|abort|cancel/i.test(sig)) {
-              el.click();
-              return true;
-            }
-          }
-          doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-          return false;
-        } catch (e) { return false; }
-      };
-      await ctx.view.webContents.executeJavaScript('(' + clickStopFn.toString() + ')(document, window)');
+      const code = '(' + attachStopFn.toString() + ')(document, window)';
+      await ctx.view.webContents.executeJavaScript(code);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };
     }
   });
 
-  // 列出可用技能与工具（供输入区 / 菜单）
+  // 列出可用技能与工具
   ipcMain.handle('harness-list-tools', async (event: any) => {
     try {
       const ctx = findContext(event.sender);
@@ -109,14 +148,13 @@ function registerHarnessIpc(): void {
     }
   });
 
-  // 上传附件：harness 页面选择的文件（base64）→ 注入 AI 页面 input[type=file]
+  // 上传附件
   ipcMain.handle('harness-attach', async (event: any, payload: any) => {
     const files = (payload && payload.files) || [];
     console.log('[Cuckoo Harness] harness-attach 调用, files=' + (Array.isArray(files) ? files.length : 'non-array'));
     if (!Array.isArray(files) || files.length === 0) return { success: false, error: 'empty' };
     const ctx = findContext(event.sender);
     if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) {
-      console.log('[Cuckoo Harness] harness-attach: 找不到 AI view');
       return { success: false, error: 'no-ai-view' };
     }
     const pageWc = ctx.view.webContents;
@@ -124,7 +162,10 @@ function registerHarnessIpc(): void {
     for (const f of files) {
       console.log('[Cuckoo Harness] 上传文件: ' + f.name + ' b64len=' + ((f.data || '').length));
       try {
-        const code = buildInjectCode(f.data || '', f.name || 'file', f.mime || 'application/octet-stream', 12000, 500);
+        const code = '(' + attachFn.toString() + ')(document, window, ' +
+          JSON.stringify(f.data || '') + ', ' +
+          JSON.stringify(f.name || 'file') + ', ' +
+          JSON.stringify(f.mime || 'application/octet-stream') + ', 12000, 500)';
         const r = await pageWc.executeJavaScript(code, true);
         console.log('[Cuckoo Harness] 上传结果: ' + JSON.stringify(r));
         if (r && r.success) results.push({ success: true, name: f.name });
@@ -161,10 +202,33 @@ function registerHarnessIpc(): void {
     return { success: true };
   });
 
-  // harness 页面就绪（记录一次，便于确认页面/preload 已加载）
+  // harness 页面就绪
   ipcMain.on('harness-ready', () => {
     console.log('[Cuckoo Harness] 页面已就绪');
   });
+}
+
+/** 停止生成：查找停止按钮并点击（注入 AI 页面执行） */
+function attachStopFn(doc: any, win: any) {
+  try {
+    var kw = /(停止|stop|停止生成|cancel|abort)/i;
+    var els = doc.querySelectorAll('button, [role="button"], a, div');
+    for (var i = els.length - 1; i >= 0; i--) {
+      var el = els[i];
+      if (!el || el.offsetWidth === 0) continue;
+      var cls = (typeof el.className === 'string') ? el.className : '';
+      var aria = (el.getAttribute && el.getAttribute('aria-label')) || '';
+      var title = (el.getAttribute && el.getAttribute('title')) || '';
+      var txt = (el.textContent || '').slice(0, 12);
+      var sig = cls + ' ' + aria + ' ' + title + ' ' + txt;
+      if (kw.test(sig) && /stop|停止|abort|cancel/i.test(sig)) {
+        el.click();
+        return true;
+      }
+    }
+    doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    return false;
+  } catch (e) { return false; }
 }
 
 export { registerHarnessIpc };
