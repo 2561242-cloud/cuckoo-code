@@ -285,6 +285,7 @@
     </div>
     <div class="spacer"></div>
     <div class="status ready" id="status"><span class="dot"></span><span id="status-text">就绪</span></div>
+    <button class="tb-btn" id="btn-clear" title="清空当前对话">新对话</button>
     <button class="tb-btn" id="btn-web" title="返回网页模式 (Ctrl+Shift+H)">网页模式</button>
   </div>
   <div class="progress" id="progress"></div>
@@ -325,6 +326,38 @@
   var toolSeq = 0;
   // 当前流式中的助手消息节点
   var cur = null;
+
+  // ===== 对话历史持久化（localStorage，刷新/重开不丢）=====
+  var HIST_KEY = 'cuckoo-harness-history-v1';
+  var history = [];
+  function loadHist() {
+    try { history = JSON.parse(localStorage.getItem(HIST_KEY) || '[]') || []; } catch (e) { history = []; }
+  }
+  function saveHist() {
+    try {
+      if (history.length > 400) history = history.slice(-400);
+      localStorage.setItem(HIST_KEY, JSON.stringify(history));
+    } catch (e) { /* ignore */ }
+  }
+  function pushHist(e) { history.push(e); saveHist(); }
+  function restoreHist() {
+    if (!history.length) return;
+    clearEmpty();
+    for (var i = 0; i < history.length; i++) {
+      var e = history[i];
+      if (e.t === 'user') addUser(e.text);
+      else if (e.t === 'assistant') onAssistantDone(e.text);
+      else if (e.t === 'system') appendSystem(e.text);
+      else if (e.t === 'tool') { addToolStart(e.code); addToolEnd(e.success, e.output, e.error); }
+    }
+    scrollBottom();
+  }
+  function clearHist() {
+    history = [];
+    saveHist();
+    stream.innerHTML = '';
+    cur = null;
+  }
 
   function esc(s) {
     return String(s == null ? '' : s)
@@ -523,10 +556,10 @@
       switch (payload.type) {
         case 'user': addUser(payload.text); break;
         case 'stream': onStream(payload.think, payload.text, payload.finished); break;
-        case 'assistant-done': onAssistantDone(payload.text); break;
-        case 'assistant': onAssistantDone(payload.text); break;
-        case 'tool-start': addToolStart(payload.code); setStatus('工具运行中…', 'busy'); break;
-        case 'tool-end': addToolEnd(payload.success, payload.output, payload.error); setStatus('生成中…', 'busy'); break;
+        case 'assistant-done': onAssistantDone(payload.text); if ((payload.text || '').trim()) pushHist({ t: 'assistant', text: payload.text }); break;
+        case 'assistant': onAssistantDone(payload.text); if ((payload.text || '').trim()) pushHist({ t: 'assistant', text: payload.text }); break;
+        case 'tool-start': addToolStart(payload.code); setStatus('工具运行中…', 'busy'); pushHist({ t: 'tool', code: payload.code, success: null, output: '', error: '' }); break;
+        case 'tool-end': addToolEnd(payload.success, payload.output, payload.error); setStatus('生成中…', 'busy'); if (history.length && history[history.length - 1].t === 'tool') { var th = history[history.length - 1]; th.success = payload.success; th.output = payload.output; th.error = payload.error; saveHist(); } break;
         case 'status': setStatus(payload.text, payload.busy ? 'busy' : 'ready'); break;
       }
     });
@@ -542,6 +575,7 @@
     input.style.height = 'auto';
     var attachNote = files.length ? ('[附件 ' + files.length + ' 个] ') : '';
     addUser(attachNote + text);
+    pushHist({ t: 'user', text: attachNote + text });
     pendingFiles = [];
     renderAttach();
     setStatus('生成中…', 'busy');
@@ -551,12 +585,12 @@
       cur.body.innerHTML = '<span class="pending-dots"><i></i><i></i><i></i></span>';
       scrollBottom();
     }
-    // 先上传附件，再发送消息（20 秒超时兜底，绝不无限卡住）
+    // 先上传附件，再发送消息（8 秒超时兜底，快速失败）
     if (files.length && api.attach) {
       setStatus('上传附件…', 'busy');
       var attachP = api.attach(files);
       var timeoutP = new Promise(function (resolve) {
-        setTimeout(function () { resolve({ success: false, uploaded: 0, results: [{ error: '上传超时（20 秒无响应）' }] }); }, 20000);
+        setTimeout(function () { resolve({ success: false, uploaded: 0, results: [{ error: '上传超时（8 秒无响应，当前平台可能不支持该文件类型）' }] }); }, 8000);
       });
       Promise.race([attachP, timeoutP]).then(function (res) {
         var ok = res && res.uploaded ? res.uploaded : 0;
@@ -564,6 +598,7 @@
           var detail = '';
           try { detail = (res && res.results && res.results[0] && res.results[0].error) || ''; } catch (e) { /* ignore */ }
           appendSystem('附件上传失败：' + (detail || '当前平台可能不支持自动上传附件'));
+          pushHist({ t: 'system', text: '附件上传失败：' + (detail || '当前平台可能不支持自动上传附件') });
           setStatus('就绪', 'ready');
           cur = null;
           return;
@@ -591,15 +626,13 @@
   }
 
   function stop() {
-    setStatus('正在停止…', 'busy');
-    if (api.stop) api.stop().catch(function () { /* ignore */ });
-    // 兜底：2 秒后若仍无事件，恢复就绪态，避免按钮卡死
-    setTimeout(function () {
-      if (generating && Date.now() - lastActivityAt > 1800) {
-        setStatus('就绪', 'ready');
-        cur = null;
-      }
-    }, 2200);
+    // 立即重置本地状态（不等主进程），给用户即时反馈
+    setStatus('就绪', 'ready');
+    cur = null;
+    appendSystem('已停止生成');
+    pushHist({ t: 'system', text: '已停止生成' });
+    // 后台请求停止 AI 页面（失败也无妨）
+    if (api.stop) { try { api.stop().catch(function () { /* ignore */ }); } catch (e) { /* ignore */ } }
   }
 
   sendBtn.addEventListener('click', function () {
@@ -668,8 +701,31 @@
     });
   }
 
+  // 明显不被聊天平台接受的文件类型（可执行/二进制库）
+  var BLOCKED_EXT = ['.dll', '.exe', '.so', '.dylib', '.bin', '.sys', '.msi', '.bat', '.cmd', '.com', '.scr', '.jar', '.apk', '.o', '.a', '.lib', '.obj', '.class', '.pyc'];
+  function isBlocked(name) {
+    var lower = (name || '').toLowerCase();
+    for (var i = 0; i < BLOCKED_EXT.length; i++) {
+      if (lower.slice(-BLOCKED_EXT[i].length) === BLOCKED_EXT[i]) return true;
+    }
+    return false;
+  }
+
   function addFiles(fileList) {
     var arr = Array.prototype.slice.call(fileList || []);
+    if (!arr.length) return;
+    // 拦截明显不支持的类型，立即反馈
+    var accepted = [];
+    for (var ai = 0; ai < arr.length; ai++) {
+      if (isBlocked(arr[ai].name)) {
+        var bmsg = '已跳过不支持的附件：' + arr[ai].name + '（聊天平台不接受可执行文件/二进制库）';
+        appendSystem(bmsg);
+        pushHist({ t: 'system', text: bmsg });
+      } else {
+        accepted.push(arr[ai]);
+      }
+    }
+    arr = accepted;
     if (!arr.length) return;
     var jobs = arr.map(function (file) {
       return readAsBase64(file).then(function (b64) {
@@ -761,6 +817,8 @@
   });
 
   btnWeb.addEventListener('click', function () { if (api.exitToWeb) api.exitToWeb(); });
+  var btnClear = document.getElementById('btn-clear');
+  if (btnClear) btnClear.addEventListener('click', function () { clearHist(); setStatus('就绪', 'ready'); });
   // Ctrl+R 重载页面（加载最新 HTML）
   document.addEventListener('keydown', function (e) {
     if (e.ctrlKey && !e.shiftKey && (e.key === 'r' || e.key === 'R')) {
@@ -769,6 +827,8 @@
     }
   });
 
+  loadHist();
+  restoreHist();
   input.focus();
   if (api.ready) api.ready();
 })();
