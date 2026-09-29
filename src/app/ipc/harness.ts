@@ -129,27 +129,34 @@ function registerHarnessIpc(): void {
     return { success: true };
   });
 
-  // 停止生成：定位 AI 页面的"停止"按钮，用主进程 sendInputEvent 发真实鼠标点击
-  // （React 站点不响应合成 .click()，必须用 isTrusted=true 的真实事件）
+  // 停止生成：优先 CDP 派发真实鼠标事件（isTrusted=true，React 站点唯一可靠方式）
   ipcMain.handle('harness-stop', async (event: any) => {
     const ctx = findContext(event.sender);
     if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) return { success: false };
     const wc = ctx.view.webContents;
     try {
-      // 先聚焦 AI 视图，确保 sendInputEvent 能投递到该 view
-      try { ctx.view.webContents.focus(); } catch (e) { /* ignore */ }
+      try { wc.focus(); } catch (e) { /* ignore */ }
       const code = '(' + attachStopFn.toString() + ')(document, window)';
       const r = await wc.executeJavaScript(code);
       console.log('[Cuckoo Harness] harness-stop 定位结果: ' + JSON.stringify(r));
       if (r && r.found && typeof r.x === 'number') {
-        // attachStopFn 已在页面内派发完整事件序列；再用 sendInputEvent 补一次真实点击
-        wc.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y });
-        wc.sendInputEvent({ type: 'mouseDown', x: r.x, y: r.y, button: 'left', clickCount: 1 });
-        wc.sendInputEvent({ type: 'mouseUp', x: r.x, y: r.y, button: 'left', clickCount: 1 });
-        console.log('[Cuckoo Harness] 已点击 (' + r.x + ',' + r.y + ') 页面内=' + r.clickedInPage + ' 标签=' + r.tag);
-        return { success: true, method: 'click', inPage: !!r.clickedInPage, result: r };
+        let cdpOk = false;
+        try {
+          if (!wc.debugger.isAttached()) wc.debugger.attach('1.3');
+          await wc.debugger.sendCommand('Input.dispatchMouseEvent', { type: 'mouseMoved', x: r.x, y: r.y, button: 'none', clickCount: 0 });
+          await wc.debugger.sendCommand('Input.dispatchMouseEvent', { type: 'mousePressed', x: r.x, y: r.y, button: 'left', buttons: 1, clickCount: 1 });
+          await wc.debugger.sendCommand('Input.dispatchMouseEvent', { type: 'mouseReleased', x: r.x, y: r.y, button: 'left', buttons: 0, clickCount: 1 });
+          cdpOk = true;
+          console.log('[Cuckoo Harness] CDP 已派发真实点击 (' + r.x + ',' + r.y + ')');
+        } catch (e: any) { console.log('[Cuckoo Harness] CDP 失败: ' + (e && e.message)); }
+        if (!cdpOk) {
+          wc.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y });
+          wc.sendInputEvent({ type: 'mouseDown', x: r.x, y: r.y, button: 'left', clickCount: 1 });
+          wc.sendInputEvent({ type: 'mouseUp', x: r.x, y: r.y, button: 'left', clickCount: 1 });
+          console.log('[Cuckoo Harness] sendInputEvent 兜底点击 (' + r.x + ',' + r.y + ')');
+        }
+        return { success: true, method: cdpOk ? 'cdp' : 'sendInputEvent', result: r };
       }
-      // 未定位到：兜底发送 Escape（真实按键）
       wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape', key: 'Escape' });
       wc.sendInputEvent({ type: 'keyUp', keyCode: 'Escape', key: 'Escape' });
       console.log('[Cuckoo Harness] 未定位到停止按钮，已发送 Escape');
@@ -319,7 +326,10 @@ function attachStopFn(doc: any, win: any) {
         try { if (typeof t.click === 'function') t.click(); } catch (e) {}
         clickedInPage = true;
       } catch (e) { /* ignore */ }
-      return { found: true, x: cx, y: cy, clickedInPage: clickedInPage, tag: (pick.el.tagName || '') + '.' + String(pick.el.className || '').slice(0, 40), candidates: diag };
+      var onTop = null;
+      try { var oe = doc.elementFromPoint(cx, cy); onTop = oe ? ((oe.tagName || '') + '.' + String(oe.className || '').slice(0, 50)) : null; } catch (e) { /* ignore */ }
+      console.log('[zhipu?][stopDiag] onTop=' + onTop + ' tag=' + ((pick.el.tagName || '') + '.' + String(pick.el.className || '').slice(0, 40)));
+      return { found: true, x: cx, y: cy, onTop: onTop, clickedInPage: clickedInPage, tag: (pick.el.tagName || '') + '.' + String(pick.el.className || '').slice(0, 40), candidates: diag };
     }
     return { found: false, candidates: diag };
   } catch (e: any) {
@@ -328,6 +338,9 @@ function attachStopFn(doc: any, win: any) {
 }
 
 export { registerHarnessIpc };
+
+
+
 
 
 
