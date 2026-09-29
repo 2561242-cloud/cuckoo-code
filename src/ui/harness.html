@@ -350,24 +350,92 @@
   function loadHist() {
     try { history = JSON.parse(localStorage.getItem(HIST_KEY) || '[]') || []; } catch (e) { history = []; }
   }
+  // 单条字段截断上限（防止超大工具输出撑爆 localStorage）
+  var HIST_FIELD_MAX = 6000;
+  function truncHist(s) {
+    s = String(s == null ? '' : s);
+    return s.length > HIST_FIELD_MAX ? s.slice(0, HIST_FIELD_MAX) + '\n…[历史记录已截断]' : s;
+  }
+  function compactHist() {
+    for (var i = 0; i < history.length; i++) {
+      var e = history[i];
+      if (e.text) e.text = truncHist(e.text);
+      if (e.output) e.output = truncHist(e.output);
+      if (e.error) e.error = truncHist(e.error);
+      if (e.think) e.think = truncHist(e.think);
+      if (e.code) e.code = truncHist(e.code);
+    }
+  }
   function saveHist() {
     try {
       if (history.length > 400) history = history.slice(-400);
-      localStorage.setItem(HIST_KEY, JSON.stringify(history));
+      compactHist();
+      try {
+        localStorage.setItem(HIST_KEY, JSON.stringify(history));
+      } catch (e) {
+        // 配额溢出：丢弃最旧的一半后重试，最多重试 5 次
+        var tries = 0;
+        while (tries < 5) {
+          tries++;
+          history = history.slice(Math.ceil(history.length / 2));
+          try { localStorage.setItem(HIST_KEY, JSON.stringify(history)); break; }
+          catch (e2) { /* continue */ }
+        }
+      }
     } catch (e) { /* ignore */ }
   }
-  function pushHist(e) { history.push(e); saveHist(); }
+  function pushHist(e) {
+    // 入库前先截断大字段
+    if (e) {
+      if (e.text) e.text = truncHist(e.text);
+      if (e.output) e.output = truncHist(e.output);
+      if (e.error) e.error = truncHist(e.error);
+      if (e.think) e.think = truncHist(e.think);
+      if (e.code) e.code = truncHist(e.code);
+    }
+    history.push(e);
+    saveHist();
+  }
+  // 静态渲染助手消息（历史恢复专用，不走去重/流式逻辑，避免丢消息）
+  function renderAssistantStatic(text, think) {
+    clearEmpty();
+    var d = document.createElement('div');
+    d.className = 'msg assistant';
+    var thinkHtml = '';
+    if (think && think.trim()) {
+      thinkHtml = '<div class="think"><div class="think-head"><svg class="caret" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3l5 5-5 5"/></svg><span class="think-label">已思考 (' + think.length + ' 字)</span></div><div class="think-body">' + esc(think) + '</div></div>';
+    }
+    d.innerHTML = '<div class="prefix">' + PREFIX_SVG + 'Cuckoo</div>' + thinkHtml + '<div class="body">' + renderMarkdown(text) + '</div>';
+    var thinkEl = d.querySelector('.think');
+    if (thinkEl) {
+      thinkEl.querySelector('.think-head').addEventListener('click', function () { thinkEl.classList.toggle('open'); });
+    }
+    stream.appendChild(d);
+  }
+
   function restoreHist() {
     if (!history.length) return;
     clearEmpty();
+    var pendingTools = [];
+    function flushTools() {
+      for (var k = 0; k < pendingTools.length; k++) {
+        var t = pendingTools[k];
+        addToolStart(t.code);
+        if (t.success !== null && t.success !== undefined) addToolEnd(t.success, t.output, t.error);
+      }
+      pendingTools = [];
+    }
     for (var i = 0; i < history.length; i++) {
       var e = history[i];
+      if (e.t === 'tool') { pendingTools.push(e); continue; }
+      flushTools();
       if (e.t === 'user') addUser(e.text);
-      else if (e.t === 'assistant') onAssistantDone(e.text);
+      else if (e.t === 'assistant') renderAssistantStatic(e.text, e.think);
       else if (e.t === 'system') appendSystem(e.text);
-      else if (e.t === 'tool') { addToolStart(e.code); addToolEnd(e.success, e.output, e.error); }
     }
-    scrollBottom();
+    flushTools();
+    stream.scrollTop = stream.scrollHeight;
+    updateScrollBtn();
   }
   function clearHist() {
     history = [];
@@ -492,6 +560,8 @@
 
   // 去重：已完成的回复文本（防止 finished 流事件重复触发导致重复气泡）
   var lastDoneText = '';
+  // 去重：已写入历史的最新 assistant 文本
+  var lastPushedAssistant = '';
   // 流式更新：think/text 均为全量快照
   function onStream(think, text, finished) {
     if (!think && !text && !finished) return; // 空心跳，忽略
@@ -593,10 +663,29 @@
       switch (payload.type) {
         case 'user': addUser(payload.text); break;
         case 'stream': onStream(payload.think, payload.text, payload.finished); break;
-        case 'assistant-done': onAssistantDone(payload.text); if ((payload.text || '').trim()) pushHist({ t: 'assistant', text: payload.text }); break;
-        case 'assistant': onAssistantDone(payload.text); if ((payload.text || '').trim()) pushHist({ t: 'assistant', text: payload.text }); break;
+        case 'assistant-done': {
+          var adText = (payload.text || '').trim();
+          var adThink = (cur && cur.thinkBody) ? cur.thinkBody.textContent : '';
+          onAssistantDone(payload.text);
+          if (adText && adText !== lastPushedAssistant) { lastPushedAssistant = adText; pushHist({ t: 'assistant', text: payload.text, think: adThink }); }
+          break;
+        }
+        case 'assistant': {
+          var aText = (payload.text || '').trim();
+          onAssistantDone(payload.text);
+          if (aText && aText !== lastPushedAssistant) { lastPushedAssistant = aText; pushHist({ t: 'assistant', text: payload.text }); }
+          break;
+        }
         case 'tool-start': addToolStart(payload.code); setStatus('工具运行中…', 'busy'); pushHist({ t: 'tool', code: payload.code, success: null, output: '', error: '' }); break;
-        case 'tool-end': addToolEnd(payload.success, payload.output, payload.error); setStatus('生成中…', 'busy'); if (history.length && history[history.length - 1].t === 'tool') { var th = history[history.length - 1]; th.success = payload.success; th.output = payload.output; th.error = payload.error; saveHist(); } break;
+        case 'tool-end': addToolEnd(payload.success, payload.output, payload.error); setStatus('生成中…', 'busy'); {
+          // 更新最近一个"未完成"的工具历史（从后往前找 success===null）
+          for (var ti = history.length - 1; ti >= 0; ti--) {
+            if (history[ti].t === 'tool' && history[ti].success === null) {
+              history[ti].success = payload.success; history[ti].output = payload.output; history[ti].error = payload.error; saveHist(); break;
+            }
+          }
+          break;
+        }
         case 'status': setStatus(payload.text, payload.busy ? 'busy' : 'ready'); break;
       }
     });
