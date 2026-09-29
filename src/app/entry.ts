@@ -160,11 +160,15 @@ function createWindow(profile: any) {
       width: Math.max(0, w - sbw),
       height: Math.max(0, h - TOOLBAR_HEIGHT),
     });
-    // harness 覆盖全窗口；隐藏时尺寸归零
+    // harness 只覆盖"网页区域"（与 AI view 同位置），保留地址栏/状态条/侧边栏；隐藏时尺寸归零
     const hv = (mainWindow as any).__ckHarnessView;
     if (hv && !hv.webContents.isDestroyed()) {
       if ((mainWindow as any).__ckHarnessVisible) {
-        hv.setBounds({ x: 0, y: 0, width: Math.max(0, w), height: Math.max(0, h) });
+        hv.setBounds({
+          x: sbw, y: TOOLBAR_HEIGHT,
+          width: Math.max(0, w - sbw),
+          height: Math.max(0, h - TOOLBAR_HEIGHT),
+        });
       } else {
         hv.setBounds({ x: 0, y: 0, width: 0, height: 0 });
       }
