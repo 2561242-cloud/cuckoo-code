@@ -60,7 +60,7 @@
   .tb-btn:hover { background: var(--surface); color: var(--text); border-color: var(--border); }
 
   /* ===== 消息流 ===== */
-  .stream { flex: 1; overflow-y: auto; padding: 20px 0 8px; }
+  .stream { flex: 1; overflow-y: auto; padding: 20px 0 8px; position: relative; }
   .stream::-webkit-scrollbar { width: 9px; }
   .stream::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 5px; border: 2px solid var(--bg); background-clip: padding-box; }
   .stream::-webkit-scrollbar-thumb:hover { background: #4a4a4a; background-clip: padding-box; border: 2px solid var(--bg); }
@@ -245,18 +245,18 @@
 
   /* 滚动到底部按钮 */
   .scroll-bottom {
-    position: absolute; right: 50%; transform: translateX(50%);
-    bottom: 8px; z-index: 20;
-    width: 32px; height: 32px; border-radius: 50%;
-    background: var(--bg-elev); border: 1px solid var(--border);
-    color: var(--text-2); cursor: pointer;
+    position: absolute; left: 50%; transform: translateX(-50%);
+    top: -50px; z-index: 20;
+    width: 34px; height: 34px; border-radius: 50%;
+    background: var(--bg-elev); border: 1px solid var(--border-strong);
+    color: var(--text); cursor: pointer;
     display: none; align-items: center; justify-content: center;
-    box-shadow: 0 4px 14px rgba(0,0,0,.4);
-    transition: opacity .15s, transform .15s;
+    box-shadow: 0 4px 16px rgba(0,0,0,.5);
+    transition: opacity .15s, transform .15s, background .15s;
   }
   .scroll-bottom.show { display: flex; }
-  .scroll-bottom:hover { background: var(--surface); color: var(--text); }
-  .scroll-bottom:active { transform: translateX(50%) scale(.92); }
+  .scroll-bottom:hover { background: var(--surface); }
+  .scroll-bottom:active { transform: translateX(-50%) scale(.92); }
   .scroll-bottom svg { width: 16px; height: 16px; }
   .composer { position: relative; }
 
@@ -305,7 +305,6 @@
     <button class="tb-btn" id="btn-web" title="返回网页模式 (Ctrl+Shift+H)">网页模式</button>
   </div>
   <div class="progress" id="progress"></div>
-  <button class="scroll-bottom" id="scroll-bottom" title="回到底部"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M8 13l-4-4M8 13l4-4"/></svg></button>
   <div class="stream" id="stream">
     <div class="empty" id="empty">
       <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
@@ -315,6 +314,7 @@
     </div>
   </div>
   <div class="composer">
+    <button class="scroll-bottom" id="scroll-bottom" title="回到底部"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M8 13l-4-4M8 13l4-4"/></svg></button>
     <div class="attach-row" id="attach-row"></div>
     <div class="composer-inner">
       <div class="slash-menu" id="slash-menu"></div>
