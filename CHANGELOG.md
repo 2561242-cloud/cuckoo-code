@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.4] - 2026-09-30
+
+### Changed
+- **卡片悬停圆角动画**：窗口 / 提示词 / 技能 / MCP 四个列表的卡片，默认直角，鼠标悬停时平滑过渡为圆角 + 浅底色。
+- **平台选择页精简**：新建窗口时（尚未选平台），隐藏侧边栏、项目选择器、地址栏，平台选择页铺满整个窗口。
+
+### Removed
+- 删除冗余的 GitHub Actions workflow（.github/workflows/build.yml，master push 触发且一直失败；发版只用 release.yml）。
+
 ## [0.8.3] - 2026-09-30
 
 ### Added
