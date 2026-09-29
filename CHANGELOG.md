@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.8.2] - 2026-09-29
+
+### Added
+- **Rules（规则，对齐 Claude Code）**：`.cuckoo/rules/*.md`（项目级）+ `~/.cuckoo/rules/*.md`（用户级）。
+  - **有 `paths`** 的规则 → 只在 AI **读匹配文件**时注入（首次全文，之后仅名字+路径；按会话去重）
+  - **无 `paths`** 的规则 → 初始化时注入「## 项目规则」章节（始终适用）
+  - `paths` 匹配用 picomatch（支持 `**`/`*`/`{}`）
+- **自带 uv/node 运行时**：打包内置 uv（含 uvx）+ node（含 npx），MCP 配置里 `command: "uvx"`/`"npx"` 直接可用，
+  **无需用户自己装**。uvx 首次运行会自动下载 Python + 包。不碰用户系统（仅子进程级 PATH 注入）。
+- **MCP 面板显示 server 来源**（项目级/用户级）。
+
+### Fixed
+- **MCP UI JSON 编辑框只管用户级**：避免把项目级配置误写进全局。
+- **发送延迟取消 10 秒上限**：设置里的发送延迟最大值不再限制 10 秒。
+
+### Docs
+- 新增 [Rules 配置与使用](docs/rules.md)；README 加 Rules 章节。
+- 项目自带 6 条规则（infra/overlay/tools/hooks/bridge/test）。
+
+### CI
+- 缓存并下载自带运行时（uv/node），避免每次构建重复下载。
+
 ## [0.8.1] - 2026-09-28
 
 ### Added
