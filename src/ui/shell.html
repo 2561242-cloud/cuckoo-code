@@ -125,6 +125,11 @@
   .url-input::placeholder { color: var(--ck-text-dim); }
   .url-input::selection { background: var(--ck-primary); color: #fff; }
   .divider { width: 1px; height: 18px; background: var(--ck-border-strong); margin: 0 6px; }
+  /* 平台选择模式：地址栏工具条隐藏导航/地址输入（只留空白） */
+  .toolbar.ck-toolbar-plain .nav-btn,
+  .toolbar.ck-toolbar-plain .url-wrap,
+  .toolbar.ck-toolbar-plain .divider,
+  .toolbar.ck-toolbar-plain #project-picker { display: none; }
 
   /* ===== 状态条 ===== */
   /* 状态条（暂隐藏：Token 已移到侧边栏 Token 页） */
@@ -381,11 +386,11 @@
   .ck-skill-item {
     display: flex; flex-direction: column; gap: 6px;
     background: transparent; border: none;
-    border-radius: 10px; padding: 11px 12px;
-    cursor: pointer; transition: background .15s;
+    border-radius: 0; padding: 11px 12px;
+    cursor: pointer; transition: background .18s, border-radius .2s ease;
   }
   .ck-skill-item + .ck-skill-item { border-top: 1px solid var(--ck-border); }
-  .ck-skill-item:hover { background: var(--ck-surface); border-top-color: transparent; }
+  .ck-skill-item:hover { background: var(--ck-surface); border-radius: 12px; border-top-color: transparent; }
   .ck-skill-item:hover + .ck-skill-item { border-top-color: transparent; }
   .ck-skill-top { display: flex; align-items: center; gap: 8px; }
   .ck-skill-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ck-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -404,11 +409,11 @@
   .ck-mcp-item {
     display: flex; flex-direction: column; gap: 8px;
     background: transparent; border: none;
-    border-radius: 10px; padding: 11px 12px;
-    cursor: pointer; transition: background .15s;
+    border-radius: 0; padding: 11px 12px;
+    cursor: pointer; transition: background .18s, border-radius .2s ease;
   }
   .ck-mcp-item + .ck-mcp-item { border-top: 1px solid var(--ck-border); }
-  .ck-mcp-item:hover { background: var(--ck-surface); border-top-color: transparent; }
+  .ck-mcp-item:hover { background: var(--ck-surface); border-radius: 12px; border-top-color: transparent; }
   .ck-mcp-item:hover + .ck-mcp-item { border-top-color: transparent; }
   .ck-mcp-top { display: flex; align-items: center; gap: 8px; }
   .ck-mcp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--ck-text-dim); }
@@ -469,11 +474,11 @@
   .ck-snip-item {
     display: flex; flex-direction: column; gap: 6px;
     background: transparent; border: none;
-    border-radius: 10px; padding: 10px 12px;
-    cursor: pointer; transition: background .15s;
+    border-radius: 0; padding: 10px 12px;
+    cursor: pointer; transition: background .18s, border-radius .2s ease;
   }
   .ck-snip-item + .ck-snip-item { border-top: 1px solid var(--ck-border); }
-  .ck-snip-item:hover { background: var(--ck-surface); border-top-color: transparent; }
+  .ck-snip-item:hover { background: var(--ck-surface); border-radius: 12px; border-top-color: transparent; }
   .ck-snip-item:hover + .ck-snip-item { border-top-color: transparent; }
   /* 标题行：名称 + 操作按钮（同高） */
   .ck-snip-top { display: flex; align-items: center; gap: 8px; min-height: 26px; }
@@ -532,12 +537,12 @@
     display: flex; flex-direction: column; gap: 9px;
     background: transparent;
     border: none;
-    border-radius: 10px; padding: 12px;
-    cursor: pointer; transition: background .15s;
+    border-radius: 0; padding: 12px;
+    cursor: pointer; transition: background .18s, border-radius .2s ease;
   }
   .ck-win-item + .ck-win-item { border-top: 1px solid var(--ck-border); }
   /* 悬停：浅底色 + 取消上方分割线（连同下一个元素的上边线） */
-  .ck-win-item:hover { background: var(--ck-surface); border-top-color: transparent; }
+  .ck-win-item:hover { background: var(--ck-surface); border-radius: 12px; border-top-color: transparent; }
   .ck-win-item:hover + .ck-win-item { border-top-color: transparent; }
   .ck-win-top { display: flex; align-items: center; gap: 10px; }
   .ck-win-avatar {
@@ -1274,6 +1279,18 @@
     });
   });
   // （收起：点击当前激活的图标即可）
+
+  // ===== 平台选择模式：隐藏侧边栏 + 项目选择器 + 地址栏导航 =====
+  function setPlatformSelectingMode(selecting) {
+    var sb = document.getElementById('ck-sidebar');
+    if (sb) { if (selecting) sb.classList.add('cuckoo-hidden'); else sb.classList.remove('cuckoo-hidden'); }
+    var picker = document.getElementById('project-picker');
+    if (picker) { picker.style.display = selecting ? 'none' : ''; }
+    // 平台选择时隐藏导航按钮和地址栏（只留平台选择页）
+    var toolbar = document.querySelector('.toolbar');
+    if (toolbar) toolbar.classList.toggle('ck-toolbar-plain', !!selecting);
+  }
+  if (api.onPlatformMode) api.onPlatformMode(function (d) { setPlatformSelectingMode(d && d.selecting); });
 
   // ===== 关于页 =====
   async function loadAbout() {

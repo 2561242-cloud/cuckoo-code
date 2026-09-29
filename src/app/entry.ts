@@ -130,16 +130,18 @@ function createWindow(profile: any) {
   const TOOLBAR_HEIGHT = 44; // 地址栏 44（状态条已隐藏，不再计入）
   const SIDEBAR_WIDTH = 320;      // 左侧 Cuckoo 侧边栏展开宽度
   const SIDEBAR_COLLAPSED = 46;   // 收起时仅保留图标栏
-  // 启动默认收起：每窗口的侧边栏宽度挂在 window 上供 IPC 调整
-  (mainWindow as any).__ckSidebarWidth = SIDEBAR_COLLAPSED;
+  // 平台未选择时：整个侧边栏隐藏 + 地址栏也隐藏（AI 页面从顶部铺满）
+  (mainWindow as any).__ckSidebarWidth = providerChosen ? SIDEBAR_COLLAPSED : 0;
+  (mainWindow as any).__ckToolbarHeight = providerChosen ? TOOLBAR_HEIGHT : 0;
   const layoutView = () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     const sbw = (mainWindow as any).__ckSidebarWidth ?? SIDEBAR_WIDTH;
+    const tbh = (mainWindow as any).__ckToolbarHeight ?? TOOLBAR_HEIGHT;
     const [w, h] = mainWindow.getContentSize();
     view.setBounds({
-      x: sbw, y: TOOLBAR_HEIGHT,
+      x: sbw, y: tbh,
       width: Math.max(0, w - sbw),
-      height: Math.max(0, h - TOOLBAR_HEIGHT),
+      height: Math.max(0, h - tbh),
     });
   };
   (mainWindow as any).__ckLayout = layoutView;
@@ -150,6 +152,8 @@ function createWindow(profile: any) {
   mainWindow.loadFile(resolveSrc('ui/shell.html'));
   mainWindow.webContents.on('did-finish-load', () => {
     pushUrlState(view);
+    // 平台未选择：通知壳页面隐藏侧边栏 + 项目选择器
+    try { mainWindow.webContents.send('shell-platform-mode', { selecting: !providerChosen }); } catch (_) {}
   });
 
   // 保存 session 引用（窗口销毁后 webContents 不可访问）

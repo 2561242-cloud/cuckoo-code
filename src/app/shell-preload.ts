@@ -44,6 +44,9 @@ const shellAPI = {
   onSnippetsChanged: (cb: () => void) => {
     ipcRenderer.on('shell-snippets-changed', () => cb());
   },
+  onPlatformMode: (cb: (data: any) => void) => {
+    ipcRenderer.on('shell-platform-mode', (_e: any, data: any) => cb(data));
+  },
   // ========== 技能 ==========
   listSkills: () => ipcRenderer.invoke('list-skills'),
   // ========== MCP ==========
