@@ -396,7 +396,13 @@
     return parts.replace(/@@BLOCK(\d+)@@/g, function (m, i) { return blocks[+i] || ''; });
   }
 
-  function scrollBottom() { stream.scrollTop = stream.scrollHeight; }
+  // force=true 时总是滚到底；否则仅在"用户已在底部附近"时才跟随（不打扰往上翻看）
+  function isNearBottom() {
+    return (stream.scrollHeight - stream.scrollTop - stream.clientHeight) < 90;
+  }
+  function scrollBottom(force) {
+    if (force || isNearBottom()) stream.scrollTop = stream.scrollHeight;
+  }
   function clearEmpty() { if (empty && empty.parentNode) { empty.parentNode.removeChild(empty); empty = null; } }
 
   var progressEl = document.getElementById('progress');
@@ -438,7 +444,7 @@
     d.className = 'msg user';
     d.innerHTML = '<div class="bubble">' + esc(text) + '</div>';
     stream.appendChild(d);
-    scrollBottom();
+    scrollBottom(true);
   }
 
   var PREFIX_SVG = '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l1.8 4.6L14.5 8l-4.7 2.4L8 15l-1.8-4.6L1.5 8l4.7-2.4z"/></svg>';
@@ -460,9 +466,13 @@
     return { el: d, thinkEl: thinkEl, thinkBody: d.querySelector('.think-body'), thinkLabel: d.querySelector('.think-label'), body: d.querySelector('.body') };
   }
 
+  // 去重：已完成的回复文本（防止 finished 流事件重复触发导致重复气泡）
+  var lastDoneText = '';
   // 流式更新：think/text 均为全量快照
   function onStream(think, text, finished) {
     if (!think && !text && !finished) return; // 空心跳，忽略
+    // 重复的完成事件：文本与最近一次已完成的一致 → 忽略
+    if (finished && text && text.trim() === lastDoneText) return;
     if (!cur) cur = createAssistant();
     if (cur.pending && (think || text)) { cur.pending = false; }
     if (think) {
@@ -476,7 +486,7 @@
     if (text) {
       cur.body.innerHTML = renderMarkdown(text) + (finished ? '' : '<span class="streaming-cursor"></span>');
     }
-    scrollBottom();
+    scrollBottom(false); // 跟随但不打扰往上翻看
     // 注意：finished 时不置空 cur，交给 onAssistantDone 收尾（否则会重复渲染一条）
   }
 
@@ -484,10 +494,13 @@
     // 回复完成：立即恢复就绪（若有后续工具调用，tool-start 会再次置忙）
     setStatus('就绪', 'ready');
     var t = (text || '').trim();
+    // 去重：与上一条已完成一致则忽略（防 finished 流 + assistant-done 双触发）
+    if (t && t === lastDoneText) { if (cur) cur = null; return; }
+    if (t) lastDoneText = t;
     if (cur) {
       if (t) cur.body.innerHTML = renderMarkdown(t);
       cur = null;
-      scrollBottom();
+      scrollBottom(false);
       return;
     }
     if (!t) return;
@@ -521,7 +534,7 @@
       '</div>';
     stream.appendChild(wrap);
     wrap.querySelector('.tool-head').addEventListener('click', function () { wrap.querySelector('.tool-card').classList.toggle('open'); });
-    scrollBottom();
+    scrollBottom(true);
     return id;
   }
 
@@ -622,7 +635,7 @@
     d.className = 'msg system';
     d.innerHTML = '<div class="sys-text">' + esc(text) + '</div>';
     stream.appendChild(d);
-    scrollBottom();
+    scrollBottom(true);
   }
 
   function stop() {
