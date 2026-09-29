@@ -33,6 +33,8 @@ function sleep(ms: number): Promise<void> {
  * 拦截模式下文本已完整（finished），无需重新提取，简单重试执行即可。
  */
 async function executeJsBlocksWithRetry(blocks: string[]): Promise<any[]> {
+  // 工具开始（每个代码块一次）
+  for (const code of blocks) emitToolCall({ phase: 'start', code });
   let results: any[] = [];
   for (let attempt = 0; attempt <= MAX_JS_RETRY; attempt++) {
     results = [];
@@ -45,6 +47,16 @@ async function executeJsBlocksWithRetry(blocks: string[]): Promise<any[]> {
     );
     if (!hasIncompleteFailure) break;
     if (attempt < MAX_JS_RETRY) await sleep(1000);
+  }
+  // 工具结束（逐块上报结果）
+  for (const r of results) {
+    emitToolCall({
+      phase: 'end',
+      code: (r && r.code) || '',
+      success: !!(r && r.result && r.result.success),
+      output: (r && r.result && r.result.output) || '',
+      error: (r && r.result && r.result.error) || '',
+    });
   }
   return results;
 }
@@ -135,6 +147,27 @@ async function processInterceptedResponse(text: string, force?: boolean): Promis
   } catch (e) { /* ignore */ }
 }
 
+// 工具调用监听器（供纯净模式等上报工具开始/结束；无监听者时零开销）
+const toolCallListeners = new Set<(ev: any) => void>();
+
+/**
+ * 注册"工具调用"监听器
+ * @param cb 工具开始/结束时调用，参数 { phase: 'start'|'end', code, success?, output?, error? }
+ * @returns 取消注册
+ */
+function onToolCall(cb: (ev: any) => void): () => void {
+  toolCallListeners.add(cb);
+  return () => toolCallListeners.delete(cb);
+}
+
+/** 派发工具调用事件（无监听者时直接返回） */
+function emitToolCall(ev: any): void {
+  if (toolCallListeners.size === 0) return;
+  for (const cb of toolCallListeners) {
+    try { cb(ev); } catch (_) { /* ignore */ }
+  }
+}
+
 // 回复完成监听器（供压缩等流程等待 AI 回复完成）
 // meta 携带服务端权威数据（tokenUsage / msgIds），由监听方按需取用，
 // 避免共享状态跨层（bridge 不依赖 overlay）。
@@ -210,4 +243,4 @@ function getLastInterceptedText(): string {
   return lastInterceptedText;
 }
 
-export { startInterceptObserver, processInterceptedResponse, getLastInterceptedText, onInterceptedResponse, onAiError };
+export { startInterceptObserver, processInterceptedResponse, getLastInterceptedText, onInterceptedResponse, onAiError, onToolCall };

@@ -1,0 +1,31 @@
+/**
+ * 纯净对话模式（Harness）页面 preload
+ * 暴露 window.harnessAPI：发送用户消息、接收事件、切回网页模式。
+ * 独立于 bridge/shell，不依赖官方内部模块（与官方解耦）。
+ */
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const { contextBridge, ipcRenderer } = require('electron');
+
+const harnessAPI = {
+  /** 发送用户消息到 AI（转由 bridge 侧 sendToChat 发出） */
+  sendMessage: (text: string) => ipcRenderer.invoke('harness-send', { text }),
+  /** 退出纯净模式，返回网页模式 */
+  exitToWeb: () => ipcRenderer.invoke('harness-exit'),
+  /** 订阅对话事件（user/assistant/tool-start/tool-end/status/reset） */
+  onEvent: (cb: (payload: any) => void) => {
+    ipcRenderer.on('harness-event', (_e: any, payload: any) => cb(payload));
+  },
+  /** 页面就绪通知（可选，用于同步初始状态） */
+  ready: () => ipcRenderer.send('harness-ready'),
+};
+
+try {
+  contextBridge.exposeInMainWorld('harnessAPI', harnessAPI);
+} catch (err) {
+  console.error('[Cuckoo Harness] contextBridge 失败:', err);
+}
+(window as any).harnessAPI = harnessAPI;
+
+export {};

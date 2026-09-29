@@ -125,6 +125,26 @@ function createWindow(profile: any) {
   });
   mainWindow.contentView.addChildView(view);
 
+  // ========== 纯净对话模式（Harness）覆盖视图 ==========
+  // 承载类 Codex 的纯净对话 UI，默认隐藏；按 Ctrl+Shift+H 或 IPC 切换。
+  // AI 网页（view）继续在后台运行，仅被遮挡。
+  const harnessView = new WebContentsView({
+    webPreferences: {
+      preload: path.join(import.meta.dirname, 'harness-preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      partition: profileData.partition,
+      additionalArguments: ['--cuckoo-user-data=' + app.getPath('userData')],
+    },
+  });
+  mainWindow.contentView.addChildView(harnessView);
+  harnessView.setBackgroundColor('#0d0e12');
+  // 初始隐藏（尺寸归零）
+  harnessView.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+  (mainWindow as any).__ckHarnessView = harnessView;
+  (mainWindow as any).__ckHarnessVisible = false; // 默认网页模式，Ctrl+Shift+H 进入纯净模式
+
   // 布局：AI 页面占地址栏下方、Cuckoo 侧边栏右侧区域。
   // 侧边栏可收起（收起时 x=0，AI 页面铺满）。
   const TOOLBAR_HEIGHT = 44 + 26; // 地址栏 44 + 状态条 26
@@ -140,6 +160,15 @@ function createWindow(profile: any) {
       width: Math.max(0, w - sbw),
       height: Math.max(0, h - TOOLBAR_HEIGHT),
     });
+    // harness 覆盖全窗口；隐藏时尺寸归零
+    const hv = (mainWindow as any).__ckHarnessView;
+    if (hv && !hv.webContents.isDestroyed()) {
+      if ((mainWindow as any).__ckHarnessVisible) {
+        hv.setBounds({ x: 0, y: 0, width: Math.max(0, w), height: Math.max(0, h) });
+      } else {
+        hv.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+      }
+    }
   };
   (mainWindow as any).__ckLayout = layoutView;
   layoutView();
@@ -156,7 +185,34 @@ function createWindow(profile: any) {
 
   // 注册窗口上下文（记录 providerId，未确定时为空字符串）
   windowState.addWindow(mainWindow, profileData.id, profileData.providerId || '', sessionStore, view);
+  // 把 harness 视图挂到上下文，供 harness IPC 查找
+  {
+    const ctx: any = windowState.getWindowContext(mainWindow.id);
+    if (ctx) ctx.harnessView = harnessView;
+  }
   sessionsToFlush.add(winSession);
+
+  // 加载 harness 页面（隐藏状态，加载后待切换即用）
+  harnessView.webContents.loadFile(resolveSrc('ui/harness.html'));
+  harnessView.webContents.on('did-finish-load', () => {
+    console.log('[Cuckoo Harness] 页面加载完成');
+  });
+  harnessView.webContents.on('did-fail-load', (_e: any, code: any, desc: any) => {
+    console.error('[Cuckoo Harness] 页面加载失败: ' + code + ' ' + desc);
+  });
+  harnessView.webContents.on('console-message', (_e: any, _l: any, msg: any) => {
+    console.log('[Harness Console] ' + msg);
+  });
+  // 切换纯净模式（同窗口）：true=显示 harness，false=显示网页
+  (mainWindow as any).__ckToggleHarness = (show?: boolean) => {
+    if (mainWindow.isDestroyed()) return;
+    const next = typeof show === 'boolean' ? show : !(mainWindow as any).__ckHarnessVisible;
+    (mainWindow as any).__ckHarnessVisible = next;
+    layoutView();
+    if (next && !harnessView.webContents.isDestroyed()) {
+      harnessView.webContents.focus();
+    }
+  };
 
   // 更新主窗口引用
   windowState.setMainWindow(mainWindow);
@@ -400,6 +456,15 @@ function setupAppMenu() {
     {
       label: '查看',
       submenu: [
+        {
+          label: '纯净对话模式',
+          accelerator: 'CmdOrCtrl+Shift+H',
+          click: (_item: any, focusedWindow: any) => {
+            if (!focusedWindow) return;
+            try { (focusedWindow as any).__ckToggleHarness?.(); } catch (_) {}
+          }
+        },
+        { type: 'separator' },
         { role: 'resetZoom', label: '重置缩放' },
         { role: 'zoomIn', label: '放大' },
         { role: 'zoomOut', label: '缩小' },
