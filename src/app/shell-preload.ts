@@ -51,6 +51,11 @@ const shellAPI = {
   enableMcpServer: (name: string) => ipcRenderer.invoke('enable-mcp-server', { name }),
   disableMcpServer: (name: string) => ipcRenderer.invoke('disable-mcp-server', { name }),
   appendSnippet: (text: string) => ipcRenderer.invoke('append-to-input', { text }),
+  // ========== 关于 ==========
+  getAppInfo: () => ipcRenderer.invoke('get-app-info'),
+  checkUpdate: () => ipcRenderer.invoke('check-update'),
+  getAssetUrl: (rel: string) => ipcRenderer.invoke('get-asset-url', { rel }),
+  openExternal: (url: string) => ipcRenderer.invoke('open-external', { url }),
   // ========== 自动压缩 ==========
   getAutoCompact: () => ipcRenderer.invoke('get-autocompact'),
   saveAutoCompact: (data: any) => ipcRenderer.invoke('save-autocompact', { data }),
