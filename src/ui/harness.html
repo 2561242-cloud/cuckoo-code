@@ -523,22 +523,29 @@
     var pendingTools = [];
     function flushTools() {
       for (var k = 0; k < pendingTools.length; k++) {
-        var t = pendingTools[k];
-        addToolStart(t.code);
-        if (t.success !== null && t.success !== undefined) addToolEnd(t.success, t.output, t.error);
+        try {
+          var t = pendingTools[k];
+          addToolStart(t.code);
+          if (t.success !== null && t.success !== undefined) addToolEnd(t.success, t.output, t.error);
+        } catch (err) { /* 单条工具恢复失败，跳过 */ }
       }
       pendingTools = [];
     }
     for (var i = 0; i < history.length; i++) {
-      var e = history[i];
-      if (e.t === 'tool') { pendingTools.push(e); continue; }
-      flushTools();
-      if (e.t === 'user') addUser(e.text);
-      else if (e.t === 'assistant') renderAssistantStatic(e.text, e.think);
-      else if (e.t === 'system') appendSystem(e.text);
-      else if (e.t === 'plan') renderPlan(e.todos, false);
+      // 单条渲染失败不能中断整个恢复（否则其后"最近"的条目全丢）
+      try {
+        var e = history[i];
+        if (e.t === 'tool') { pendingTools.push(e); continue; }
+        flushTools();
+        if (e.t === 'user') addUser(e.text);
+        else if (e.t === 'assistant') renderAssistantStatic(e.text, e.think);
+        else if (e.t === 'system') appendSystem(e.text);
+        else if (e.t === 'plan') renderPlan(e.todos, false);
+      } catch (err) {
+        try { console.warn('[harness] 历史条目恢复失败:', err && err.message); } catch (_) {}
+      }
     }
-    flushTools();
+    try { flushTools(); } catch (err) { try { console.warn('[harness] 历史工具恢复失败:', err && err.message); } catch (_) {} }
     stream.scrollTop = stream.scrollHeight;
     updateScrollBtn();
   }
