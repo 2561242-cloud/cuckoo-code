@@ -379,13 +379,13 @@
     updateSendButton();
   }
 
-  // 兜底：生成中超过 20 秒无任何事件 → 重置为就绪，避免按钮卡在"停止"
+  // 兜底：生成中超过 12 秒无任何事件 → 重置为就绪，避免按钮卡在"停止"
   setInterval(function () {
-    if (generating && Date.now() - lastActivityAt > 20000) {
+    if (generating && Date.now() - lastActivityAt > 12000) {
       setStatus('就绪', 'ready');
       cur = null;
     }
-  }, 2000);
+  }, 1500);
 
   function updateSendButton() {
     if (generating) {
@@ -448,6 +448,8 @@
   }
 
   function onAssistantDone(text) {
+    // 回复完成：立即恢复就绪（若有后续工具调用，tool-start 会再次置忙）
+    setStatus('就绪', 'ready');
     var t = (text || '').trim();
     if (cur) {
       if (t) cur.body.innerHTML = renderMarkdown(t);
@@ -611,7 +613,8 @@
   input.addEventListener('input', function () {
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 200) + 'px';
-    if (input.value === '/') openSlashMenu();
+    var v = input.value;
+    if (v.length > 0 && v.charAt(v.length - 1) === '/') openSlashMenu();
     else hideSlashMenu();
   });
 
@@ -741,7 +744,11 @@
       items[k].addEventListener('click', function () {
         var kind = this.getAttribute('data-kind');
         var name = this.getAttribute('data-name');
-        input.value = (kind === 'skill' ? '请使用技能：' : '请使用工具：') + name + ' ';
+        // 保留 "/" 之前的文本，只把末尾那段 "/..." 替换为指令
+        var v = input.value;
+        var slashAt = v.lastIndexOf('/');
+        var prefix = slashAt >= 0 ? v.slice(0, slashAt) : v;
+        input.value = prefix + (kind === 'skill' ? '请使用技能：' : '请使用工具：') + name + ' ';
         hideSlashMenu();
         input.focus();
       });
