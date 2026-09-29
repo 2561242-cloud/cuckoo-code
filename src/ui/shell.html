@@ -201,6 +201,26 @@
   .ck-btn-secondary:hover { background: var(--ck-surface); border-color: transparent; }
   .ck-btn-text { background: none; border: none; color: var(--ck-text-dim); padding: 4px 0; text-align: left; font-size: 11px; cursor: pointer; font-family: inherit; transition: color .15s; }
   .ck-btn-text:hover { color: var(--ck-danger); }
+  /* 幽灵按钮（白底/深底 + 主文字色，参考 DeepSeek「开启新对话」） */
+  .ck-btn-ghost {
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    background: var(--ck-bg); color: var(--ck-text);
+    border-color: var(--ck-border-strong); font-weight: 500;
+  }
+  .ck-btn-ghost:hover { background: var(--ck-surface); border-color: var(--ck-border-strong); transform: none; }
+  .ck-btn-ghost:active { transform: scale(0.98); }
+  .ck-btn-icon { width: 15px; height: 15px; flex-shrink: 0; }
+  /* 方形图标按钮 */
+  .ck-icon-btn {
+    flex: 0 0 40px; width: 40px;
+    display: flex; align-items: center; justify-content: center;
+    border: 1px solid var(--ck-border-strong); border-radius: 9px;
+    background: var(--ck-bg); color: var(--ck-text-2);
+    cursor: pointer; transition: all .15s; padding: 0;
+  }
+  .ck-icon-btn:hover { background: var(--ck-surface); color: var(--ck-text); }
+  .ck-icon-btn:active { transform: scale(0.96); }
+  .ck-icon-btn svg { width: 16px; height: 16px; }
 
   /* ===== 目录 ===== */
   .ck-dir-path {
@@ -351,7 +371,7 @@
     cursor: pointer; transition: all .15s;
   }
   .ck-win-del:hover { background: var(--ck-danger); color: #fff; }
-  .ck-win-bottom { display: flex; align-items: center; gap: 8px; padding-left: 40px; }
+  .ck-win-bottom { display: flex; align-items: center; gap: 8px; }
   .ck-win-provider {
     font-size: 10.5px; color: var(--ck-text-dim);
     padding: 2px 8px; background: var(--ck-surface); border-radius: 6px;
@@ -367,9 +387,9 @@
   .ck-sidebar.ck-collapsed { width: 46px; }
   .ck-sidebar.ck-collapsed .ck-panel { display: none; }
   /* 滚动条（跟随主题） */
-  .ck-panel-body::-webkit-scrollbar { width: 8px; }
+  .ck-panel-body::-webkit-scrollbar { width: 4px; }
   .ck-panel-body::-webkit-scrollbar-track { background: transparent; }
-  .ck-panel-body::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 4px; }
+  .ck-panel-body::-webkit-scrollbar-thumb { background: var(--ck-scroll-thumb); border-radius: 2px; }
   .ck-panel-body::-webkit-scrollbar-thumb:hover { background: var(--ck-scroll-hover); }
 </style>
 </head>
@@ -510,11 +530,13 @@
             <!-- ===== 窗口 ===== -->
             <div class="ck-tab" data-panel="windows">
               <div class="ck-actions">
-                <button class="ck-btn ck-btn-primary" id="win-new">新建窗口</button>
-              </div>
-              <div class="ck-row">
-                <span class="ck-label">窗口列表</span>
-                <button class="ck-mini-btn" id="win-refresh">刷新</button>
+                <button class="ck-btn ck-btn-ghost" id="win-new">
+                  <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+                  新建窗口
+                </button>
+                <button class="ck-icon-btn" id="win-refresh" title="刷新列表">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
               </div>
               <div class="ck-list" id="win-list">
                 <div class="ck-list-empty">暂无窗口</div>
@@ -740,6 +762,16 @@
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
     });
   }
+  // 各平台 logo 配色（渐变）；自定义/未知平台返回空（用默认）
+  var PROVIDER_COLORS = {
+    deepseek: 'linear-gradient(135deg, #4d6bfe, #3b5bdb)',
+    claude: 'linear-gradient(135deg, #d97757, #c05a3a)',
+    chatgpt: 'linear-gradient(135deg, #10a37f, #0d8a6b)',
+  };
+  function providerAvatarStyle(providerId) {
+    return PROVIDER_COLORS[providerId] || '';
+  }
+
   async function renderWindowList() {
     var listEl = document.getElementById('win-list');
     if (!listEl || !api.listProfiles) return;
@@ -759,9 +791,10 @@
         var pname = providerMap[p.providerId] || '未选平台';
         var checked = p.autoOpen === true ? ' checked' : '';
         var initial = (p.name || '?').trim().charAt(0).toUpperCase();
+        var avatarStyle = providerAvatarStyle(p.providerId);
         return '<div class="ck-win-item" data-profile-id="' + escapeHtml(p.id) + '">' +
           '<div class="ck-win-top">' +
-            '<span class="ck-win-avatar">' + escapeHtml(initial) + '</span>' +
+            '<span class="ck-win-avatar"' + (avatarStyle ? ' style="background:' + avatarStyle + '"' : '') + '>' + escapeHtml(initial) + '</span>' +
             '<span class="ck-win-name">' + escapeHtml(p.name) + '</span>' +
             '<span class="ck-win-del" data-profile-id="' + escapeHtml(p.id) + '" title="删除窗口">✕</span>' +
           '</div>' +
@@ -797,6 +830,8 @@
         btn.addEventListener('click', async function (e) {
           e.stopPropagation();
           var pid = btn.dataset.profileId;
+          var name = (btn.closest('.ck-win-item').querySelector('.ck-win-name') || {}).textContent || '该窗口';
+          if (!confirm('确定删除窗口「' + name + '」？此操作不可恢复。')) return;
           try {
             var r = await api.deleteProfileWindow(pid);
             if (r && r.success) renderWindowList();
