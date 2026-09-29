@@ -261,20 +261,22 @@ function attachStopFn(doc: any, win: any) {
       var txt = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 16);
       var sig = cls + ' ' + aria + ' ' + title + ' ' + txt;
       var lower = sig.toLowerCase();
+      var tokens = cls.split(/\s+/);
       var score = 0;
-      // 真按钮优先（div 包装点不动）
-      if (isBtn) score += 8;
-      if (kw.test(sig)) score += 10;
-      if (/stop|abort|cancel|停止|中止|中断/.test(lower)) score += 6;
-      if (/stop-|--stop|btn-stop|stop-btn|stopbtn/.test(lower)) score += 5;
+      // 显式"停止"关键词：最高优先
+      if (/stop|abort|cancel|停止|中止|中断/.test(lower)) score += 100;
+      if (kw.test(sig)) score += 30;
+      // DeepSeek 设计系统：主操作按钮（发送/停止切换）= ds-button--primary + ds-button--filled
+      if (tokens.indexOf('ds-button--primary') >= 0) score += 40;
+      if (tokens.indexOf('ds-button--filled') >= 0) score += 20;
       // 停止图标通常是方块 rect（svg 内 rect），发送图标是箭头 path
       var hasRect = false;
       try { hasRect = !!(el.querySelector && el.querySelector('svg rect')); } catch (e) { /* ignore */ }
-      if (hasRect) score += 5;
-      // 位于视口下方（输入区附近，发送/停止按钮所在）
-      if (rect.top > vh * 0.5) score += 4;
-      // 兜底：视口下方 + 含 svg 方块图标（停止图标），即使无文字/类名也纳入
-      if (hasRect && rect.top > vh * 0.5) score += 3;
+      if (hasRect) score += 10;
+      // 位于右下角（输入区发送/停止按钮所在）
+      if (rect.top > vh * 0.7) score += 15;
+      if (rect.left > vw * 0.55) score += 15;
+      if (isBtn) score += 5;
       if (score > 0) scored.push({ el: el, score: score, sig: sig.slice(0, 80), isBtn: isBtn, hasRect: hasRect, rect: rect });
     }
     scored.sort(function (a, b) { return b.score - a.score; });
@@ -297,12 +299,8 @@ function attachStopFn(doc: any, win: any) {
       diag.push('--- 下方按钮 ---');
       diag = diag.concat(allBtns);
     } catch (e) { /* ignore */ }
-    // 优先选"按钮 + 有方块图标"的候选
-    var pick = null;
-    for (var k = 0; k < scored.length; k++) {
-      if (scored[k].isBtn && scored[k].hasRect) { pick = scored[k]; break; }
-    }
-    if (!pick && scored.length > 0) pick = scored[0];
+    // 直接选得分最高者（评分已综合关键词/主操作按钮/右下角位置/方块图标）
+    var pick = scored.length > 0 ? scored[0] : null;
     if (pick) {
       var cx = Math.round(pick.rect.left + pick.rect.width / 2);
       var cy = Math.round(pick.rect.top + pick.rect.height / 2);
@@ -315,3 +313,4 @@ function attachStopFn(doc: any, win: any) {
 }
 
 export { registerHarnessIpc };
+
