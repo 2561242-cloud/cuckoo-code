@@ -354,6 +354,28 @@ function bindEvents() {
   if (eventsBound) return;
   eventsBound = true;
 
+  // ===== 左侧活动栏：标签页切换 =====
+  const abItems = document.querySelectorAll('.cuckoo-ab-item');
+  const tabPanels = document.querySelectorAll('.cuckoo-tab-panel');
+  abItems.forEach((item) => {
+    item.addEventListener('click', () => {
+      const tab = (item as any).dataset.tab;
+      if (!tab) return;
+      // 切活动栏高亮
+      abItems.forEach((i) => i.classList.remove('cuckoo-ab-active'));
+      item.classList.add('cuckoo-ab-active');
+      // 切内容面板
+      tabPanels.forEach((p) => {
+        if ((p as any).dataset.panel === tab) p.classList.add('cuckoo-tab-active');
+        else p.classList.remove('cuckoo-tab-active');
+      });
+      // 切到"会话"时自动刷新列表
+      if (tab === 'sessions') {
+        try { renderSessions(); } catch (_) {}
+      }
+    });
+  });
+
   // 从 localStorage 恢复延迟配置
   try {
     const savedMin = localStorage.getItem('cuckoo-send-delay-min');
