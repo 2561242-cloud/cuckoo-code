@@ -136,16 +136,18 @@ function registerHarnessIpc(): void {
     if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) return { success: false };
     const wc = ctx.view.webContents;
     try {
+      // 先聚焦 AI 视图，确保 sendInputEvent 能投递到该 view
+      try { ctx.view.webContents.focus(); } catch (e) { /* ignore */ }
       const code = '(' + attachStopFn.toString() + ')(document, window)';
       const r = await wc.executeJavaScript(code);
       console.log('[Cuckoo Harness] harness-stop 定位结果: ' + JSON.stringify(r));
       if (r && r.found && typeof r.x === 'number') {
-        // 真实鼠标点击（isTrusted=true）
+        // attachStopFn 已在页面内派发完整事件序列；再用 sendInputEvent 补一次真实点击
         wc.sendInputEvent({ type: 'mouseMove', x: r.x, y: r.y });
         wc.sendInputEvent({ type: 'mouseDown', x: r.x, y: r.y, button: 'left', clickCount: 1 });
         wc.sendInputEvent({ type: 'mouseUp', x: r.x, y: r.y, button: 'left', clickCount: 1 });
-        console.log('[Cuckoo Harness] 已发送真实点击 (' + r.x + ',' + r.y + ') 标签=' + r.tag);
-        return { success: true, method: 'sendInputEvent', result: r };
+        console.log('[Cuckoo Harness] 已点击 (' + r.x + ',' + r.y + ') 页面内=' + r.clickedInPage + ' 标签=' + r.tag);
+        return { success: true, method: 'click', inPage: !!r.clickedInPage, result: r };
       }
       // 未定位到：兜底发送 Escape（真实按键）
       wc.sendInputEvent({ type: 'keyDown', keyCode: 'Escape', key: 'Escape' });
@@ -299,12 +301,25 @@ function attachStopFn(doc: any, win: any) {
       diag.push('--- 下方按钮 ---');
       diag = diag.concat(allBtns);
     } catch (e) { /* ignore */ }
-    // 直接选得分最高者（评分已综合关键词/主操作按钮/右下角位置/方块图标）
+    // 直接选得分最高者
     var pick = scored.length > 0 ? scored[0] : null;
     if (pick) {
       var cx = Math.round(pick.rect.left + pick.rect.width / 2);
       var cy = Math.round(pick.rect.top + pick.rect.height / 2);
-      return { found: true, x: cx, y: cy, tag: (pick.el.tagName || '') + '.' + String(pick.el.className || '').slice(0, 40), candidates: diag };
+      // 页面内派发完整事件序列 + 原生 click（命中正确元素后通常有效）
+      var clickedInPage = false;
+      try {
+        var t = pick.el;
+        var opts = { bubbles: true, cancelable: true, view: win, clientX: cx, clientY: cy, button: 0 };
+        try { t.dispatchEvent(new win.PointerEvent('pointerdown', opts)); } catch (e) {}
+        t.dispatchEvent(new win.MouseEvent('mousedown', opts));
+        try { t.dispatchEvent(new win.PointerEvent('pointerup', opts)); } catch (e) {}
+        t.dispatchEvent(new win.MouseEvent('mouseup', opts));
+        t.dispatchEvent(new win.MouseEvent('click', opts));
+        try { if (typeof t.click === 'function') t.click(); } catch (e) {}
+        clickedInPage = true;
+      } catch (e) { /* ignore */ }
+      return { found: true, x: cx, y: cy, clickedInPage: clickedInPage, tag: (pick.el.tagName || '') + '.' + String(pick.el.className || '').slice(0, 40), candidates: diag };
     }
     return { found: false, candidates: diag };
   } catch (e: any) {
@@ -313,4 +328,6 @@ function attachStopFn(doc: any, win: any) {
 }
 
 export { registerHarnessIpc };
+
+
 
