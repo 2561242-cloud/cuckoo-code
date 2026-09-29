@@ -228,6 +228,18 @@
   #send.stop:hover { opacity: 1; }
   .composer-hint { max-width: 780px; margin: 7px auto 0; font-size: 10.5px; color: var(--text-dim); text-align: center; }
 
+  /* 待发指令 chips（技能/工具/计划等，不进对话气泡） */
+  .hint-row { max-width: 780px; margin: 0 auto 6px; display: flex; flex-wrap: wrap; gap: 7px; }
+  .hint-chip {
+    display: flex; align-items: center; gap: 6px;
+    background: var(--accent-soft, rgba(217,119,87,.14)); border: 1px solid var(--border);
+    border-radius: 7px; padding: 4px 7px 4px 9px; font-size: 11.5px; color: var(--accent);
+  }
+  .hint-chip .hc-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 220px; }
+  .hint-chip .hc-del { width: 15px; height: 15px; border: none; background: transparent; color: var(--accent); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 0; border-radius: 4px; opacity: .7; }
+  .hint-chip .hc-del:hover { opacity: 1; background: rgba(255,255,255,.08); }
+  .hint-chip .hc-del svg { width: 9px; height: 9px; }
+
   /* 附件区 */
   .attach-row { max-width: 780px; margin: 0 auto 8px; display: flex; flex-wrap: wrap; gap: 7px; }
   .attach-chip {
@@ -404,6 +416,7 @@
     </div>
   </div>
   <div class="composer">
+    <div class="hint-row" id="hint-row"></div>
     <div class="attach-row" id="attach-row"></div>
     <div class="composer-inner">
       <button class="scroll-bottom" id="scroll-bottom" title="回到底部"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v10M8 13l-4-4M8 13l4-4"/></svg></button>
@@ -993,8 +1006,9 @@
   function send() {
     var text = input.value.trim();
     var files = pendingFiles.slice();
-    console.log('[harness] send() 调用, text 长度=' + text.length + ', files=' + files.length);
-    if (!text && files.length === 0) return;
+    var hints = pendingHints.slice();
+    console.log('[harness] send() 调用, text 长度=' + text.length + ', files=' + files.length + ', hints=' + hints.length);
+    if (!text && files.length === 0 && hints.length === 0) return;
     hideSlashMenu();
     input.value = '';
     input.style.height = 'auto';
@@ -1015,11 +1029,22 @@
         '3. 目标完成时，在回复末尾单独一行输出 [[GOAL_DONE]]；\n' +
         '4. 遇到无法解决的阻碍时，说明原因并暂停等待。';
     }
+    // 隐藏指令（技能/工具/计划）：附加到发给 AI 的文本，但不进对话气泡
+    var hintText = hints.length ? hints.map(function (h) { return h.text; }).join('\n') : '';
+    if (hintText) sendText = (hintText + '\n' + sendText).trim();
     var attachNote = files.length ? ('[附件 ' + files.length + ' 个] ') : '';
-    addUser(attachNote + displayText);
-    pushHist({ t: 'user', text: attachNote + displayText });
+    // 气泡：/goal 显示"[目标] xxx"；正常显示用户文字；仅选 chip 时显示"[指令] 标签"
+    var bubbleText;
+    if (displayText !== text) bubbleText = displayText;
+    else if (text) bubbleText = text;
+    else if (hints.length) bubbleText = '[指令] ' + hints.map(function (h) { return h.label; }).join('、');
+    else bubbleText = '';
+    addUser(attachNote + bubbleText);
+    pushHist({ t: 'user', text: attachNote + bubbleText });
     pendingFiles = [];
+    pendingHints = [];
     renderAttach();
+    renderHints();
     setStatus('生成中…', 'busy');
     if (!cur) {
       cur = createAssistant();
@@ -1142,6 +1167,24 @@
   var dropOverlay = document.getElementById('drop-overlay');
   var composerEl = document.querySelector('.composer');
   var pendingFiles = []; // { name, mime, size, data(base64) }
+  // 待发隐藏指令（技能/工具/计划等）：只显示为 chip，发送时作为隐藏文本附加给 AI，不进对话气泡
+  var pendingHints = []; // { label, text }
+  var hintRow = document.getElementById('hint-row');
+  function renderHints() {
+    if (!hintRow) return;
+    hintRow.innerHTML = '';
+    for (var i = 0; i < pendingHints.length; i++) {
+      (function (idx) {
+        var h = pendingHints[idx];
+        var chip = document.createElement('div');
+        chip.className = 'hint-chip';
+        chip.innerHTML = '<span class="hc-label">' + esc(h.label) + '</span>' +
+          '<button class="hc-del" title="移除"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>';
+        chip.querySelector('.hc-del').addEventListener('click', function () { pendingHints.splice(idx, 1); renderHints(); });
+        hintRow.appendChild(chip);
+      })(i);
+    }
+  }
 
   function fmtSize(n) {
     if (n < 1024) return n + ' B';
@@ -1351,13 +1394,23 @@
               try { if (fi) fi.click(); } catch (e) { /* ignore */ }
               return;
             }
-            if (action === 'plan') { input.value = prefix + '请先给出完成该任务的分步计划，然后再开始执行：'; }
-            else if (action === 'goal') { input.value = prefix + '/goal '; }
+            if (action === 'plan') {
+              input.value = prefix;
+              pendingHints.push({ label: '计划', text: '请先给出完成该任务的分步计划，然后再开始执行：' });
+              renderHints();
+            } else if (action === 'goal') { input.value = prefix + '/goal '; }
             hideSlashMenu();
             input.focus();
             return;
           }
-          input.value = prefix + (kind === 'skill' ? '请使用技能：' : '请使用工具：') + name + ' ';
+          // 技能/工具：不进输入框，改为"待发指令 chip"，发送时作为隐藏文本附加
+          input.value = prefix;
+          var isSkill = (kind === 'skill');
+          pendingHints.push({
+            label: (isSkill ? '技能: ' : '工具: ') + name,
+            text: (isSkill ? '请使用技能：' : '请使用工具：') + name
+          });
+          renderHints();
           hideSlashMenu();
           input.focus();
         });
