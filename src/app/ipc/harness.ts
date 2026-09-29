@@ -58,6 +58,8 @@ function attachFn(doc: any, win: any, b64: any, fileName: any, mimeType: any, ti
       try { input.dispatchEvent(new win.Event('change', { bubbles: true })); submitted = true; } catch (e) { /* ignore */ }
       var hasFiles = false;
       try { hasFiles = !!(input.files && input.files.length > 0); } catch (e) { /* ignore */ }
+      // 站点可能在 change 后清空 input.files，但文件其实已被接收；派发成功即视为提交成功
+      if (submitted) return { success: true, fileName: fileName };
       function fileVisible() {
         var node = input;
         for (var d = 0; d < 12 && node; d++) {
@@ -223,13 +225,14 @@ function attachStopFn(doc: any, win: any) {
   try {
     var vh = win.innerHeight || 800;
     var kw = /(停止|停止生成|stop|cancel|abort|结束|中断)/i;
-    var cands = doc.querySelectorAll('button, [role="button"], a[role="button"], div[role="button"]');
+    var cands = doc.querySelectorAll('button, [role="button"]');
     var scored = [];
     for (var i = 0; i < cands.length; i++) {
       var el = cands[i];
       if (!el) continue;
       var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
       if (!rect || rect.width === 0 || rect.height === 0) continue;
+      var isBtn = (el.tagName === 'BUTTON');
       var cls = (typeof el.className === 'string') ? el.className : '';
       var aria = (el.getAttribute && el.getAttribute('aria-label')) || '';
       var title = (el.getAttribute && el.getAttribute('title')) || '';
@@ -237,24 +240,29 @@ function attachStopFn(doc: any, win: any) {
       var sig = cls + ' ' + aria + ' ' + title + ' ' + txt;
       var lower = sig.toLowerCase();
       var score = 0;
+      // 真按钮优先（div 包装点不动）
+      if (isBtn) score += 8;
       if (kw.test(sig)) score += 10;
       if (/stop|abort|cancel|停止|中止|中断/.test(lower)) score += 6;
       if (/stop-|--stop|btn-stop|stop-btn|stopbtn/.test(lower)) score += 5;
       // 停止图标通常是方块 rect（svg 内 rect），发送图标是箭头 path
-      try {
-        var rectSvg = el.querySelector && el.querySelector('svg rect');
-        if (rectSvg) score += 4;
-      } catch (e) { /* ignore */ }
+      var hasRect = false;
+      try { hasRect = !!(el.querySelector && el.querySelector('svg rect')); } catch (e) { /* ignore */ }
+      if (hasRect) score += 5;
       // 位于视口下方（输入区附近）
-      if (rect.top > vh * 0.4) score += 2;
-      if (score > 0) {
-        scored.push({ el: el, score: score, sig: sig.slice(0, 80) });
-      }
+      if (rect.top > vh * 0.4) score += 3;
+      if (score > 0) scored.push({ el: el, score: score, sig: sig.slice(0, 80), isBtn: isBtn, hasRect: hasRect });
     }
     scored.sort(function (a, b) { return b.score - a.score; });
-    var diag = scored.slice(0, 5).map(function (s) { return s.score + ':' + s.sig; });
-    if (scored.length > 0) {
-      try { scored[0].el.click(); } catch (e) { /* ignore */ }
+    var diag = scored.slice(0, 6).map(function (s) { return s.score + ':' + s.sig; });
+    // 优先选"按钮 + 有方块图标"的候选
+    var pick = null;
+    for (var k = 0; k < scored.length; k++) {
+      if (scored[k].isBtn && scored[k].hasRect) { pick = scored[k]; break; }
+    }
+    if (!pick && scored.length > 0) pick = scored[0];
+    if (pick) {
+      try { pick.el.click(); } catch (e) { /* ignore */ }
       return { clicked: true, reason: 'scored', candidates: diag };
     }
     // 兜底：Escape
