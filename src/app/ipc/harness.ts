@@ -128,9 +128,11 @@ function registerHarnessIpc(): void {
     if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) return { success: false };
     try {
       const code = '(' + attachStopFn.toString() + ')(document, window)';
-      await ctx.view.webContents.executeJavaScript(code);
-      return { success: true };
+      const r = await ctx.view.webContents.executeJavaScript(code);
+      console.log('[Cuckoo Harness] harness-stop 结果: ' + JSON.stringify(r));
+      return { success: !!(r && r.clicked), result: r };
     } catch (err: any) {
+      console.log('[Cuckoo Harness] harness-stop 异常: ' + err.message);
       return { success: false, error: err.message };
     }
   });
@@ -208,27 +210,54 @@ function registerHarnessIpc(): void {
   });
 }
 
-/** 停止生成：查找停止按钮并点击（注入 AI 页面执行） */
+/**
+ * 停止生成：多策略查找 AI 页面的"停止"按钮并点击（注入 AI 页面执行）。
+ * 返回诊断信息：{ clicked, reason, candidates }，便于主进程日志排查。
+ */
 function attachStopFn(doc: any, win: any) {
   try {
-    var kw = /(停止|stop|停止生成|cancel|abort)/i;
-    var els = doc.querySelectorAll('button, [role="button"], a, div');
-    for (var i = els.length - 1; i >= 0; i--) {
-      var el = els[i];
-      if (!el || el.offsetWidth === 0) continue;
+    var vh = win.innerHeight || 800;
+    var kw = /(停止|停止生成|stop|cancel|abort|结束|中断)/i;
+    var cands = doc.querySelectorAll('button, [role="button"], a[role="button"], div[role="button"]');
+    var scored = [];
+    for (var i = 0; i < cands.length; i++) {
+      var el = cands[i];
+      if (!el) continue;
+      var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
+      if (!rect || rect.width === 0 || rect.height === 0) continue;
       var cls = (typeof el.className === 'string') ? el.className : '';
       var aria = (el.getAttribute && el.getAttribute('aria-label')) || '';
       var title = (el.getAttribute && el.getAttribute('title')) || '';
-      var txt = (el.textContent || '').slice(0, 12);
+      var txt = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 16);
       var sig = cls + ' ' + aria + ' ' + title + ' ' + txt;
-      if (kw.test(sig) && /stop|停止|abort|cancel/i.test(sig)) {
-        el.click();
-        return true;
+      var lower = sig.toLowerCase();
+      var score = 0;
+      if (kw.test(sig)) score += 10;
+      if (/stop|abort|cancel|停止|中止|中断/.test(lower)) score += 6;
+      if (/stop-|--stop|btn-stop|stop-btn|stopbtn/.test(lower)) score += 5;
+      // 停止图标通常是方块 rect（svg 内 rect），发送图标是箭头 path
+      try {
+        var rectSvg = el.querySelector && el.querySelector('svg rect');
+        if (rectSvg) score += 4;
+      } catch (e) { /* ignore */ }
+      // 位于视口下方（输入区附近）
+      if (rect.top > vh * 0.4) score += 2;
+      if (score > 0) {
+        scored.push({ el: el, score: score, sig: sig.slice(0, 80) });
       }
     }
-    doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
-    return false;
-  } catch (e) { return false; }
+    scored.sort(function (a, b) { return b.score - a.score; });
+    var diag = scored.slice(0, 5).map(function (s) { return s.score + ':' + s.sig; });
+    if (scored.length > 0) {
+      try { scored[0].el.click(); } catch (e) { /* ignore */ }
+      return { clicked: true, reason: 'scored', candidates: diag };
+    }
+    // 兜底：Escape
+    try { doc.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); } catch (e) { /* ignore */ }
+    return { clicked: false, reason: 'no-button', candidates: diag };
+  } catch (e: any) {
+    return { clicked: false, reason: 'error:' + (e && e.message) };
+  }
 }
 
 export { registerHarnessIpc };
