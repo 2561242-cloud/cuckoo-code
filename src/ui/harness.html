@@ -549,13 +549,16 @@
       cur.body.innerHTML = '<span class="pending-dots"><i></i><i></i><i></i></span>';
       scrollBottom();
     }
-    // 先上传附件，再发送消息
+    // 先上传附件，再发送消息（20 秒超时兜底，绝不无限卡住）
     if (files.length && api.attach) {
       setStatus('上传附件…', 'busy');
-      api.attach(files).then(function (res) {
+      var attachP = api.attach(files);
+      var timeoutP = new Promise(function (resolve) {
+        setTimeout(function () { resolve({ success: false, uploaded: 0, results: [{ error: '上传超时（20 秒无响应）' }] }); }, 20000);
+      });
+      Promise.race([attachP, timeoutP]).then(function (res) {
         var ok = res && res.uploaded ? res.uploaded : 0;
         if (ok === 0) {
-          // 附件上传失败：给明确反馈，不静默卡住
           var detail = '';
           try { detail = (res && res.results && res.results[0] && res.results[0].error) || ''; } catch (e) { /* ignore */ }
           appendSystem('附件上传失败：' + (detail || '当前平台可能不支持自动上传附件'));

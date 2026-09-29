@@ -112,24 +112,30 @@ function registerHarnessIpc(): void {
   // 上传附件：harness 页面选择的文件（base64）→ 注入 AI 页面 input[type=file]
   ipcMain.handle('harness-attach', async (event: any, payload: any) => {
     const files = (payload && payload.files) || [];
+    console.log('[Cuckoo Harness] harness-attach 调用, files=' + (Array.isArray(files) ? files.length : 'non-array'));
     if (!Array.isArray(files) || files.length === 0) return { success: false, error: 'empty' };
     const ctx = findContext(event.sender);
     if (!ctx || !ctx.view || ctx.view.webContents.isDestroyed()) {
+      console.log('[Cuckoo Harness] harness-attach: 找不到 AI view');
       return { success: false, error: 'no-ai-view' };
     }
     const pageWc = ctx.view.webContents;
     const results: any[] = [];
     for (const f of files) {
+      console.log('[Cuckoo Harness] 上传文件: ' + f.name + ' b64len=' + ((f.data || '').length));
       try {
-        const code = buildInjectCode(f.data || '', f.name || 'file', f.mime || 'application/octet-stream', 15000, 500);
+        const code = buildInjectCode(f.data || '', f.name || 'file', f.mime || 'application/octet-stream', 12000, 500);
         const r = await pageWc.executeJavaScript(code, true);
+        console.log('[Cuckoo Harness] 上传结果: ' + JSON.stringify(r));
         if (r && r.success) results.push({ success: true, name: f.name });
         else results.push({ success: false, name: f.name, error: (r && r.error) || '上传失败' });
       } catch (err: any) {
+        console.log('[Cuckoo Harness] 上传异常: ' + err.message);
         results.push({ success: false, name: f.name, error: err.message });
       }
     }
     const ok = results.filter((x) => x.success).length;
+    console.log('[Cuckoo Harness] harness-attach 完成, ok=' + ok + '/' + files.length);
     return { success: ok > 0, uploaded: ok, total: files.length, results };
   });
 
