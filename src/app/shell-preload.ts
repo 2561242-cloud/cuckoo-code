@@ -44,6 +44,8 @@ const shellAPI = {
   onSnippetsChanged: (cb: () => void) => {
     ipcRenderer.on('shell-snippets-changed', () => cb());
   },
+  // ========== 技能 ==========
+  listSkills: () => ipcRenderer.invoke('list-skills'),
   // ========== MCP ==========
   listMcpServers: () => ipcRenderer.invoke('list-mcp-servers', {}),
   enableMcpServer: (name: string) => ipcRenderer.invoke('enable-mcp-server', { name }),

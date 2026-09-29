@@ -29,6 +29,28 @@ function registerProjectIpc(): void {
     return result;
   });
 
+  // 列出所有技能（结构化，供壳页面「技能」页展示）
+  ipcMain.handle('list-skills', async (event: any) => {
+    try {
+      const ctx = windowState.getContextByWebContents(event.sender);
+      const store = ctx ? ctx.sessionStore : null;
+      const projectDir = store ? store.state.selectedProjectDir : null;
+      const skills = scanSkills(projectDir || null);
+      return {
+        success: true,
+        skills: skills.map((s: any) => ({
+          name: s.name,
+          description: s.description,
+          whenToUse: s.whenToUse || '',
+          source: s.source,
+          skillPath: s.skillPath,
+        })),
+      };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
   // 重新扫描技能 + 代理，返回合并清单文本（供「刷新技能与代理」按钮使用）
   ipcMain.handle('refresh-skills', async (event: any) => {
     try {

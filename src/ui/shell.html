@@ -184,12 +184,12 @@
   .ck-label { font-size: 10.5px; font-weight: 600; color: var(--ck-text-dim); letter-spacing: .6px; text-transform: uppercase; }
   .ck-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
   .ck-divider { border-top: 1px solid var(--ck-border); margin: 1px 0; }
-  .ck-actions { display: flex; gap: 8px; }
+  .ck-actions { display: flex; align-items: center; gap: 8px; }
 
   /* ===== 按钮 ===== */
   .ck-btn {
-    flex: 1; padding: 10px 14px; border: 1px solid transparent;
-    border-radius: 9px; font-size: 12.5px; font-weight: 600;
+    flex: 1; padding: 10px 16px; border: 1px solid transparent;
+    border-radius: 999px; font-size: 12.5px; font-weight: 600;
     cursor: pointer; transition: all .15s; letter-spacing: .1px;
     font-family: inherit;
   }
@@ -212,11 +212,12 @@
   .ck-btn-icon { width: 15px; height: 15px; flex-shrink: 0; }
   /* 方形图标按钮 */
   .ck-icon-btn {
-    flex: 0 0 40px; width: 40px;
+    flex: 0 0 32px; width: 32px; height: 32px;
     display: flex; align-items: center; justify-content: center;
-    border: 1px solid var(--ck-border-strong); border-radius: 9px;
-    background: var(--ck-bg); color: var(--ck-text-2);
+    border: none; border-radius: 9px;
+    background: transparent; color: var(--ck-text-dim);
     cursor: pointer; transition: all .15s; padding: 0;
+    align-self: center;
   }
   .ck-icon-btn:hover { background: var(--ck-surface); color: var(--ck-text); }
   .ck-icon-btn:active { transform: scale(0.96); }
@@ -231,7 +232,7 @@
   }
   .ck-mini-btn {
     background: var(--ck-primary-soft); border: none; color: var(--ck-primary);
-    padding: 4px 10px; border-radius: 7px; cursor: pointer;
+    padding: 4px 12px; border-radius: 999px; cursor: pointer;
     font-size: 11px; font-weight: 600; flex-shrink: 0; transition: all .15s;
     font-family: inherit;
   }
@@ -342,25 +343,46 @@
   }
   .ck-list-item:hover { background: var(--ck-primary-soft); }
   .ck-list-empty { color: var(--ck-text-dim); font-size: 12px; text-align: center; padding: 16px 0; }
+  /* 技能卡片 */
+  .ck-skill-item {
+    display: flex; flex-direction: column; gap: 6px;
+    background: var(--ck-bg); border: 1px solid var(--ck-border);
+    border-radius: 11px; padding: 11px 12px;
+    cursor: pointer; transition: all .15s; box-shadow: var(--ck-shadow-sm);
+  }
+  .ck-skill-item:hover { border-color: var(--ck-primary); box-shadow: var(--ck-shadow); }
+  .ck-skill-top { display: flex; align-items: center; gap: 8px; }
+  .ck-skill-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ck-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .ck-skill-src { font-size: 10px; color: var(--ck-text-dim); padding: 2px 7px; background: var(--ck-surface); border-radius: 6px; flex-shrink: 0; }
+  .ck-skill-desc {
+    font-size: 11.5px; color: var(--ck-text-2); line-height: 1.5;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  /* MCP 分组标题 */
+  .ck-mcp-group-title {
+    font-size: 10.5px; font-weight: 700; color: var(--ck-text-dim);
+    letter-spacing: .5px; padding: 2px 2px 0;
+  }
   /* MCP 卡片 */
   .ck-mcp-item {
-    display: flex; flex-direction: column; gap: 9px;
+    display: flex; flex-direction: column; gap: 8px;
     background: var(--ck-bg); border: 1px solid var(--ck-border);
-    border-radius: 11px; padding: 12px;
+    border-radius: 11px; padding: 11px 12px;
     cursor: pointer; transition: all .15s; box-shadow: var(--ck-shadow-sm);
   }
   .ck-mcp-item:hover { border-color: var(--ck-primary); box-shadow: var(--ck-shadow); }
-  .ck-mcp-top { display: flex; align-items: center; gap: 9px; }
+  .ck-mcp-top { display: flex; align-items: center; gap: 8px; }
   .ck-mcp-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--ck-text-dim); }
   .ck-mcp-dot.on { background: var(--ck-green); box-shadow: 0 0 0 3px rgba(48,164,108,.15); }
   .ck-mcp-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ck-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .ck-mcp-bottom { display: flex; align-items: center; gap: 6px; padding-left: 17px; }
+  .ck-mcp-toggle { flex-shrink: 0; }
+  .ck-mcp-bottom { display: flex; align-items: center; gap: 6px; padding-left: 16px; }
   .ck-mcp-tag {
     font-size: 10px; color: var(--ck-text-dim);
     padding: 2px 7px; background: var(--ck-surface); border-radius: 6px;
+    white-space: nowrap; flex-shrink: 0;
   }
-  .ck-mcp-toggle { margin-left: auto; display: flex; align-items: center; gap: 6px; }
-  .ck-mcp-toggle-label { font-size: 10.5px; color: var(--ck-text-dim); }
   /* 设置表单（分组复用 .ck-card） */
   .ck-set-group-title {
     font-size: 12px; font-weight: 700; color: var(--ck-text);
@@ -436,6 +458,9 @@
   .ck-input:focus, .ck-textarea:focus { outline: none; border-color: var(--ck-primary); box-shadow: 0 0 0 3px var(--ck-primary-soft); }
   .ck-textarea { resize: vertical; min-height: 220px; line-height: 1.6; }
   .ck-modal-foot { display: flex; gap: 8px; }
+  /* 通用弹框 */
+  .ck-dialog { max-width: 280px; }
+  .ck-dialog-msg { font-size: 12.5px; color: var(--ck-text-2); line-height: 1.6; word-break: break-word; }
   /* 侧边栏相对定位（弹层锚点） */
   .ck-panel { position: relative; }
   /* 窗口卡片（两行） */
@@ -464,8 +489,10 @@
     width: 24px; height: 24px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
     border-radius: 7px; font-size: 12px; color: var(--ck-text-dim);
-    cursor: pointer; transition: all .15s;
+    cursor: pointer; transition: opacity .15s, background .15s, color .15s;
+    opacity: 0; pointer-events: none;   /* 默认隐藏，悬停卡片才出现 */
   }
+  .ck-win-item:hover .ck-win-del { opacity: 1; pointer-events: auto; }
   .ck-win-del:hover { background: var(--ck-danger); color: #fff; }
   .ck-win-bottom { display: flex; align-items: center; gap: 8px; }
   .ck-win-provider {
@@ -477,7 +504,12 @@
   .ck-win-check {
     display: flex; align-items: center; gap: 4px; margin-left: auto;
     font-size: 11px; color: var(--ck-text-dim); cursor: pointer; flex-shrink: 0;
+    opacity: 0; pointer-events: none;   /* 未勾选时默认隐藏，悬停卡片才出现 */
+    transition: opacity .15s;
   }
+  .ck-win-item:hover .ck-win-check { opacity: 1; pointer-events: auto; }
+  /* 已勾选「默认打开」：始终可见 */
+  .ck-win-check.ck-win-check-on { opacity: 1; pointer-events: auto; }
   .ck-win-check input { accent-color: var(--ck-primary); cursor: pointer; margin: 0; }
   /* 收起：只隐藏面板，保留图标栏（宽度从 320 → 46） */
   .ck-sidebar.ck-collapsed { width: 46px; }
@@ -540,7 +572,7 @@
       </div>
     </div>
     <div class="main-area">
-      <div class="ck-sidebar" id="ck-sidebar">
+      <div class="ck-sidebar ck-collapsed" id="ck-sidebar">
         <div class="ck-activitybar">
           <button class="ck-ab-item ck-ab-active" data-tab="home" title="主页">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5L12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
@@ -554,8 +586,11 @@
           <button class="ck-ab-item" data-tab="snippets" title="提示词">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           </button>
-          <button class="ck-ab-item" data-tab="mcp" title="MCP">
-            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M12 12l9-5"/><path d="M12 12v10"/><path d="M12 12L3 7"/></svg>
+          <button class="ck-ab-item" data-tab="skills" title="技能">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.5 5.5L20 9l-4 4 1 6-5-3-5 3 1-6-4-4 5.5-.5z"/></svg>
+          </button>
+          <button class="ck-ab-item" data-tab="mcp" title="MCP（连接器）">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6"/><path d="M8 7H7a5 5 0 0 0 0 10h1"/><path d="M16 7h1a5 5 0 0 1 0 10h-1"/></svg>
           </button>
           <div class="ck-ab-spacer"></div>
           <button class="ck-ab-item" data-tab="settings" title="设置">
@@ -587,13 +622,22 @@
               </div>
             </div>
           </div>
+          <!-- 通用弹框（替代原生 alert/confirm） -->
+          <div class="ck-modal-mask cuckoo-hidden" id="ck-dialog">
+            <div class="ck-modal ck-dialog">
+              <span class="ck-modal-title" id="ck-dialog-title">提示</span>
+              <div class="ck-dialog-msg" id="ck-dialog-msg"></div>
+              <div class="ck-modal-foot">
+                <button class="ck-btn ck-btn-secondary cuckoo-hidden" id="ck-dialog-cancel">取消</button>
+                <button class="ck-btn ck-btn-primary" id="ck-dialog-ok">确定</button>
+              </div>
+            </div>
+          </div>
           <div class="ck-panel-body">
 
             <!-- ===== 主页 ===== -->
             <div class="ck-tab ck-tab-active" data-panel="home">
-              <div class="ck-actions">
-                <button class="ck-btn ck-btn-primary">初始化项目</button>
-              </div>
+              <div class="ck-list-empty">（主页待定）</div>
             </div>
 
             <!-- ===== Token ===== -->
@@ -666,6 +710,9 @@
             <!-- ===== 提示词 ===== -->
             <div class="ck-tab" data-panel="snippets">
               <div class="ck-actions">
+                <button class="ck-btn ck-btn-primary" id="snip-init-project">重发提示词</button>
+              </div>
+              <div class="ck-actions">
                 <button class="ck-btn ck-btn-ghost" id="snip-add">
                   <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
                   新建提示词
@@ -679,10 +726,23 @@
               </div>
             </div>
 
+            <!-- ===== 技能 ===== -->
+            <div class="ck-tab" data-panel="skills">
+              <div class="ck-actions">
+                <span class="ck-set-group-title" style="flex:1;">技能</span>
+                <button class="ck-icon-btn" id="skill-refresh" title="刷新">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+                </button>
+              </div>
+              <div class="ck-list" id="skill-list">
+                <div class="ck-list-empty">加载中…</div>
+              </div>
+            </div>
+
             <!-- ===== MCP ===== -->
             <div class="ck-tab" data-panel="mcp">
               <div class="ck-actions">
-                <span class="ck-set-group-title" style="flex:1;">MCP 工具</span>
+                <span class="ck-set-group-title" style="flex:1;">MCP（连接器）</span>
                 <button class="ck-icon-btn" id="mcp-refresh" title="刷新">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
                 </button>
@@ -782,6 +842,38 @@
   </div>
 <script>
   var api = window.shellAPI || {};
+
+  // ===== 通用弹框（替代原生 alert/confirm）=====
+  var _dlgResolve = null;
+  function ckDialog(opts) {
+    return new Promise(function (resolve) {
+      var mask = document.getElementById('ck-dialog');
+      var titleEl = document.getElementById('ck-dialog-title');
+      var msgEl = document.getElementById('ck-dialog-msg');
+      var okBtn = document.getElementById('ck-dialog-ok');
+      var cancelBtn = document.getElementById('ck-dialog-cancel');
+      if (!mask) { resolve(true); return; }
+      if (titleEl) titleEl.textContent = opts.title || '提示';
+      if (msgEl) msgEl.textContent = opts.message || '';
+      if (cancelBtn) cancelBtn.classList.toggle('cuckoo-hidden', !opts.confirm);
+      function cleanup() {
+        mask.classList.add('cuckoo-hidden');
+        okBtn.removeEventListener('click', onOk);
+        cancelBtn.removeEventListener('click', onCancel);
+        mask.removeEventListener('click', onMask);
+      }
+      function onOk() { cleanup(); resolve(true); }
+      function onCancel() { cleanup(); resolve(false); }
+      function onMask(e) { if (e.target === mask) { cleanup(); resolve(false); } }
+      okBtn.addEventListener('click', onOk);
+      cancelBtn.addEventListener('click', onCancel);
+      mask.addEventListener('click', onMask);
+      mask.classList.remove('cuckoo-hidden');
+    });
+  }
+  function ckConfirm(message, title) { return ckDialog({ title: title || '确认', message: message, confirm: true }); }
+  function ckAlert(message, title) { return ckDialog({ title: title || '提示', message: message, confirm: false }); }
+
   var input = document.getElementById('url-input');
   var btnBack = document.getElementById('btn-back');
   var btnForward = document.getElementById('btn-forward');
@@ -959,7 +1051,7 @@
         e.stopPropagation();
         var id = btn.dataset.del;
         var s = snippets.filter(function (x) { return x.id === id; })[0];
-        if (!confirm('确定删除提示词「' + (s ? s.name : '') + '」？')) return;
+        if (!(await ckConfirm('确定删除提示词「' + (s ? s.name : '') + '」？'))) return;
         snippets = snippets.filter(function (x) { return x.id !== id; });
         if (api.saveSnippets) { try { await api.saveSnippets(snippets); } catch (err) {} }
         renderSnippets();
@@ -986,8 +1078,8 @@
     var name = document.getElementById('snip-name').value.trim();
     var content = document.getElementById('snip-content').value;
     var autoSend = document.getElementById('snip-autosend').checked;
-    if (!name) { alert('请填写名称'); return; }
-    if (!content.trim()) { alert('请填写内容'); return; }
+    if (!name) { await ckAlert('请填写名称'); return; }
+    if (!content.trim()) { await ckAlert('请填写内容'); return; }
     if (editingSnipId) {
       snippets = snippets.map(function (x) {
         return x.id === editingSnipId ? { id: x.id, name: name, content: content, autoSend: autoSend } : x;
@@ -999,6 +1091,16 @@
     renderSnippets();
     closeSnipModal();
   }
+  var snipInitBtn = document.getElementById('snip-init-project');
+  if (snipInitBtn) snipInitBtn.addEventListener('click', async function () {
+    if (!api.initProject) return;
+    snipInitBtn.disabled = true;
+    var old = snipInitBtn.textContent;
+    snipInitBtn.textContent = '初始化中…';
+    try { await api.initProject(); } catch (e) {}
+    snipInitBtn.textContent = old;
+    snipInitBtn.disabled = false;
+  });
   var snipAddBtn = document.getElementById('snip-add');
   if (snipAddBtn) snipAddBtn.addEventListener('click', function () { openSnipModal(null); });
   var snipCancelBtn = document.getElementById('snip-cancel');
@@ -1032,6 +1134,7 @@
         if (t === 'snippets') { try { loadSnippets(); } catch (e) {} }
         if (t === 'settings') { try { loadSettings(); } catch (e) {} }
         if (t === 'mcp') { try { loadMcpServers(); } catch (e) {} }
+        if (t === 'skills') { try { loadSkills(); } catch (e) {} }
       };
       // 收起状态下点图标 → 展开并切到该标签
       if (isCollapsed) {
@@ -1062,6 +1165,43 @@
   });
   // （收起：点击当前激活的图标即可）
 
+  // ===== 技能 =====
+  async function loadSkills() {
+    var listEl = document.getElementById('skill-list');
+    if (!listEl || !api.listSkills) return;
+    try {
+      var r = await api.listSkills();
+      var skills = (r && r.success) ? r.skills : [];
+      if (!skills || skills.length === 0) {
+        listEl.innerHTML = '<div class="ck-list-empty">未发现技能<br>（.cuckoo/skills/ 或 ~/.cuckoo/skills/）</div>';
+        return;
+      }
+      listEl.innerHTML = skills.map(function (s) {
+        var srcTag = s.source === 'project' ? '项目' : '用户';
+        return '<div class="ck-skill-item" data-name="' + escapeHtml(s.name) + '">' +
+          '<div class="ck-skill-top">' +
+            '<span class="ck-skill-name">' + escapeHtml(s.name) + '</span>' +
+            '<span class="ck-skill-src">' + srcTag + '</span>' +
+          '</div>' +
+          '<div class="ck-skill-desc">' + escapeHtml(s.description || '（无描述）') + '</div>' +
+        '</div>';
+      }).join('');
+      // 点击 → 追加"请使用 xxx 技能"到输入框
+      listEl.querySelectorAll('.ck-skill-item').forEach(function (el) {
+        el.addEventListener('click', async function () {
+          var name = el.dataset.name;
+          if (api.appendSnippet) {
+            try { await api.appendSnippet('请使用 ' + name + ' 技能'); } catch (e) {}
+          }
+        });
+      });
+    } catch (e) {
+      listEl.innerHTML = '<div class="ck-list-empty">加载失败</div>';
+    }
+  }
+  var skillRefreshBtn = document.getElementById('skill-refresh');
+  if (skillRefreshBtn) skillRefreshBtn.addEventListener('click', loadSkills);
+
   // ===== MCP =====
   async function loadMcpServers() {
     var listEl = document.getElementById('mcp-list');
@@ -1073,28 +1213,35 @@
         listEl.innerHTML = '<div class="ck-list-empty">未配置 MCP server</div>';
         return;
       }
-      listEl.innerHTML = servers.map(function (s) {
+      var cardHtml = function (s) {
         var dotCls = s.connected ? 'ck-mcp-dot on' : 'ck-mcp-dot';
-        var srcTag = s.source === 'project' ? '项目' : '用户';
         return '<div class="ck-mcp-item" data-name="' + escapeHtml(s.name) + '">' +
           '<div class="ck-mcp-top">' +
             '<span class="' + dotCls + '"></span>' +
             '<span class="ck-mcp-name">' + escapeHtml(s.name) + '</span>' +
-          '</div>' +
-          '<div class="ck-mcp-bottom">' +
-            '<span class="ck-mcp-tag">' + srcTag + '</span>' +
-            '<span class="ck-mcp-tag">' + escapeHtml(s.type || 'stdio') + '</span>' +
-            '<span class="ck-mcp-tag">' + (s.toolCount || 0) + ' 工具</span>' +
             '<div class="ck-mcp-toggle" data-toggle="' + escapeHtml(s.name) + '">' +
-              '<span class="ck-mcp-toggle-label">' + (s.enabled ? '已启用' : '已禁用') + '</span>' +
               '<label class="ck-switch">' +
                 '<input type="checkbox" data-toggle-cb="' + escapeHtml(s.name) + '"' + (s.enabled ? ' checked' : '') + ' />' +
                 '<span class="ck-switch-track"></span>' +
               '</label>' +
             '</div>' +
           '</div>' +
+          '<div class="ck-mcp-bottom">' +
+            '<span class="ck-mcp-tag">' + escapeHtml(s.type || 'stdio') + '</span>' +
+            '<span class="ck-mcp-tag">' + (s.toolCount || 0) + ' 工具</span>' +
+          '</div>' +
         '</div>';
-      }).join('');
+      };
+      var userServers = servers.filter(function (s) { return s.source !== 'project'; });
+      var projServers = servers.filter(function (s) { return s.source === 'project'; });
+      var html = '';
+      if (userServers.length) {
+        html += '<div class="ck-mcp-group-title">用户级</div>' + userServers.map(cardHtml).join('');
+      }
+      if (projServers.length) {
+        html += '<div class="ck-mcp-group-title">项目级</div>' + projServers.map(cardHtml).join('');
+      }
+      listEl.innerHTML = html;
 
       // 点击卡片主体 → 追加 @name 到输入框
       listEl.querySelectorAll('.ck-mcp-item').forEach(function (el) {
@@ -1113,7 +1260,7 @@
           var name = cb.dataset.toggleCb;
           var want = cb.checked;
           var verb = want ? '启用' : '禁用';
-          if (!confirm('确定' + verb + ' MCP「' + name + '」？')) {
+          if (!(await ckConfirm('确定' + verb + ' MCP「' + name + '」？'))) {
             cb.checked = !want; // 回滚
             return;
           }
@@ -1122,11 +1269,11 @@
             var fn = want ? api.enableMcpServer : api.disableMcpServer;
             var r2 = fn ? await fn(name) : { success: false };
             if (!r2 || !r2.success) {
-              alert((r2 && r2.error) || (verb + '失败'));
+              await ckAlert((r2 && r2.error) || (verb + '失败'));
               cb.checked = !want;
             }
           } catch (err) {
-            alert(verb + '失败: ' + (err.message || err));
+            await ckAlert(verb + '失败: ' + (err.message || err));
             cb.checked = !want;
           }
           cb.disabled = false;
@@ -1184,7 +1331,7 @@
           '</div>' +
           '<div class="ck-win-bottom">' +
             '<span class="ck-win-provider">' + escapeHtml(pname) + '</span>' +
-            '<label class="ck-win-check" title="启动时默认打开">' +
+            '<label class="ck-win-check' + (p.autoOpen === true ? ' ck-win-check-on' : '') + '" title="启动时默认打开">' +
               '<input type="checkbox" data-profile-id="' + escapeHtml(p.id) + '"' + checked + ' />默认打开' +
             '</label>' +
           '</div>' +
@@ -1196,9 +1343,15 @@
         cb.addEventListener('change', async function () {
           var pid = cb.dataset.profileId;
           var on = cb.checked;
+          var label = cb.closest('.ck-win-check');
           try {
             var r = await api.setProfileAutoOpen(pid, on);
-            if (!r || !r.success) { cb.checked = !on; }
+            if (!r || !r.success) {
+              cb.checked = !on;
+            } else {
+              // 已勾选 → 常驻显示；取消勾选 → 恢复悬停才显示
+              if (label) label.classList.toggle('ck-win-check-on', on);
+            }
           } catch (e) { cb.checked = !on; }
         });
       });
@@ -1215,7 +1368,7 @@
           e.stopPropagation();
           var pid = btn.dataset.profileId;
           var name = (btn.closest('.ck-win-item').querySelector('.ck-win-name') || {}).textContent || '该窗口';
-          if (!confirm('确定删除窗口「' + name + '」？此操作不可恢复。')) return;
+          if (!(await ckConfirm('确定删除窗口「' + name + '」？此操作不可恢复。'))) return;
           try {
             var r = await api.deleteProfileWindow(pid);
             if (r && r.success) renderWindowList();
@@ -1309,9 +1462,9 @@
         stSaveBtn.textContent = '已保存';
         setTimeout(function () { stSaveBtn.textContent = '保存设置'; }, 1200);
       } else {
-        alert((r && r.error) || '保存失败');
+        await ckAlert((r && r.error) || '保存失败');
       }
-    } catch (e) { alert('保存失败: ' + (e.message || e)); }
+    } catch (e) { await ckAlert('保存失败: ' + (e.message || e)); }
     stSaveBtn.disabled = false;
   });
   var stRefreshBtn = document.getElementById('st-refresh');
@@ -1319,7 +1472,7 @@
   var stResetBtn = document.getElementById('st-reset');
   if (stResetBtn) stResetBtn.addEventListener('click', async function () {
     if (!api.resetSettings) return;
-    if (!confirm('确定恢复默认设置？')) return;
+    if (!(await ckConfirm('确定恢复默认设置？'))) return;
     try {
       var r = await api.resetSettings();
       if (r && r.success && r.data) renderSettings(r.data);
