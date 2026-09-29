@@ -207,6 +207,13 @@ function createWindow(profile: any) {
   harnessView.webContents.on('console-message', (_e: any, _l: any, msg: any) => {
     console.log('[Harness Console] ' + msg);
   });
+  // harness 页面内快捷键：Ctrl+R 重载页面（加载最新 HTML，无需重启）
+  harnessView.webContents.on('before-input-event', (_event: any, input: any) => {
+    if (input.control && !input.shift && (input.key === 'r' || input.key === 'R')) {
+      harnessView.webContents.reloadIgnoringCache();
+    }
+  });
+
   // 切换纯净模式（同窗口）：true=显示 harness，false=显示网页
   (mainWindow as any).__ckToggleHarness = (show?: boolean) => {
     if (mainWindow.isDestroyed()) return;

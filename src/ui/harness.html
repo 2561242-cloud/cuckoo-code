@@ -113,12 +113,19 @@
   .msg.assistant .body li { margin: 3px 0; }
 
   /* 流式光标 */
+  .msg.system { display: flex; justify-content: center; }
+  .msg.system .sys-text { font-size: 12px; color: var(--amber); padding: 4px 12px; background: rgba(217,160,91,.08); border-radius: 6px; }
   .streaming-cursor {
     display: inline-block; width: 7px; height: 15px; margin-left: 2px;
     background: var(--accent); vertical-align: text-bottom;
     animation: blink 1s step-end infinite;
   }
   @keyframes blink { 50% { opacity: 0; } }
+  .pending-dots { display: inline-flex; gap: 4px; align-items: center; padding: 2px 0; }
+  .pending-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); animation: bounce 1.2s ease-in-out infinite; }
+  .pending-dots i:nth-child(2) { animation-delay: .15s; }
+  .pending-dots i:nth-child(3) { animation-delay: .3s; }
+  @keyframes bounce { 0%,60%,100% { opacity: .3; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-3px); } }
 
   /* 思考过程块 */
   .think {
@@ -184,21 +191,89 @@
   .composer-inner:focus-within { border-color: #444; box-shadow: 0 0 0 3px rgba(255,255,255,0.03); }
   #input {
     flex: 1; border: none; outline: none; background: transparent; resize: none;
-    color: var(--text); font-family: inherit; font-size: 14px; line-height: 1.6;
-    max-height: 200px; min-height: 22px; padding: 1px 0;
+    color: var(--text); font-family: inherit; font-size: 14px; line-height: 1.65;
+    max-height: 260px; min-height: 72px; padding: 3px 0;
+    scrollbar-width: thin;
   }
   #input::placeholder { color: var(--text-dim); }
+  #input::-webkit-scrollbar { width: 8px; }
+  #input::-webkit-scrollbar-track { background: transparent; }
+  #input::-webkit-scrollbar-thumb { background: #3a3a3a; border-radius: 4px; border: 2px solid var(--bg-elev); background-clip: padding-box; }
+  #input::-webkit-scrollbar-thumb:hover { background: #4a4a4a; background-clip: padding-box; border: 2px solid var(--bg-elev); }
   #send {
     flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; border: none;
     background: var(--accent); color: #fff; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    transition: opacity .14s, transform .1s;
+    transition: opacity .14s, transform .1s, background .14s;
   }
   #send svg { width: 16px; height: 16px; }
   #send:hover { opacity: .88; }
   #send:active { transform: scale(.93); }
   #send:disabled { opacity: .35; cursor: default; }
+  #send.stop { background: var(--red); }
+  #send.stop:hover { opacity: 1; }
   .composer-hint { max-width: 780px; margin: 7px auto 0; font-size: 10.5px; color: var(--text-dim); text-align: center; }
+
+  /* 附件区 */
+  .attach-row { max-width: 780px; margin: 0 auto 8px; display: flex; flex-wrap: wrap; gap: 7px; }
+  .attach-chip {
+    display: flex; align-items: center; gap: 7px;
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 5px 8px 5px 9px; font-size: 12px; max-width: 240px;
+  }
+  .attach-chip .ac-icon { width: 15px; height: 15px; color: var(--accent); flex-shrink: 0; display: flex; }
+  .attach-chip .ac-icon svg { width: 15px; height: 15px; }
+  .attach-chip .ac-name { color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .attach-chip .ac-size { color: var(--text-dim); font-size: 10.5px; flex-shrink: 0; }
+  .attach-chip .ac-del { width: 16px; height: 16px; border: none; background: transparent; color: var(--text-dim); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; padding: 0; border-radius: 4px; }
+  .attach-chip .ac-del:hover { background: var(--surface-hover); color: var(--text); }
+  .attach-chip .ac-del svg { width: 10px; height: 10px; }
+  .attach-btn {
+    flex-shrink: 0; width: 30px; height: 30px; border-radius: 8px; border: none;
+    background: transparent; color: var(--text-dim); cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all .14s;
+  }
+  .attach-btn:hover { background: var(--surface); color: var(--text); }
+  .attach-btn svg { width: 17px; height: 17px; }
+  .drop-overlay {
+    position: absolute; inset: 0; z-index: 50; border: 2px dashed var(--accent);
+    border-radius: 12px; background: rgba(217,119,87,.08);
+    display: none; align-items: center; justify-content: center;
+    color: var(--accent); font-size: 13px; font-weight: 600; pointer-events: none;
+  }
+  .drop-overlay.show { display: flex; }
+  .composer { position: relative; }
+
+  /* 斜杠菜单（技能/工具） */
+  .slash-menu {
+    position: absolute; left: 0; right: 0; bottom: calc(100% + 8px);
+    max-height: 300px; overflow-y: auto;
+    background: var(--bg-elev); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 8px 28px rgba(0,0,0,.45);
+    display: none; z-index: 30; padding: 5px;
+  }
+  .slash-menu.show { display: block; }
+  .slash-sec { font-size: 9.5px; font-weight: 600; color: var(--text-dim); letter-spacing: .6px; text-transform: uppercase; padding: 7px 9px 4px; }
+  .slash-item {
+    display: flex; align-items: baseline; gap: 9px; padding: 7px 9px; border-radius: 7px;
+    cursor: pointer; font-size: 12.5px;
+  }
+  .slash-item:hover, .slash-item.active { background: var(--surface); }
+  .slash-item .si-name { font-family: var(--mono); color: var(--text); font-weight: 600; flex-shrink: 0; }
+  .slash-item .si-desc { color: var(--text-dim); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .composer-inner { position: relative; }
+
+  /* 进行中顶部进度条 */
+  .progress {
+    position: absolute; top: 0; left: 0; height: 2px; width: 0;
+    background: var(--accent); opacity: 0; transition: opacity .2s;
+  }
+  .progress.on { opacity: 1; animation: indeterminate 1.4s ease-in-out infinite; }
+  @keyframes indeterminate {
+    0% { left: 0; width: 0; }
+    50% { left: 30%; width: 45%; }
+    100% { left: 100%; width: 0; }
+  }
 </style>
 </head>
 <body>
@@ -212,6 +287,7 @@
     <div class="status ready" id="status"><span class="dot"></span><span id="status-text">就绪</span></div>
     <button class="tb-btn" id="btn-web" title="返回网页模式 (Ctrl+Shift+H)">网页模式</button>
   </div>
+  <div class="progress" id="progress"></div>
   <div class="stream" id="stream">
     <div class="empty" id="empty">
       <div class="glyph"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
@@ -221,11 +297,16 @@
     </div>
   </div>
   <div class="composer">
+    <div class="attach-row" id="attach-row"></div>
     <div class="composer-inner">
-      <textarea id="input" rows="1" placeholder="输入消息…"></textarea>
+      <div class="slash-menu" id="slash-menu"></div>
+      <button class="attach-btn" id="attach-btn" title="添加附件（图片/文件）"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 4.5l-5 5a2 2 0 0 0 2.8 2.8l5-5a3.5 3.5 0 0 0-5-5l-4.5 4.5a5 5 0 0 0 7 7l4-4"/></svg></button>
+      <textarea id="input" rows="3" placeholder="输入消息…  / 查看技能与工具"></textarea>
       <button id="send" title="发送"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M8 3l-4 4M8 3l4 4"/></svg></button>
+      <input type="file" id="file-input" multiple style="display:none" />
     </div>
-    <div class="composer-hint">Enter 发送 · Shift+Enter 换行 · 隐藏系统提示词与工具回传等底层指令</div>
+    <div class="composer-hint">Enter 发送 · Shift+Enter 换行 · 输入 / 查看技能与工具 · 可粘贴/拖拽图片</div>
+    <div class="drop-overlay" id="drop-overlay">松开以添加文件</div>
   </div>
 </div>
 <script>
@@ -285,9 +366,37 @@
   function scrollBottom() { stream.scrollTop = stream.scrollHeight; }
   function clearEmpty() { if (empty && empty.parentNode) { empty.parentNode.removeChild(empty); empty = null; } }
 
+  var progressEl = document.getElementById('progress');
+  var generating = false;
+  var lastActivityAt = Date.now();
+
   function setStatus(text, state) {
     statusText.textContent = text;
     statusEl.className = 'status' + (state ? ' ' + state : '');
+    generating = (state === 'busy');
+    if (generating) lastActivityAt = Date.now();
+    progressEl.className = 'progress' + (generating ? ' on' : '');
+    updateSendButton();
+  }
+
+  // 兜底：生成中超过 20 秒无任何事件 → 重置为就绪，避免按钮卡在"停止"
+  setInterval(function () {
+    if (generating && Date.now() - lastActivityAt > 20000) {
+      setStatus('就绪', 'ready');
+      cur = null;
+    }
+  }, 2000);
+
+  function updateSendButton() {
+    if (generating) {
+      sendBtn.classList.add('stop');
+      sendBtn.title = '停止生成';
+      sendBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor"><rect x="4" y="4" width="8" height="8" rx="1.5"/></svg>';
+    } else {
+      sendBtn.classList.remove('stop');
+      sendBtn.title = '发送';
+      sendBtn.innerHTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M8 3l-4 4M8 3l4 4"/></svg>';
+    }
   }
 
   function addUser(text) {
@@ -322,6 +431,7 @@
   function onStream(think, text, finished) {
     if (!think && !text && !finished) return; // 空心跳，忽略
     if (!cur) cur = createAssistant();
+    if (cur.pending && (think || text)) { cur.pending = false; }
     if (think) {
       cur.thinkEl.style.display = '';
       cur.thinkBody.textContent = think;
@@ -381,11 +491,12 @@
   }
 
   function addToolEnd(success, output, error) {
-    var cards = stream.querySelectorAll('.tool-card.open');
+    // 找最近一个"运行中"的卡片（不限于 open，避免被折叠后漏匹配）
+    var all = stream.querySelectorAll('.tool-card');
     var target = null;
-    for (var i = cards.length - 1; i >= 0; i--) {
-      var b = cards[i].querySelector('.tool-badge');
-      if (b && b.classList.contains('run')) { target = cards[i]; break; }
+    for (var i = all.length - 1; i >= 0; i--) {
+      var b = all[i].querySelector('.tool-badge');
+      if (b && b.classList.contains('run')) { target = all[i]; break; }
     }
     if (!target) return;
     var badge = target.querySelector('.tool-badge');
@@ -396,22 +507,24 @@
     if (outSec && outPre) {
       outSec.style.display = '';
       outPre.textContent = success ? (output || '(无输出)') : (error || '未知错误');
-      if (!success) { outPre.classList.add('err'); }
-      else { target.classList.remove('open'); } // 成功时自动折叠，界面更干净
+      if (!success) outPre.classList.add('err');
     }
+    // 执行完成后统一自动折叠（成功/失败都折叠，用户可点击展开）
+    target.classList.remove('open');
     scrollBottom();
   }
 
   if (api.onEvent) {
     api.onEvent(function (payload) {
       if (!payload) return;
+      lastActivityAt = Date.now();
       switch (payload.type) {
         case 'user': addUser(payload.text); break;
         case 'stream': onStream(payload.think, payload.text, payload.finished); break;
         case 'assistant-done': onAssistantDone(payload.text); break;
         case 'assistant': onAssistantDone(payload.text); break;
-        case 'tool-start': addToolStart(payload.code); setStatus('工具运行中', 'busy'); break;
-        case 'tool-end': addToolEnd(payload.success, payload.output, payload.error); setStatus('生成中', 'busy'); break;
+        case 'tool-start': addToolStart(payload.code); setStatus('工具运行中…', 'busy'); break;
+        case 'tool-end': addToolEnd(payload.success, payload.output, payload.error); setStatus('生成中…', 'busy'); break;
         case 'status': setStatus(payload.text, payload.busy ? 'busy' : 'ready'); break;
       }
     });
@@ -419,22 +532,218 @@
 
   function send() {
     var text = input.value.trim();
-    if (!text) return;
+    var files = pendingFiles.slice();
+    console.log('[harness] send() 调用, text 长度=' + text.length + ', files=' + files.length);
+    if (!text && files.length === 0) return;
+    hideSlashMenu();
     input.value = '';
     input.style.height = 'auto';
-    addUser(text);
-    setStatus('生成中', 'busy');
-    if (api.sendMessage) api.sendMessage(text);
+    var attachNote = files.length ? ('[附件 ' + files.length + ' 个] ') : '';
+    addUser(attachNote + text);
+    pendingFiles = [];
+    renderAttach();
+    setStatus('生成中…', 'busy');
+    if (!cur) {
+      cur = createAssistant();
+      cur.pending = true;
+      cur.body.innerHTML = '<span class="pending-dots"><i></i><i></i><i></i></span>';
+      scrollBottom();
+    }
+    // 先上传附件，再发送消息
+    if (files.length && api.attach) {
+      setStatus('上传附件…', 'busy');
+      api.attach(files).then(function (res) {
+        var ok = res && res.uploaded ? res.uploaded : 0;
+        if (ok === 0) {
+          // 附件上传失败：给明确反馈，不静默卡住
+          var detail = '';
+          try { detail = (res && res.results && res.results[0] && res.results[0].error) || ''; } catch (e) { /* ignore */ }
+          appendSystem('附件上传失败：' + (detail || '当前平台可能不支持自动上传附件'));
+          setStatus('就绪', 'ready');
+          cur = null;
+          return;
+        }
+        // 上传成功：触发发送（可能仅附件，text 为空）
+        if (api.sendMessage) api.sendMessage(text || ' ');
+      }).catch(function (e) {
+        appendSystem('附件上传出错：' + ((e && e.message) || '未知错误'));
+        setStatus('就绪', 'ready');
+        cur = null;
+      });
+    } else if (api.sendMessage) {
+      api.sendMessage(text);
+    }
   }
 
-  sendBtn.addEventListener('click', send);
+  // 追加一条系统提示（居中灰色小字）
+  function appendSystem(text) {
+    clearEmpty();
+    var d = document.createElement('div');
+    d.className = 'msg system';
+    d.innerHTML = '<div class="sys-text">' + esc(text) + '</div>';
+    stream.appendChild(d);
+    scrollBottom();
+  }
+
+  function stop() {
+    setStatus('正在停止…', 'busy');
+    if (api.stop) api.stop().catch(function () { /* ignore */ });
+    // 兜底：2 秒后若仍无事件，恢复就绪态，避免按钮卡死
+    setTimeout(function () {
+      if (generating && Date.now() - lastActivityAt > 1800) {
+        setStatus('就绪', 'ready');
+        cur = null;
+      }
+    }, 2200);
+  }
+
+  sendBtn.addEventListener('click', function () {
+    console.log('[harness] send 按钮点击, generating=' + generating + ', api.sendMessage=' + (typeof api.sendMessage));
+    if (generating) stop(); else send();
+  });
   input.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') { hideSlashMenu(); return; }
     if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
   });
   input.addEventListener('input', function () {
     input.style.height = 'auto';
     input.style.height = Math.min(input.scrollHeight, 200) + 'px';
+    if (input.value === '/') openSlashMenu();
+    else hideSlashMenu();
   });
+
+  // ===== 附件（图片/文件）=====
+  var attachRow = document.getElementById('attach-row');
+  var attachBtn = document.getElementById('attach-btn');
+  var fileInput = document.getElementById('file-input');
+  var dropOverlay = document.getElementById('drop-overlay');
+  var composerEl = document.querySelector('.composer');
+  var pendingFiles = []; // { name, mime, size, data(base64) }
+
+  function fmtSize(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  function fileIcon(mime) {
+    var isImg = (mime || '').indexOf('image/') === 0;
+    if (isImg) return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3" width="12" height="10" rx="1.5"/><circle cx="5.5" cy="6.5" r="1.2"/><path d="M2 11l3.5-3 3 2.5L11 8l3 3"/></svg>';
+    return '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h4l3 3v9H3V2z"/><path d="M6 7h4M6 10h4"/></svg>';
+  }
+
+  function renderAttach() {
+    attachRow.innerHTML = '';
+    for (var i = 0; i < pendingFiles.length; i++) {
+      (function (idx) {
+        var f = pendingFiles[idx];
+        var chip = document.createElement('div');
+        chip.className = 'attach-chip';
+        chip.innerHTML = '<span class="ac-icon">' + fileIcon(f.mime) + '</span>' +
+          '<span class="ac-name">' + esc(f.name) + '</span>' +
+          '<span class="ac-size">' + fmtSize(f.size) + '</span>' +
+          '<button class="ac-del" title="移除"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>';
+        chip.querySelector('.ac-del').addEventListener('click', function () { pendingFiles.splice(idx, 1); renderAttach(); });
+        attachRow.appendChild(chip);
+      })(i);
+    }
+  }
+
+  function readAsBase64(file) {
+    return new Promise(function (resolve, reject) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        var s = String(fr.result || '');
+        var comma = s.indexOf(',');
+        resolve(comma >= 0 ? s.slice(comma + 1) : s);
+      };
+      fr.onerror = function () { reject(fr.error); };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  function addFiles(fileList) {
+    var arr = Array.prototype.slice.call(fileList || []);
+    if (!arr.length) return;
+    var jobs = arr.map(function (file) {
+      return readAsBase64(file).then(function (b64) {
+        pendingFiles.push({ name: file.name || ('file-' + Date.now()), mime: file.type || 'application/octet-stream', size: file.size || 0, data: b64 });
+      }).catch(function () { /* ignore */ });
+    });
+    Promise.all(jobs).then(function () { renderAttach(); });
+  }
+
+  attachBtn.addEventListener('click', function () {
+    console.log('[harness] 附件按钮点击');
+    try { fileInput.click(); } catch (e) { console.log('[harness] fileInput.click 失败: ' + e.message); }
+  });
+  fileInput.addEventListener('change', function () { addFiles(fileInput.files); fileInput.value = ''; });
+
+  // 拖拽
+  var dragDepth = 0;
+  composerEl.addEventListener('dragenter', function (e) { e.preventDefault(); dragDepth++; dropOverlay.classList.add('show'); });
+  composerEl.addEventListener('dragover', function (e) { e.preventDefault(); });
+  composerEl.addEventListener('dragleave', function (e) { e.preventDefault(); dragDepth--; if (dragDepth <= 0) { dragDepth = 0; dropOverlay.classList.remove('show'); } });
+  composerEl.addEventListener('drop', function (e) {
+    e.preventDefault(); dragDepth = 0; dropOverlay.classList.remove('show');
+    if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files);
+  });
+
+  // 粘贴图片
+  input.addEventListener('paste', function (e) {
+    var items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    var imgs = [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].kind === 'file') { var f = items[i].getAsFile(); if (f) imgs.push(f); }
+    }
+    if (imgs.length) { e.preventDefault(); addFiles(imgs); }
+  });
+
+  // ===== 斜杠菜单：技能 / 工具 =====
+  var slashMenu = document.getElementById('slash-menu');
+  var slashData = null;
+
+  function openSlashMenu() {
+    if (slashData) { renderSlashMenu(slashData); return; }
+    if (!api.listTools) return;
+    api.listTools().then(function (res) {
+      if (res && res.success) { slashData = res; renderSlashMenu(res); }
+    }).catch(function () { /* ignore */ });
+  }
+
+  function hideSlashMenu() { slashMenu.classList.remove('show'); }
+
+  function renderSlashMenu(data) {
+    var html = '';
+    var skills = (data && data.skills) || [];
+    var tools = (data && data.tools) || [];
+    if (skills.length) {
+      html += '<div class="slash-sec">技能</div>';
+      for (var i = 0; i < skills.length; i++) {
+        html += '<div class="slash-item" data-kind="skill" data-name="' + esc(skills[i].name) + '"><span class="si-name">' + esc(skills[i].name) + '</span><span class="si-desc">' + esc(skills[i].description || '') + '</span></div>';
+      }
+    }
+    if (tools.length) {
+      html += '<div class="slash-sec">工具</div>';
+      for (var j = 0; j < tools.length; j++) {
+        html += '<div class="slash-item" data-kind="tool" data-name="' + esc(tools[j].name) + '"><span class="si-name">' + esc(tools[j].name) + '</span><span class="si-desc">' + esc(tools[j].description || '') + '</span></div>';
+      }
+    }
+    if (!html) html = '<div class="slash-sec">暂无技能或工具</div>';
+    slashMenu.innerHTML = html;
+    slashMenu.classList.add('show');
+    var items = slashMenu.querySelectorAll('.slash-item');
+    for (var k = 0; k < items.length; k++) {
+      items[k].addEventListener('click', function () {
+        var kind = this.getAttribute('data-kind');
+        var name = this.getAttribute('data-name');
+        input.value = (kind === 'skill' ? '请使用技能：' : '请使用工具：') + name + ' ';
+        hideSlashMenu();
+        input.focus();
+      });
+    }
+  }
   // 用户手动点过思考块后，不再自动折叠
   document.addEventListener('click', function (e) {
     var th = e.target && e.target.closest && e.target.closest('.think-head');
@@ -442,6 +751,13 @@
   });
 
   btnWeb.addEventListener('click', function () { if (api.exitToWeb) api.exitToWeb(); });
+  // Ctrl+R 重载页面（加载最新 HTML）
+  document.addEventListener('keydown', function (e) {
+    if (e.ctrlKey && !e.shiftKey && (e.key === 'r' || e.key === 'R')) {
+      e.preventDefault();
+      location.reload();
+    }
+  });
 
   input.focus();
   if (api.ready) api.ready();

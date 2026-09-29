@@ -13,6 +13,14 @@ const harnessAPI = {
   sendMessage: (text: string) => ipcRenderer.invoke('harness-send', { text }),
   /** 退出纯净模式，返回网页模式 */
   exitToWeb: () => ipcRenderer.invoke('harness-exit'),
+  /** 停止生成 */
+  stop: () => ipcRenderer.invoke('harness-stop'),
+  /** 列出可用技能与工具 */
+  listTools: () => ipcRenderer.invoke('harness-list-tools'),
+  /** 上传附件（{ name, mime, data(base64) }[]） */
+  attach: (files: any) => ipcRenderer.invoke('harness-attach', { files }),
+  /** 重载 harness 页面（加载最新 HTML） */
+  reload: () => ipcRenderer.invoke('harness-reload'),
   /** 订阅对话事件（user/assistant/tool-start/tool-end/status/reset） */
   onEvent: (cb: (payload: any) => void) => {
     ipcRenderer.on('harness-event', (_e: any, payload: any) => cb(payload));
