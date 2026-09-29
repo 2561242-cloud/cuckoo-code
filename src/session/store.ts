@@ -73,6 +73,18 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
     return ctx ? ctx.view : null;
   }
 
+  /** 发"项目目录变化"：给 AI 页面 + 壳页面（地址栏） */
+  function emitProjectDir(wc: any, dir: string | null): void {
+    if (!wc || wc.isDestroyed()) return;
+    wc.send('project-dir-updated', dir);
+    try {
+      const ctx = windowState && windowState.getContextByWebContents ? windowState.getContextByWebContents(wc) : null;
+      if (ctx && ctx.win && !ctx.win.isDestroyed()) {
+        ctx.win.webContents.send('shell-project-dir', dir);
+      }
+    } catch (_) { /* ignore */ }
+  }
+
   function handleUrlChange(url: string, targetView?: any): void {
     const sessionId = extractSessionIdFromUrl(url);
     const view = resolveView(targetView);
@@ -88,7 +100,7 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
         state.selectedProjectDir = state.pendingProjectDir;
         state.pendingProjectDir = null;
         if (canSend) {
-          wc.send('project-dir-updated', state.selectedProjectDir);
+          emitProjectDir(wc, state.selectedProjectDir);
           wc.send('session-restored', { sessionId, projectDir: state.selectedProjectDir });
         }
         console.log('[Cuckoo Code][' + profileId + '] 暂存目录已绑定');
@@ -100,11 +112,11 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
         state.selectedProjectDir = restoredDir;
         if (canSend) {
           wc.send('session-restored', { sessionId, projectDir: restoredDir });
-          wc.send('project-dir-updated', restoredDir);
+          emitProjectDir(wc, restoredDir);
         }
       } else {
         state.selectedProjectDir = null;
-        if (canSend) wc.send('project-dir-updated', null);
+        if (canSend) emitProjectDir(wc, null);
       }
     } else {
       // 提取不到会话 ID（如 ChatGPT 首页 https://chatgpt.com/）：
@@ -112,7 +124,7 @@ function createSessionStore(profileId: string, storeDir: string, windowState: an
       state.currentSessionId = null;
       if (!state.pendingProjectDir) {
         state.selectedProjectDir = null;
-        if (canSend) wc.send('project-dir-updated', null);
+        if (canSend) emitProjectDir(wc, null);
       }
     }
   }

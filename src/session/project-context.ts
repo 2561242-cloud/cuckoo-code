@@ -112,6 +112,10 @@ async function initProject(skipPrompt: boolean = false, windowContext: any = nul
   if (view && view.webContents && !view.webContents.isDestroyed()) {
     view.webContents.send('project-dir-updated', selectedDir);
   }
+  // 通知壳页面（地址栏显示项目目录）
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    try { mainWindow.webContents.send('shell-project-dir', selectedDir); } catch (_) {}
+  }
 
   // 如果只是修改目录，跳过发送初始提示
   if (skipPrompt) {

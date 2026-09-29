@@ -79,6 +79,31 @@ function getTodayCumulative(): number {
   }
 }
 
+/** 近 N 日的每日用量（升序，含今天；缺失日补 0） */
+function getRecentDaily(days: number): Array<{ date: string; value: number }> {
+  try {
+    migrateDailyVersion();
+    const raw = localStorage.getItem(TOKEN_DAILY_KEY);
+    const obj = raw ? JSON.parse(raw) : {};
+    const map = (obj && typeof obj === 'object') ? obj : {};
+    const out: Array<{ date: string; value: number }> = [];
+    const today = new Date();
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      const key = y + '-' + m + '-' + day;
+      const v = typeof map[key] === 'number' ? map[key] : 0;
+      out.push({ date: key, value: v });
+    }
+    return out;
+  } catch (_) {
+    return [];
+  }
+}
+
 /** 取当前页面对应的会话 ID（无则 null） */
 function getCurrentSessionId(): string | null {
   try {
@@ -251,10 +276,10 @@ function updateConversationTokenDisplay() {
 
   if (countEl) countEl.textContent = formatTokenCount(context);
 
-  // 同步到壳页面状态条（地址栏下方）：上下文 + 对话累计 + 窗口累计 + 今日累计
+  // 同步到壳页面状态条（地址栏下方）：上下文 + 对话累计 + 窗口累计 + 今日累计 + 近 10 日
   try {
     (window as any).electronAPI.updateTokenUsage(
-      context, cumulative, getWindowCumulative(), getTodayCumulative()
+      context, cumulative, getWindowCumulative(), getTodayCumulative(), getRecentDaily(10)
     ).catch(() => {});
   } catch (_) {}
 }

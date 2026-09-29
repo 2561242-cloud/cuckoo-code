@@ -41,18 +41,25 @@ function broadcastSystemTotal(): void {
   }
 }
 
-/** 把 token 数据推送给壳页面的状态条 */
-function pushTokenUsage(view: any, context: number, cumulative: number, windowCumulative = 0, todayCumulative = 0): void {
+/** 把项目目录推送给壳页面（地址栏最左） */
+function pushProjectDir(view: any, dir: string | null): void {
   const ctx = view ? windowState.getContextByWebContents(view.webContents) : null;
   if (!ctx || !ctx.win || ctx.win.isDestroyed()) return;
-  ctx.win.webContents.send('shell-token-updated', { context, cumulative, windowCumulative, todayCumulative });
+  ctx.win.webContents.send('shell-project-dir', dir || null);
+}
+
+/** 把 token 数据推送给壳页面的状态条 */
+function pushTokenUsage(view: any, context: number, cumulative: number, windowCumulative = 0, todayCumulative = 0, daily: any = null): void {
+  const ctx = view ? windowState.getContextByWebContents(view.webContents) : null;
+  if (!ctx || !ctx.win || ctx.win.isDestroyed()) return;
+  ctx.win.webContents.send('shell-token-updated', { context, cumulative, windowCumulative, todayCumulative, daily });
 }
 
 function registerShellIpc(): void {
   // 启动时清理子代理遗留的 token 统计键（历史 bug：子代理上报污染系统总累计）
   try { cleanupSubagentKeys(); } catch (_) { /* ignore */ }
   // AI 页面报告 token（上下文 + 对话累计 + 窗口累计 + 今日累计）→ 转发给壳页面状态条
-  ipcMain.handle('update-token-usage', async (event: any, { context, cumulative, windowCumulative, todayCumulative }: any) => {
+  ipcMain.handle('update-token-usage', async (event: any, { context, cumulative, windowCumulative, todayCumulative, daily }: any) => {
     const view = viewOf(event);
     if (view && typeof context === 'number') {
       pushTokenUsage(
@@ -60,7 +67,8 @@ function registerShellIpc(): void {
         context,
         typeof cumulative === 'number' ? cumulative : 0,
         typeof windowCumulative === 'number' ? windowCumulative : 0,
-        typeof todayCumulative === 'number' ? todayCumulative : 0
+        typeof todayCumulative === 'number' ? todayCumulative : 0,
+        Array.isArray(daily) ? daily : null
       );
     }
     // 更新系统总累计并广播给所有窗口
@@ -130,6 +138,23 @@ function registerShellIpc(): void {
       return { success: false, error: err.message };
     }
   });
+
+  // 查询当前项目目录（壳页面加载时拉取一次）
+  ipcMain.handle('get-project-dir', async (event: any) => {
+    const ctx = windowState.getContextByWebContents(event.sender);
+    const dir = (ctx && ctx.sessionStore && ctx.sessionStore.state && ctx.sessionStore.state.selectedProjectDir) || null;
+    return { success: true, dir };
+  });
+
+  // 设置左侧 Cuckoo 侧边栏宽度（收起=46，展开=320）→ 重新布局 AI 页面
+  ipcMain.handle('shell-toggle-sidebar', async (event: any, { width }: any) => {
+    const ctx = windowState.getContextByWebContents(event.sender);
+    if (!ctx || !ctx.win || ctx.win.isDestroyed()) return { success: false };
+    const win = ctx.win;
+    win.__ckSidebarWidth = typeof width === 'number' ? width : 320;
+    try { if (typeof win.__ckLayout === 'function') win.__ckLayout(); } catch (_) {}
+    return { success: true };
+  });
 }
 
-export { registerShellIpc, pushUrlState, pushTokenUsage };
+export { registerShellIpc, pushUrlState, pushTokenUsage, pushProjectDir };

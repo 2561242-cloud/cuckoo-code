@@ -125,13 +125,23 @@ function createWindow(profile: any) {
   });
   mainWindow.contentView.addChildView(view);
 
-  // 布局：AI 页面占地址栏下方区域，随窗口尺寸变化
+  // 布局：AI 页面占地址栏下方、Cuckoo 侧边栏右侧区域。
+  // 侧边栏可收起（收起时 x=0，AI 页面铺满）。
   const TOOLBAR_HEIGHT = 44 + 26; // 地址栏 44 + 状态条 26
+  const SIDEBAR_WIDTH = 320;      // 左侧 Cuckoo 侧边栏宽度
+  // 每窗口的侧边栏宽度（收起时为 0）；挂在 window 上供 IPC 调整
+  (mainWindow as any).__ckSidebarWidth = SIDEBAR_WIDTH;
   const layoutView = () => {
     if (!mainWindow || mainWindow.isDestroyed()) return;
+    const sbw = (mainWindow as any).__ckSidebarWidth ?? SIDEBAR_WIDTH;
     const [w, h] = mainWindow.getContentSize();
-    view.setBounds({ x: 0, y: TOOLBAR_HEIGHT, width: w, height: Math.max(0, h - TOOLBAR_HEIGHT) });
+    view.setBounds({
+      x: sbw, y: TOOLBAR_HEIGHT,
+      width: Math.max(0, w - sbw),
+      height: Math.max(0, h - TOOLBAR_HEIGHT),
+    });
   };
+  (mainWindow as any).__ckLayout = layoutView;
   layoutView();
   mainWindow.on('resize', layoutView);
 

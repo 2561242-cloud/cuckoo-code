@@ -23,6 +23,20 @@ const shellAPI = {
     ipcRenderer.on('shell-total-updated', (_e: any, data: any) => cb(data));
   },
   getSystemTotal: () => ipcRenderer.invoke('get-system-total'),
+  getProjectDir: () => ipcRenderer.invoke('get-project-dir'),
+  // 点击"项目目录" → 弹目录选择框 + 重新初始化（复用 init-project 通道）
+  initProject: () => ipcRenderer.invoke('init-project', {}),
+  onProjectDir: (cb: (dir: string | null) => void) => {
+    ipcRenderer.on('shell-project-dir', (_e: any, dir: any) => cb(dir));
+  },
+  toggleSidebar: (width: number) => ipcRenderer.invoke('shell-toggle-sidebar', { width }),
+  // ========== 窗口管理 ==========
+  listProfiles: () => ipcRenderer.invoke('list-profiles'),
+  listProviders: () => ipcRenderer.invoke('list-providers'),
+  createProfileWindow: (providerId?: string) => ipcRenderer.invoke('create-profile-window', { providerId }),
+  openProfileWindow: (profileId: string) => ipcRenderer.invoke('open-profile-window', { profileId }),
+  deleteProfileWindow: (profileId: string) => ipcRenderer.invoke('delete-profile', { profileId }),
+  setProfileAutoOpen: (profileId: string, autoOpen: boolean) => ipcRenderer.invoke('set-profile-auto-open', { profileId, autoOpen }),
 };
 
 try {
