@@ -53,7 +53,11 @@ function attachFn(doc: any, win: any, b64: any, fileName: any, mimeType: any, ti
       var dt = new win.DataTransfer();
       dt.items.add(file);
       input.files = dt.files;
-      input.dispatchEvent(new win.Event('change', { bubbles: true }));
+      // dispatch 后立即判断：文件已写入 input 即视为提交成功（图片缩略图不含文件名，不能只靠文本检测）
+      var submitted = false;
+      try { input.dispatchEvent(new win.Event('change', { bubbles: true })); submitted = true; } catch (e) { /* ignore */ }
+      var hasFiles = false;
+      try { hasFiles = !!(input.files && input.files.length > 0); } catch (e) { /* ignore */ }
       function fileVisible() {
         var node = input;
         for (var d = 0; d < 12 && node; d++) {
@@ -63,13 +67,14 @@ function attachFn(doc: any, win: any, b64: any, fileName: any, mimeType: any, ti
         var bt = doc.body ? doc.body.innerText : '';
         return bt.indexOf(fileName) !== -1;
       }
+      if (submitted && hasFiles) return { success: true, fileName: fileName };
+      // 退化检测：等待附件 chip 出现
       await new Promise(function (r) { win.setTimeout(r, waitMs); });
-      function accepted() { return fileVisible() || (input.files && input.files.length > 0); }
-      if (accepted()) return { success: true, fileName: fileName };
+      if (fileVisible()) return { success: true, fileName: fileName };
       var deadline = win.Date.now() + timeoutMs;
       while (win.Date.now() < deadline) {
         await new Promise(function (r) { win.setTimeout(r, 300); });
-        if (accepted()) return { success: true, fileName: fileName };
+        if (fileVisible()) return { success: true, fileName: fileName };
       }
       return { success: false, error: '上传超时，未检测到附件出现' };
     } catch (err: any) {

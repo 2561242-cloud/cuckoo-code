@@ -477,7 +477,7 @@
       cur.body.innerHTML = renderMarkdown(text) + (finished ? '' : '<span class="streaming-cursor"></span>');
     }
     scrollBottom();
-    if (finished) cur = null;
+    // 注意：finished 时不置空 cur，交给 onAssistantDone 收尾（否则会重复渲染一条）
   }
 
   function onAssistantDone(text) {
@@ -590,7 +590,7 @@
       setStatus('上传附件…', 'busy');
       var attachP = api.attach(files);
       var timeoutP = new Promise(function (resolve) {
-        setTimeout(function () { resolve({ success: false, uploaded: 0, results: [{ error: '上传超时（8 秒无响应，当前平台可能不支持该文件类型）' }] }); }, 8000);
+        setTimeout(function () { resolve({ success: false, uploaded: 0, results: [{ error: '上传超时（15 秒无响应）' }] }); }, 15000);
       });
       Promise.race([attachP, timeoutP]).then(function (res) {
         var ok = res && res.uploaded ? res.uploaded : 0;
