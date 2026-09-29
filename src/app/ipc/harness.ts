@@ -240,16 +240,22 @@ function attachStopFn(doc: any, win: any) {
     var vh = win.innerHeight || 800;
     var vw = win.innerWidth || 1200;
     var kw = /(停止|停止生成|stop|cancel|abort|结束|中断)/i;
-    var cands = doc.querySelectorAll('button, [role="button"]');
+    var cands = doc.querySelectorAll('button, [role="button"], [class*="stop"], [class*="abort"]');
     var scored = [];
     for (var i = 0; i < cands.length; i++) {
       var el = cands[i];
       if (!el) continue;
+      // 排除 Cuckoo 自己的覆盖层 UI（overlay 注入在 AI 页面内，勿误点自己的按钮）
+      try {
+        if (el.closest && (el.closest('#cuckoo-overlay') || el.closest('.cuckoo-overlay') || el.closest('[class*="cuckoo-"]'))) continue;
+      } catch (e) { /* ignore */ }
       var rect = el.getBoundingClientRect ? el.getBoundingClientRect() : null;
       if (!rect || rect.width === 0 || rect.height === 0) continue;
       if (rect.left < 0 || rect.top < 0 || rect.left > vw || rect.top > vh) continue;
       var isBtn = (el.tagName === 'BUTTON');
       var cls = (typeof el.className === 'string') ? el.className : '';
+      // 排除 cuckoo 类名
+      if (/cuckoo/i.test(cls)) continue;
       var aria = (el.getAttribute && el.getAttribute('aria-label')) || '';
       var title = (el.getAttribute && el.getAttribute('title')) || '';
       var txt = (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 16);
@@ -267,10 +273,30 @@ function attachStopFn(doc: any, win: any) {
       if (hasRect) score += 5;
       // 位于视口下方（输入区附近，发送/停止按钮所在）
       if (rect.top > vh * 0.5) score += 4;
+      // 兜底：视口下方 + 含 svg 方块图标（停止图标），即使无文字/类名也纳入
+      if (hasRect && rect.top > vh * 0.5) score += 3;
       if (score > 0) scored.push({ el: el, score: score, sig: sig.slice(0, 80), isBtn: isBtn, hasRect: hasRect, rect: rect });
     }
     scored.sort(function (a, b) { return b.score - a.score; });
     var diag = scored.slice(0, 6).map(function (s) { return s.score + ':' + s.sig; });
+    // 诊断补充：视口下方所有可见按钮（前 12），便于定位 DeepSeek 真实停止按钮
+    try {
+      var allBtns = [];
+      var b2 = doc.querySelectorAll('button, [role="button"], [class*="stop"], [class*="btn"]');
+      for (var bi = 0; bi < b2.length && allBtns.length < 12; bi++) {
+        var be = b2[bi];
+        if (!be) continue;
+        if (be.closest && (be.closest('#cuckoo-overlay') || be.closest('.cuckoo-overlay') || be.closest('[class*="cuckoo-"]'))) continue;
+        var bc = (typeof be.className === 'string') ? be.className : '';
+        if (/cuckoo/i.test(bc)) continue;
+        var br = be.getBoundingClientRect ? be.getBoundingClientRect() : null;
+        if (!br || br.width === 0 || br.height === 0) continue;
+        if (br.top < vh * 0.5) continue;
+        allBtns.push('(' + Math.round(br.left) + ',' + Math.round(br.top) + ') ' + (be.tagName || '') + '.' + String(bc).slice(0, 50));
+      }
+      diag.push('--- 下方按钮 ---');
+      diag = diag.concat(allBtns);
+    } catch (e) { /* ignore */ }
     // 优先选"按钮 + 有方块图标"的候选
     var pick = null;
     for (var k = 0; k < scored.length; k++) {
