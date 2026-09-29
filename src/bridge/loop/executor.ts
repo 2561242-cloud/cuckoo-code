@@ -25,7 +25,6 @@ async function handleJsToolScript(code: string): Promise<{ code: string; result:
   isExecuting = true;
   notifyJsScriptDetected(code);
   setTaskStatus(true);
-  showToast('开始执行命令');
 
   const callId = 'js_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
   console.log('[Cuckoo Code] [诊断] 即将执行的代码(JSON转义): ' + JSON.stringify(code));
