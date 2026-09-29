@@ -19,6 +19,7 @@
     --ck-text: #16181d;
     --ck-text-2: #545a67;
     --ck-text-dim: #8a8f9b;
+    --ck-hover-bg: #e6e8ee;
     --ck-shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.04);
     --ck-shadow: 0 1px 3px rgba(16, 24, 40, 0.05), 0 1px 2px rgba(16, 24, 40, 0.03);
     --ck-shadow-lg: 0 4px 12px rgba(16, 24, 40, 0.07);
@@ -43,6 +44,7 @@
       --ck-text: #e4e6eb;
       --ck-text-2: #a8adba;
       --ck-text-dim: #757b8a;
+      --ck-hover-bg: rgba(255, 255, 255, 0.13);
       --ck-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
       --ck-shadow: 0 1px 3px rgba(0, 0, 0, 0.24);
       --ck-shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.35);
@@ -161,9 +163,10 @@
   .ck-ab-item:hover { background: var(--ck-surface-hover); }
   .ck-ab-item:active { transform: scale(0.92); }
   .ck-ab-icon { width: 18px; height: 18px; opacity: .45; transition: opacity .15s, color .15s; color: var(--ck-text); }
-  .ck-ab-item:hover .ck-ab-icon { opacity: .8; }
+  .ck-ab-text { font-size: 15px; font-weight: 700; line-height: 1; opacity: .45; transition: opacity .15s, color .15s; color: var(--ck-text); }
+  .ck-ab-item:hover .ck-ab-icon, .ck-ab-item:hover .ck-ab-text { opacity: .8; }
   .ck-ab-item.ck-ab-active { background: var(--ck-primary-soft); }
-  .ck-ab-item.ck-ab-active .ck-ab-icon { opacity: 1; color: var(--ck-primary); }
+  .ck-ab-item.ck-ab-active .ck-ab-icon, .ck-ab-item.ck-ab-active .ck-ab-text { opacity: 1; color: var(--ck-primary); }
   .ck-ab-spacer { flex: 1; }
 
   .ck-panel { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
@@ -190,7 +193,7 @@
   .ck-btn {
     flex: 1; padding: 10px 16px; border: 1px solid transparent;
     border-radius: 999px; font-size: 12.5px; font-weight: 600;
-    cursor: pointer; transition: all .15s; letter-spacing: .1px;
+    cursor: pointer; transition: all .15s; letter-spacing: 1.5px;
     font-family: inherit;
   }
   .ck-btn:active { transform: scale(0.98); }
@@ -198,7 +201,7 @@
   .ck-btn-primary:hover { background: var(--ck-primary-strong); box-shadow: 0 3px 10px rgba(77,107,254,.32); transform: translateY(-1px); }
   .ck-btn-primary:active { transform: translateY(0) scale(0.98); }
   .ck-btn-secondary { background: var(--ck-bg); color: var(--ck-text); border-color: var(--ck-border-strong); }
-  .ck-btn-secondary:hover { background: var(--ck-surface); border-color: transparent; }
+  .ck-btn-secondary:hover { background: var(--ck-hover-bg); border-color: transparent; }
   .ck-btn-text { background: none; border: none; color: var(--ck-text-dim); padding: 4px 0; text-align: left; font-size: 11px; cursor: pointer; font-family: inherit; transition: color .15s; }
   .ck-btn-text:hover { color: var(--ck-danger); }
   /* 幽灵按钮（白底/深底 + 主文字色，参考 DeepSeek「开启新对话」） */
@@ -207,9 +210,30 @@
     background: var(--ck-bg); color: var(--ck-text);
     border-color: var(--ck-border-strong); font-weight: 500;
   }
-  .ck-btn-ghost:hover { background: var(--ck-surface); border-color: var(--ck-border-strong); transform: none; }
+  .ck-btn-ghost:hover { background: var(--ck-hover-bg); border-color: var(--ck-border-strong); transform: none; }
   .ck-btn-ghost:active { transform: scale(0.98); }
   .ck-btn-icon { width: 15px; height: 15px; flex-shrink: 0; }
+  /* 提示词页按钮：无边框（hover 背景效果保持） */
+  #snip-init-project, #snip-add { border-color: transparent; }
+  #snip-init-project:hover, #snip-add:hover { border-color: transparent; }
+  /* 按钮动画组件（.ck-btn-anim）：独占整行的按钮用
+   * 默认内容偏左 → 悬停平滑居中（用伪元素做"弹性空格"，无需改 HTML 结构）
+   * 用法：<button class="ck-btn ... ck-btn-anim"><svg/><span>文字</span></button>
+   */
+  .ck-btn-anim {
+    display: flex; align-items: center; justify-content: center; gap: 0;
+    background: transparent; border-color: transparent; color: var(--ck-primary);
+    box-shadow: none;
+  }
+  .ck-btn-anim:hover {
+    background: var(--ck-hover-bg); border-color: transparent;
+    color: var(--ck-primary); box-shadow: none; transform: none;
+  }
+  .ck-btn-anim > .ck-btn-icon { margin-right: 7px; }
+  .ck-btn-anim > span { white-space: nowrap; }
+  .ck-btn-anim::before, .ck-btn-anim::after { content: ''; flex: 0 0 0; transition: flex-grow .3s ease; }
+  .ck-btn-anim::after { flex-grow: 1; }
+  .ck-btn-anim:hover::before, .ck-btn-anim:hover::after { flex-grow: 1; }
   /* 方形图标按钮 */
   .ck-icon-btn {
     flex: 0 0 32px; width: 32px; height: 32px;
@@ -222,6 +246,9 @@
   .ck-icon-btn:hover { background: var(--ck-surface); color: var(--ck-text); }
   .ck-icon-btn:active { transform: scale(0.96); }
   .ck-icon-btn svg { width: 16px; height: 16px; }
+  /* 刷新按钮：悬停正向转一圈，移开反向转回来 */
+  .ck-icon-btn svg { transition: transform .6s ease; }
+  .ck-icon-btn:hover svg { transform: rotate(360deg); }
 
   /* ===== 目录 ===== */
   .ck-dir-path {
@@ -253,6 +280,11 @@
     font-variant-numeric: tabular-nums;
   }
   .ck-token-hero-unit { font-size: 12px; color: var(--ck-text-dim); }
+  /* 「万/亿」单位字：用普通字体（等宽字体无中文，会回退导致不协调） */
+  .ck-token-unit-char {
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    font-size: .72em; font-weight: 600; letter-spacing: 0; margin-left: 1px;
+  }
   .ck-stat-list {
     display: flex; flex-direction: column;
     background: var(--ck-bg); border: 1px solid var(--ck-border);
@@ -406,22 +438,27 @@
   .ck-set-textarea:focus { outline: none; border-color: var(--ck-primary); box-shadow: 0 0 0 3px var(--ck-primary-soft); }
   .ck-set-inline { display: flex; align-items: center; gap: 8px; }
   .ck-set-sep { font-size: 12px; color: var(--ck-text-dim); flex-shrink: 0; }
-  /* 提示词卡片 */
+  /* 提示词卡片（无边框 + 分割线 + 悬停浅底） */
   .ck-snip-item {
-    display: flex; align-items: flex-start; gap: 9px;
-    background: var(--ck-bg); border: 1px solid var(--ck-border);
-    border-radius: 11px; padding: 11px 12px;
-    cursor: pointer; transition: all .15s; box-shadow: var(--ck-shadow-sm);
+    display: flex; flex-direction: column; gap: 6px;
+    background: transparent; border: none;
+    border-radius: 10px; padding: 10px 12px;
+    cursor: pointer; transition: background .15s;
   }
-  .ck-snip-item:hover { border-color: var(--ck-primary); box-shadow: var(--ck-shadow); }
-  .ck-snip-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
-  .ck-snip-name { font-size: 12.5px; font-weight: 600; color: var(--ck-text); }
+  .ck-snip-item + .ck-snip-item { border-top: 1px solid var(--ck-border); }
+  .ck-snip-item:hover { background: var(--ck-surface); border-top-color: transparent; }
+  .ck-snip-item:hover + .ck-snip-item { border-top-color: transparent; }
+  /* 标题行：名称 + 操作按钮（同高） */
+  .ck-snip-top { display: flex; align-items: center; gap: 8px; min-height: 26px; }
+  .ck-snip-name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--ck-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ck-snip-preview {
     font-size: 11px; color: var(--ck-text-dim); line-height: 1.5;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
     overflow: hidden; word-break: break-all;
   }
-  .ck-snip-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; }
+  /* 操作按钮：默认隐藏，悬停卡片才显示 */
+  .ck-snip-actions { display: flex; align-items: center; gap: 2px; flex-shrink: 0; opacity: 0; pointer-events: none; transition: opacity .15s; }
+  .ck-snip-item:hover .ck-snip-actions { opacity: 1; pointer-events: auto; }
   .ck-snip-icon-btn {
     width: 26px; height: 26px; display: flex; align-items: center; justify-content: center;
     border: none; background: transparent; border-radius: 7px;
@@ -466,13 +503,15 @@
   /* 窗口卡片（两行） */
   .ck-win-item {
     display: flex; flex-direction: column; gap: 9px;
-    background: var(--ck-bg);
-    border: 1px solid var(--ck-border);
-    border-radius: 11px; padding: 12px;
-    cursor: pointer; transition: all .15s;
-    box-shadow: var(--ck-shadow-sm);
+    background: transparent;
+    border: none;
+    border-radius: 10px; padding: 12px;
+    cursor: pointer; transition: background .15s;
   }
-  .ck-win-item:hover { border-color: var(--ck-primary); box-shadow: var(--ck-shadow); }
+  .ck-win-item + .ck-win-item { border-top: 1px solid var(--ck-border); }
+  /* 悬停：浅底色 + 取消上方分割线（连同下一个元素的上边线） */
+  .ck-win-item:hover { background: var(--ck-surface); border-top-color: transparent; }
+  .ck-win-item:hover + .ck-win-item { border-top-color: transparent; }
   .ck-win-top { display: flex; align-items: center; gap: 10px; }
   .ck-win-avatar {
     width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
@@ -580,8 +619,8 @@
           <button class="ck-ab-item" data-tab="windows" title="窗口">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M9 21V9"/></svg>
           </button>
-          <button class="ck-ab-item" data-tab="token" title="Token">
-            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          <button class="ck-ab-item" data-tab="token" title="Token（词元）">
+            <span class="ck-ab-text">元</span>
           </button>
           <button class="ck-ab-item" data-tab="snippets" title="提示词">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
@@ -649,7 +688,10 @@
                   <span class="ck-token-hero-unit">tokens</span>
                 </div>
               </div>
-              <button class="ck-btn ck-btn-primary" id="tk-compact">压缩上下文</button>
+              <button class="ck-btn ck-btn-anim" id="tk-compact">
+                <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v4M8 7H4M8 7l-4-4"/><path d="M16 21v-4M16 17h4M16 17l4 4"/><path d="M4 14h16"/></svg>
+                <span>压缩上下文</span>
+              </button>
 
               <div class="ck-stat-list">
                 <div class="ck-stat-item">
@@ -683,7 +725,10 @@
                   <input type="number" id="tk-auto-threshold" value="80" min="1" />
                   <span>万 tokens 时触发</span>
                 </div>
-                <button class="ck-btn ck-btn-secondary" id="tk-auto-save">保存设置</button>
+                <button class="ck-btn ck-btn-anim" id="tk-auto-save">
+                  <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/></svg>
+                  <span>保存设置</span>
+                </button>
               </div>
 
               <div class="ck-chart-block">
@@ -694,9 +739,9 @@
             <!-- ===== 窗口 ===== -->
             <div class="ck-tab" data-panel="windows">
               <div class="ck-actions">
-                <button class="ck-btn ck-btn-ghost" id="win-new">
+                <button class="ck-btn ck-btn-anim" id="win-new">
                   <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                  新建窗口
+                  <span>新建窗口</span>
                 </button>
                 <button class="ck-icon-btn" id="win-refresh" title="刷新列表">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
@@ -710,12 +755,16 @@
             <!-- ===== 提示词 ===== -->
             <div class="ck-tab" data-panel="snippets">
               <div class="ck-actions">
-                <button class="ck-btn ck-btn-primary" id="snip-init-project">重发提示词</button>
+                <button class="ck-btn ck-btn-anim" id="snip-init-project">
+                  <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v5h-5"/></svg>
+                  <span>重新项目初始化</span>
+                </button>
               </div>
+              <div class="ck-divider"></div>
               <div class="ck-actions">
-                <button class="ck-btn ck-btn-ghost" id="snip-add">
+                <button class="ck-btn ck-btn-anim" id="snip-add">
                   <svg class="ck-btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
-                  新建提示词
+                  <span>新建快捷提示词</span>
                 </button>
                 <button class="ck-icon-btn" id="snip-refresh" title="刷新（同步其他窗口的改动）">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
@@ -922,6 +971,13 @@
   var windowEl = document.getElementById('sb-window');
   var todayEl = document.getElementById('sb-today');
   var systemEl = document.getElementById('sb-system');
+  // 大数字用：把「万/亿」拆成独立 span（用普通字体，避免等宽字体下中文不协调）
+  function formatTokenCountHTML(n) {
+    if (!isFinite(n) || n < 0) return '0';
+    if (n >= 100000000) return (n / 100000000).toFixed(2) + '<span class="ck-token-unit-char">亿</span>';
+    if (n >= 10000) return (n / 10000).toFixed(2) + '<span class="ck-token-unit-char">万</span>';
+    return String(Math.round(n));
+  }
   // ===== 近 10 日柱状图 =====
   function formatShort(n) {
     if (!isFinite(n) || n <= 0) return '0';
@@ -936,9 +992,11 @@
       chart.innerHTML = '<div class="ck-list-empty" style="width:100%;">暂无数据</div>';
       return;
     }
-    var max = Math.max.apply(null, daily.map(function (d) { return d.value || 0; }));
+    // 按 value 降序排列（用量大的在上）
+    var sorted = daily.slice().sort(function (a, b) { return (b.value || 0) - (a.value || 0); });
+    var max = Math.max.apply(null, sorted.map(function (d) { return d.value || 0; }));
     if (max <= 0) max = 1;
-    chart.innerHTML = daily.map(function (d) {
+    chart.innerHTML = sorted.map(function (d) {
       var v = d.value || 0;
       var pct = Math.max(1, Math.round((v / max) * 100));
       var day = (d.date || '').slice(5).replace('-', '/');
@@ -965,7 +1023,7 @@
       if (windowEl) windowEl.textContent = formatTokenCount(data.windowCumulative);
       if (todayEl) todayEl.textContent = formatTokenCount(data.todayCumulative);
       // 同步到 Token 页
-      if (tkContext) tkContext.textContent = formatTokenCount(data.context);
+      if (tkContext) tkContext.innerHTML = formatTokenCountHTML(data.context);
       if (tkCumulative) tkCumulative.textContent = formatTokenCount(data.cumulative);
       if (tkToday) tkToday.textContent = formatTokenCount(data.todayCumulative);
       if (tkWindow) tkWindow.textContent = formatTokenCount(data.windowCumulative);
@@ -1012,18 +1070,18 @@
     listEl.innerHTML = snippets.map(function (s) {
       var badge = s.autoSend ? '<span class="ck-snip-badge">自动发送</span>' : '';
       return '<div class="ck-snip-item" data-id="' + escapeAttr(s.id) + '">' +
-        '<div class="ck-snip-main">' +
+        '<div class="ck-snip-top">' +
           '<span class="ck-snip-name">' + escapeHtml(s.name) + badge + '</span>' +
-          '<span class="ck-snip-preview">' + escapeHtml(s.content) + '</span>' +
+          '<div class="ck-snip-actions">' +
+            '<button class="ck-snip-icon-btn" data-edit="' + escapeAttr(s.id) + '" title="编辑">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>' +
+            '</button>' +
+            '<button class="ck-snip-icon-btn danger" data-del="' + escapeAttr(s.id) + '" title="删除">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
+            '</button>' +
+          '</div>' +
         '</div>' +
-        '<div class="ck-snip-actions">' +
-          '<button class="ck-snip-icon-btn" data-edit="' + escapeAttr(s.id) + '" title="编辑">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>' +
-          '</button>' +
-          '<button class="ck-snip-icon-btn danger" data-del="' + escapeAttr(s.id) + '" title="删除">' +
-            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>' +
-          '</button>' +
-        '</div>' +
+        '<span class="ck-snip-preview">' + escapeHtml(s.content) + '</span>' +
       '</div>';
     }).join('');
 
