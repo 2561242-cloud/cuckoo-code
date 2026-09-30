@@ -7,6 +7,7 @@ import {
   getLastInterceptedText,
   onInterceptedResponse,
   onAiError,
+  onTaskIdle,
 } from '../../../src/bridge/intercept/observer.js';
 
 // 收集注册的监听器，测试后统一取消，避免模块级 Set 跨用例泄漏
@@ -206,4 +207,49 @@ test('processInterceptedResponse：force 跳过去重重复执行', async () => 
   await processInterceptedResponse(text);
   // 第二次 force=true 应仍能执行而不抛错
   await processInterceptedResponse(text, true);
+});
+
+// ========== onTaskIdle（任务空闲信号，供自动压缩用）==========
+
+test('onTaskIdle 返回可取消函数', () => {
+  const off = track(onTaskIdle(() => {}));
+  assert.strictEqual(typeof off, 'function');
+  off();
+  offs.pop();
+});
+
+test('processInterceptedResponse：普通文本回复触发 onTaskIdle（工具循环结束）', async () => {
+  setupGlobals();
+  let idle = 0;
+  track(onTaskIdle(() => idle++));
+  await processInterceptedResponse('一段没有工具调用的普通说明文字');
+  assert.strictEqual(idle, 1, '普通文本回复应派发一次任务空闲');
+});
+
+test('processInterceptedResponse：工具代码块不触发 onTaskIdle（工具循环未结束）', async () => {
+  const mask = makeFakeMask();
+  setupGlobals({ 'cuckoo-tool-mask': mask });
+  globalThis.window.electronAPI.executeJs = async () => ({ success: true, output: 'ok' });
+  let idle = 0;
+  track(onTaskIdle(() => idle++));
+  await processInterceptedResponse('\`\`\`cuckoo\nawait read({ filePath: "a.txt" });\n\`\`\`');
+  assert.strictEqual(idle, 0, '有工具调用时不应派发任务空闲');
+});
+
+test('onTaskIdle 取消后不再触发', async () => {
+  setupGlobals();
+  let idle = 0;
+  const off = track(onTaskIdle(() => idle++));
+  off();
+  offs.pop();
+  await processInterceptedResponse('取消后的普通文本回复');
+  assert.strictEqual(idle, 0);
+});
+
+test('onTaskIdle：空文本不触发', async () => {
+  setupGlobals();
+  let idle = 0;
+  track(onTaskIdle(() => idle++));
+  await processInterceptedResponse('');
+  assert.strictEqual(idle, 0);
 });

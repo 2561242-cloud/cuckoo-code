@@ -145,6 +145,8 @@ async function processInterceptedResponse(text: string, force?: boolean): Promis
   try {
     (window as any).electronAPI.showAiNotification().catch(() => {});
   } catch (e) { /* ignore */ }
+  // 任务空闲信号（工具循环结束 = AI 给出普通文本回复）——供自动压缩等"任务边界"逻辑使用
+  emitTaskIdle();
 }
 
 // 流式增量监听器（供纯净模式实时渲染；无监听者时零开销）
@@ -161,6 +163,23 @@ function emitStream(ev: any): void {
   if (streamListeners.size === 0) return;
   for (const cb of streamListeners) {
     try { cb(ev); } catch (_) { /* ignore */ }
+  }
+}
+
+// 任务空闲监听器（工具循环结束：AI 给出普通文本回复时派发；无监听者时零开销）
+const taskIdleListeners = new Set<() => void>();
+
+/** 注册"任务空闲"监听器（工具循环结束） */
+function onTaskIdle(cb: () => void): () => void {
+  taskIdleListeners.add(cb);
+  return () => taskIdleListeners.delete(cb);
+}
+
+/** 派发"任务空闲"（无监听者时直接返回） */
+function emitTaskIdle(): void {
+  if (taskIdleListeners.size === 0) return;
+  for (const cb of taskIdleListeners) {
+    try { cb(); } catch (_) { /* ignore */ }
   }
 }
 
@@ -267,4 +286,4 @@ function getLastInterceptedText(): string {
   return lastInterceptedText;
 }
 
-export { startInterceptObserver, processInterceptedResponse, getLastInterceptedText, onInterceptedResponse, onAiError, onToolCall, onStream };
+export { startInterceptObserver, processInterceptedResponse, getLastInterceptedText, onInterceptedResponse, onAiError, onToolCall, onStream, onTaskIdle };

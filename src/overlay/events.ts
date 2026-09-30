@@ -15,7 +15,10 @@ import { makeFabDraggable } from './fab.js';
 import { getProviderByUrl } from '../providers/registry.js';
 
 // 回调注入（P4.2-A：overlay 不依赖 bridge）
-let hooks: { onInterceptedResponse?: (cb: (text: string, meta: any) => void) => void } = {};
+let hooks: {
+  onInterceptedResponse?: (cb: (text: string, meta: any) => void) => void;
+  onTaskIdle?: (cb: () => void) => void;
+} = {};
 // 服务端权威 token 统计（由 bridge 经回调推送，不共享状态）
 let serverTokenUsage: any = null;
 
@@ -365,8 +368,9 @@ function startTokenCounter() {
       if (sid) saveTokenForSession(sid, tokens);
     }
     updateConversationTokenDisplay();
-    checkAutoCompact();
   });
+  // 自动压缩：只在"任务空闲"（工具循环结束）时检查——避免与工具结果抢输入框
+  hooks.onTaskIdle?.(() => checkAutoCompact());
   updateConversationTokenDisplay();
 }
 

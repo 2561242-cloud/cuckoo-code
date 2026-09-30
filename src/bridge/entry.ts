@@ -16,7 +16,7 @@ import * as chatInput from '../overlay/chat-input.js';
 import * as settingsPanel from '../overlay/panels/settings.js';
 import { wireEvents } from '../overlay/events.js';
 import { getProviderByUrl } from '../providers/registry.js';
-import { startInterceptObserver, onInterceptedResponse } from './intercept/observer.js';
+import { startInterceptObserver, onInterceptedResponse, onTaskIdle } from './intercept/observer.js';
 import { startRetryEngine } from './loop/retry.js';
 import { startSessionWatcher, startWatchdog, checkSessionChange } from './loop/watchdog.js';
 import { initSubagentIfNeeded } from './subagent.js';
@@ -55,7 +55,7 @@ if (useIntercept) {
 chatInput.registerIpcListeners();
 
 // ========== P4.2-A：回调注入（overlay 不依赖 bridge）==========
-wireEvents({ onInterceptedResponse });
+wireEvents({ onInterceptedResponse, onTaskIdle });
 
 // ========== 初始化 ==========
 
