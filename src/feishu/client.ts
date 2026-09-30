@@ -19,10 +19,16 @@ const lark = require('@larksuiteoapi/node-sdk');
 type FeishuStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
 interface FeishuCallbacks {
-  /** 收到用户从飞书发来的消息 */
-  onUserMessage?: (text: string) => void;
+  /** 收到用户从飞书发来的消息（chatId 非空=群消息；空=单聊） */
+  onUserMessage?: (text: string, chatId: string) => void;
   /** 状态变化（供 UI 刷新） */
   onStatusChange?: (status: FeishuStatus, detail?: string) => void;
+}
+
+/** 机器人所在的群 */
+interface FeishuChat {
+  chatId: string;
+  name: string;
 }
 
 let wsClient: any = null;
@@ -37,9 +43,39 @@ function setStatus(s: FeishuStatus, detail?: string): void {
   try { callbacks.onStatusChange?.(s, statusDetail); } catch (_) {}
 }
 
-function getStatus(): { status: FeishuStatus; detail: string; hasTarget: boolean } {
+function getStatus(): { status: FeishuStatus; detail: string } {
+  return { status: currentStatus, detail: statusDetail };
+}
+
+/** 从消息事件中取 chat_id（群消息）与 chat_type */
+function extractChatId(event: any): string {
+  try {
+    const msg = event && event.message;
+    if (!msg) return '';
+    return typeof msg.chat_id === 'string' ? msg.chat_id : '';
+  } catch (_) {
+    return '';
+  }
+}
+
+/** 查询机器人所在的群列表（分页取前 100） */
+async function listChats(): Promise<{ success: boolean; chats?: FeishuChat[]; error?: string }> {
   const cfg = readConfig();
-  return { status: currentStatus, detail: statusDetail, hasTarget: !!cfg.targetOpenId };
+  if (!apiClient) {
+    if (!cfg.appId || !cfg.appSecret) return { success: false, error: '未配置凭证' };
+    apiClient = new lark.Client({ appId: cfg.appId, appSecret: cfg.appSecret });
+  }
+  try {
+    const res = await apiClient.im.chat.list({ params: { page_size: 100 } });
+    if (res && res.code !== 0 && res.code !== undefined) {
+      return { success: false, error: res.msg || '查询群列表失败' };
+    }
+    const items = (res && res.data && res.data.items) || [];
+    const chats = items.map((c: any) => ({ chatId: c.chat_id, name: c.name || '(未命名群)' }));
+    return { success: true, chats };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
 /** 从事件中提取纯文本（只处理文本消息） */
@@ -85,9 +121,10 @@ function connect(cb?: FeishuCallbacks): { success: boolean; error?: string } {
             }
           }
           const text = extractText(data);
+          const chatId = extractChatId(data);
           if (text) {
-            console.log('[Feishu] 收到用户消息, 长度=' + text.length);
-            try { callbacks.onUserMessage?.(text); } catch (_) {}
+            console.log('[Feishu] 收到消息, 长度=' + text.length + (chatId ? ' 群=' + chatId : ' 单聊'));
+            try { callbacks.onUserMessage?.(text, chatId); } catch (_) {}
           }
         } catch (err: any) {
           console.error('[Feishu] 处理消息失败:', err.message);
@@ -122,16 +159,34 @@ function disconnect(silent?: boolean): void {
   if (!silent) setStatus('disconnected');
 }
 
-/** 发送文本消息给记录的推送目标 */
-async function sendText(text: string): Promise<{ success: boolean; error?: string }> {
+/**
+ * 发送文本消息。
+ * @param text 文本
+ * @param chatId 群 chat_id；**为空则回退单聊**（发给已记录的 targetOpenId）
+ */
+async function sendText(text: string, chatId?: string): Promise<{ success: boolean; error?: string }> {
   const cfg = readConfig();
   if (!apiClient) {
     // 没连接时惰性建一个（仅发消息）
     if (!cfg.appId || !cfg.appSecret) return { success: false, error: '未配置' };
     apiClient = new lark.Client({ appId: cfg.appId, appSecret: cfg.appSecret });
   }
+  // 群模式：优先发到 chatId
+  if (chatId) {
+    try {
+      const res = await apiClient.im.message.create({
+        params: { receive_id_type: 'chat_id' },
+        data: { receive_id: chatId, msg_type: 'text', content: JSON.stringify({ text }) },
+      });
+      if (res && (res.code === 0 || res.code === undefined)) return { success: true };
+      return { success: false, error: (res && res.msg) || '发送失败' };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  }
+  // 单聊回退：发给已记录的 targetOpenId
   if (!cfg.targetOpenId) {
-    return { success: false, error: '还没有推送目标（请先在飞书里给机器人发一条消息）' };
+    return { success: false, error: '该窗口尚未绑定飞书群（请先在飞书页绑定群）' };
   }
   try {
     const res = await apiClient.im.message.create({
@@ -149,5 +204,5 @@ async function sendText(text: string): Promise<{ success: boolean; error?: strin
   }
 }
 
-export { connect, disconnect, sendText, getStatus, readConfig };
-export type { FeishuStatus };
+export { connect, disconnect, sendText, getStatus, readConfig, listChats };
+export type { FeishuStatus, FeishuChat };

@@ -17,7 +17,7 @@ const require = createRequire(import.meta.url);
 const { ipcRenderer } = require('electron');
 
 /** 移除文本中的 cuckoo/js 工具代码块（工具调用另行上报，飞书只显示对话） */
-function stripToolBlocks(text: string): string {
+export function stripToolBlocks(text: string): string {
   if (!text) return '';
   let out = text;
   out = out.replace(/```(?:cuckoo|javascript|js)\s*\n[\s\S]*?```/gi, '');
