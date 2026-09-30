@@ -449,6 +449,13 @@
   .ck-set-textarea:focus { outline: none; border-color: var(--ck-primary); box-shadow: 0 0 0 3px var(--ck-primary-soft); }
   .ck-set-inline { display: flex; align-items: center; gap: 8px; }
   .ck-set-sep { font-size: 12px; color: var(--ck-text-dim); flex-shrink: 0; }
+  /* 飞书页 */
+  .fs-status { display: flex; align-items: center; gap: 7px; }
+  .fs-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--ck-text-dim); }
+  .fs-dot.connected { background: var(--ck-green); box-shadow: 0 0 0 3px rgba(48,164,108,.15); }
+  .fs-dot.error { background: var(--ck-danger); }
+  .fs-dot.connecting { background: var(--ck-primary); animation: ck-pulse 1.2s infinite; }
+  @keyframes ck-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
   /* 关于页 */
   .ck-about-head { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 16px 0 6px; }
   .ck-about-logo {
@@ -664,6 +671,9 @@
           <button class="ck-ab-item" data-tab="about" title="关于">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
           </button>
+          <button class="ck-ab-item" data-tab="feishu" title="飞书同步（手机）">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2.5"/><path d="M11 18h2"/></svg>
+          </button>
           <button class="ck-ab-item" data-tab="settings" title="设置">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
           </button>
@@ -825,6 +835,95 @@
               </div>
               <div class="ck-list" id="mcp-list">
                 <div class="ck-list-empty">加载中…</div>
+              </div>
+            </div>
+
+            <!-- ===== 飞书同步 ===== -->
+            <div class="ck-tab" data-panel="feishu">
+              <div class="ck-card">
+                <div class="ck-set-group-title">飞书同步</div>
+                <p class="ck-about-tip">还没配置过？<a href="#" id="fs-setup-link" style="color:var(--ck-primary);cursor:pointer;text-decoration:underline;">查看图文配置教程 →</a></p>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">App ID</span>
+                  <input type="text" class="ck-set-input" id="fs-app-id" placeholder="cli_xxxxxx" />
+                </div>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">App Secret</span>
+                  <input type="password" class="ck-set-input" id="fs-app-secret" placeholder="填写应用的 App Secret" />
+                </div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">启用飞书同步</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="fs-enabled" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-actions">
+                  <button class="ck-btn ck-btn-primary" id="fs-save">保存并连接</button>
+                  <button class="ck-btn ck-btn-secondary" id="fs-disconnect">断开</button>
+                </div>
+                <div class="fs-status">
+                  <span class="fs-dot" id="fs-dot"></span>
+                  <span class="ck-set-key" id="fs-status-text">未连接</span>
+                </div>
+              </div>
+
+              <div class="ck-card">
+                <div class="ck-set-group-title">本窗口绑定的飞书群</div>
+                <p class="ck-about-tip">把机器人拉进一个飞书群，这里选它。<strong>每个窗口绑定各自的群</strong>，对话互不干扰。</p>
+                <div class="ck-set-field">
+                  <span class="ck-set-key">飞书群</span>
+                  <select class="ck-set-input" id="fs-chat-select">
+                    <option value="">（未绑定 —— 该窗口飞书功能关闭）</option>
+                  </select>
+                </div>
+                <div class="ck-actions">
+                  <button class="ck-btn ck-btn-secondary" id="fs-refresh-chats">刷新群列表</button>
+                  <button class="ck-btn ck-btn-secondary" id="fs-unbind-chat">解绑</button>
+                </div>
+                <div class="fs-status">
+                  <span class="ck-set-key" id="fs-chat-status">未绑定</span>
+                </div>
+              </div>
+
+              <div class="ck-card">
+                <div class="ck-set-group-title">推送内容（Cuckoo → 飞书）</div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">用户消息</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="fs-push-user" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">AI 回复</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="fs-push-ai" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">工具调用状态</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="fs-push-tool" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-set-field ck-set-toggle">
+                  <span class="ck-set-key">工具状态带工具名（默认关，隐私）</span>
+                  <label class="ck-switch">
+                    <input type="checkbox" id="fs-push-toolname" />
+                    <span class="ck-switch-track"></span>
+                  </label>
+                </div>
+                <div class="ck-actions">
+                  <button class="ck-btn ck-btn-primary" id="fs-save-push">保存推送设置</button>
+                </div>
+              </div>
+
+              <div class="ck-card">
+                <div class="ck-set-group-title">接收（飞书 → Cuckoo）</div>
+                <p class="ck-about-tip">在<strong>绑定的群</strong>里发消息（可 @ 或直接发），会送到<strong>本窗口</strong>发给 AI。<br>一个群只对应一个窗口；未绑定群的窗口不推也不收。</p>
               </div>
             </div>
 
@@ -1249,6 +1348,7 @@
         if (t === 'mcp') { try { loadMcpServers(); } catch (e) {} }
         if (t === 'token') { try { loadAutoCompact(); } catch (e) {} }
         if (t === 'about') { try { loadAbout(); } catch (e) {} }
+        if (t === 'feishu') { try { loadFeishu(); } catch (e) {} }
         if (t === 'skills') { try { loadSkills(); } catch (e) {} }
       };
       // 收起状态下点图标 → 展开并切到该标签
@@ -1279,6 +1379,138 @@
     });
   });
   // （收起：点击当前激活的图标即可）
+
+  // ===== 飞书同步 =====
+  function renderFeishuStatus(status, detail) {
+    var dot = document.getElementById('fs-dot');
+    var txt = document.getElementById('fs-status-text');
+    if (dot) {
+      dot.className = 'fs-dot' + (status === 'connected' ? ' connected' : status === 'error' ? ' error' : status === 'connecting' ? ' connecting' : '');
+    }
+    if (txt) {
+      var label = status === 'connected' ? '已连接' : status === 'connecting' ? '连接中…' : status === 'error' ? ('错误：' + (detail || '')) : '未连接';
+      txt.textContent = label;
+    }
+  }
+  async function loadFeishu() {
+    if (!api.getFeishuConfig) return;
+    try {
+      var r = await api.getFeishuConfig();
+      if (!r || !r.success) return;
+      var c = r.config || {};
+      await loadFeishuBinding();
+      var appIdEl = document.getElementById('fs-app-id');
+      var secretEl = document.getElementById('fs-app-secret');
+      var enabledEl = document.getElementById('fs-enabled');
+      var uEl = document.getElementById('fs-push-user');
+      var aEl = document.getElementById('fs-push-ai');
+      var tEl = document.getElementById('fs-push-tool');
+      var tnEl = document.getElementById('fs-push-toolname');
+      if (appIdEl) appIdEl.value = c.appId || '';
+      if (secretEl) { secretEl.value = c.appSecret || ''; secretEl.placeholder = c.hasSecret ? '（已保存，留空则不变）' : '填写应用的 App Secret'; }
+      if (enabledEl) enabledEl.checked = c.enabled === true;
+      if (uEl) uEl.checked = c.pushUserMessage !== false;
+      if (aEl) aEl.checked = c.pushAiReply !== false;
+      if (tEl) tEl.checked = c.pushToolStatus !== false;
+      if (tnEl) tnEl.checked = c.pushToolName === true;
+      renderFeishuStatus(r.status, r.statusDetail);
+    } catch (e) {}
+  }
+
+  // 加载本窗口绑定的群 + 群列表
+  async function loadFeishuBinding() {
+    if (!api.getFeishuBinding) return;
+    try {
+      var b = await api.getFeishuBinding();
+      var sel = document.getElementById('fs-chat-select');
+      var st = document.getElementById('fs-chat-status');
+      if (sel && api.listFeishuChats) {
+        var lr = await api.listFeishuChats();
+        var chats = (lr && lr.success && lr.chats) || [];
+        var html = '<option value="">（未绑定 —— 该窗口飞书功能关闭）</option>';
+        for (var i = 0; i < chats.length; i++) {
+          var selected = (b && b.chatId === chats[i].chatId) ? ' selected' : '';
+          html += '<option value="' + chats[i].chatId + '"' + selected + '>' + chats[i].name + '</option>';
+        }
+        sel.innerHTML = html;
+        if (b && b.chatId) sel.value = b.chatId;
+      }
+      if (st) st.textContent = (b && b.chatId) ? ('已绑定：' + (b.chatName || b.chatId)) : '未绑定';
+    } catch (e) {}
+  }
+
+  // 选择群 → 绑定
+  var fsChatSel = document.getElementById('fs-chat-select');
+  if (fsChatSel) fsChatSel.addEventListener('change', async function () {
+    if (!api.bindFeishuChat) return;
+    var chatId = fsChatSel.value;
+    var chatName = chatId ? fsChatSel.options[fsChatSel.selectedIndex].text : '';
+    try {
+      await api.bindFeishuChat(chatId, chatName);
+      await loadFeishuBinding();
+    } catch (e) {}
+  });
+  var fsSavePush = document.getElementById('fs-save-push');
+  if (fsSavePush) fsSavePush.addEventListener('click', async function () {
+    if (!api.saveFeishuConfig) return;
+    var data = {
+      pushUserMessage: !!(document.getElementById('fs-push-user') || {}).checked,
+      pushAiReply: !!(document.getElementById('fs-push-ai') || {}).checked,
+      pushToolStatus: !!(document.getElementById('fs-push-tool') || {}).checked,
+      pushToolName: !!(document.getElementById('fs-push-toolname') || {}).checked,
+    };
+    fsSavePush.disabled = true;
+    try {
+      var r = await api.saveFeishuConfig(data);
+      if (r && r.success) {
+        fsSavePush.textContent = '已保存';
+        setTimeout(function () { fsSavePush.textContent = '保存推送设置'; }, 1200);
+      } else { await ckAlert((r && r.error) || '保存失败'); }
+    } catch (e) { await ckAlert('保存失败: ' + (e.message || e)); }
+    fsSavePush.disabled = false;
+  });
+  var fsRefresh = document.getElementById('fs-refresh-chats');
+  if (fsRefresh) fsRefresh.addEventListener('click', function () { loadFeishuBinding(); });
+  var fsUnbind = document.getElementById('fs-unbind-chat');
+  if (fsUnbind) fsUnbind.addEventListener('click', async function () {
+    if (!api.bindFeishuChat) return;
+    try { await api.bindFeishuChat('', ''); await loadFeishuBinding(); } catch (e) {}
+  });
+  async function saveFeishu() {
+    if (!api.saveFeishuConfig) return;
+    var data = {
+      appId: (document.getElementById('fs-app-id') || {}).value || '',
+      appSecret: (document.getElementById('fs-app-secret') || {}).value || '',
+      enabled: !!(document.getElementById('fs-enabled') || {}).checked,
+      pushUserMessage: !!(document.getElementById('fs-push-user') || {}).checked,
+      pushAiReply: !!(document.getElementById('fs-push-ai') || {}).checked,
+      pushToolStatus: !!(document.getElementById('fs-push-tool') || {}).checked,
+      pushToolName: !!(document.getElementById('fs-push-toolname') || {}).checked,
+    };
+    var btn = document.getElementById('fs-save');
+    if (btn) btn.disabled = true;
+    try {
+      var r = await api.saveFeishuConfig(data);
+      if (r && r.success) {
+        await loadFeishu();
+        if (btn) { btn.textContent = '已保存'; setTimeout(function () { btn.textContent = '保存并连接'; }, 1200); }
+      } else { await ckAlert((r && r.error) || '保存失败'); }
+    } catch (e) { await ckAlert('保存失败: ' + (e.message || e)); }
+    if (btn) btn.disabled = false;
+  }
+  var fsSetupLink = document.getElementById('fs-setup-link');
+  if (fsSetupLink) fsSetupLink.addEventListener('click', function (e) {
+    e.preventDefault();
+    if (api.openFeishuSetup) api.openFeishuSetup();
+  });
+  var fsSaveBtn = document.getElementById('fs-save');
+  if (fsSaveBtn) fsSaveBtn.addEventListener('click', saveFeishu);
+  var fsDiscBtn = document.getElementById('fs-disconnect');
+  if (fsDiscBtn) fsDiscBtn.addEventListener('click', async function () {
+    if (!api.disconnectFeishu) return;
+    try { await api.disconnectFeishu(); } catch (e) {}
+    await loadFeishu();
+  });
 
   // ===== 平台选择模式：隐藏侧边栏 + 项目选择器 + 地址栏导航 =====
   function setPlatformSelectingMode(selecting) {

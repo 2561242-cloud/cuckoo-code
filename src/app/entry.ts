@@ -47,6 +47,7 @@ if (RENDERER_LOG_DIR) {
 }
 
 import { registerIpcHandlers } from './ipc/index.js';
+import { initFeishu } from './ipc/feishu.js';
 import { injectSubagentDeps, runAgent as runAgentImpl } from './subagent.js';
 import { injectAgentRunner } from '../tools/impl/run-agent.js';
 import { pushUrlState } from './ipc/shell.js';
@@ -556,6 +557,9 @@ injectAgentRunner(async ({ agent, task, currentWindowId }: any) => {
 
 // ========== IPC 处理器 ==========
 registerIpcHandlers();
+
+// ========== 飞书同步（若已配置启用则自动连接）==========
+try { initFeishu(); } catch (err: any) { console.error('[Feishu] 初始化失败:', err.message); }
 
 // 覆盖层"新建窗口"按钮触发
 ipcMainForProfile.handle('create-profile-window', async (_event: any, { providerId }: any = {}) => {

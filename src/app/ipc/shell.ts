@@ -8,11 +8,11 @@ import { pathToFileURL } from 'node:url';
 import * as windowState from '../window.js';
 import { getProvider } from '../../providers/registry.js';
 import { setWindowCumulative, getTotal, cleanupSubagentKeys } from '../token-stats.js';
-import { resolveAsset } from '../../infra/paths.js';
+import { resolveAsset, resolveSrc } from '../../infra/paths.js';
 import * as updater from '../../updater/index.js';
 
 const require = createRequire(import.meta.url);
-const { ipcMain, app, shell } = require('electron');
+const { ipcMain, app, shell, BrowserWindow } = require('electron');
 
 /** 取事件来源对应的 AI 页面 view */
 function viewOf(event: any): any {
@@ -155,6 +155,25 @@ function registerShellIpc(): void {
     try {
       if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) return { success: false };
       await shell.openExternal(url);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message };
+    }
+  });
+
+  // 打开「飞书配置教程」应用内新窗口（自包含 HTML，离线可用）
+  ipcMain.handle('open-feishu-setup', async () => {
+    try {
+      const htmlPath = resolveSrc('ui/feishu-setup.html');
+      const win = new BrowserWindow({
+        width: 900,
+        height: 820,
+        title: '飞书同步配置教程',
+        backgroundColor: '#16181d',
+        autoHideMenuBar: true,
+        webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
+      });
+      win.loadFile(htmlPath);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message };

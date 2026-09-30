@@ -21,6 +21,7 @@ import { startRetryEngine } from './loop/retry.js';
 import { startSessionWatcher, startWatchdog, checkSessionChange } from './loop/watchdog.js';
 import { initSubagentIfNeeded } from './subagent.js';
 import { initHarnessBridge } from './harness-bridge.js';
+import { initFeishuBridge } from './feishu-bridge.js';
 
 const require = createRequire(import.meta.url);
 const { webFrame, ipcRenderer } = require('electron');
@@ -204,6 +205,9 @@ function init(): void {
 
     // 纯净对话模式：把回复/工具调用上报主进程，并接收用户消息
     initHarnessBridge();
+
+    // 飞书同步：上报用户消息/AI回复/工具状态，并接收飞书来消息
+    initFeishuBridge();
   } catch (err) {
     console.error('[Cuckoo Code] init() 出错:', err);
     // 兜底：即使出错也强制显示面板

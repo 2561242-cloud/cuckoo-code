@@ -12,6 +12,7 @@ import { registerSubagentIpc } from './subagent.js';
 import { registerHarnessIpc } from './harness.js';
 import { registerSnippetsIpc } from './snippets.js';
 import { registerSettingsIpc } from './settings.js';
+import { registerFeishuIpc } from './feishu.js';
 
 function registerIpcHandlers(): void {
   registerProjectIpc();
@@ -24,6 +25,7 @@ function registerIpcHandlers(): void {
   registerHarnessIpc();
   registerSnippetsIpc();
   registerSettingsIpc();
+  registerFeishuIpc();
 }
 
 export { registerIpcHandlers };
