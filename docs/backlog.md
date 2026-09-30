@@ -92,6 +92,17 @@
 - [ ] 超限时给可诊断的日志/提示
 - [ ] 工具 API 类型定义改为**按需拉取**（如 `getToolApi(name)` 工具，AI 需要时才查）—— 大幅缩短固定 prompt
 
+**分析结论（2026-09-30）：工具信息散在 3 处，但"合并"是错的方向**
+- 3 处**粒度不同、各司其职**，纯"合并成 1 处"会让 AI **变差**：
+  - `{{TOOL_API_TYPES}}`（api.d.ts，~10467 字符）：**完整类型** → 服务"写正确调用"
+  - `{{TOOLS_LIST}}`（`getFormattedJsApiForPrompt`）：**一行速览** → 服务"快速选工具"
+  - `{{TOOL_SECTIONS}}`（`getPromptSection`）：**用法/流程** → 服务"复杂工具正确使用"
+- **真问题不在"重复"，在 `api.d.ts` 太肥**（含大段 JSDoc，占 ~10K）。
+- **推荐方向（不是合并，是分层瘦身）**：
+  - [ ] `build-tool-api.mjs` 生成 `api.d.ts` 时**省略 JSDoc 正文**（只留类型签名），描述已在 `{{TOOLS_LIST}}` → 预计省 ~6K 字符
+  - [ ] （可选）`{{TOOLS_LIST}}` 简化为"只列名字"（签名已在 api.d.ts）
+- 真相源已是 TS（`apiMetas` 自动生成 api.d.ts），"能否合并到 ts"——**已经是**。
+
 **完成标准**：prompt 长度有硬上限保障，任何 provider/子代理都不会因超长失败。
 
 ---
