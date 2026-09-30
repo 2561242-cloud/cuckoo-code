@@ -326,16 +326,20 @@ async function insertSnippet(content: string, autoSend?: boolean): Promise<boole
     console.log('[Cuckoo Code] 找不到输入框，无法插入提示词');
     return false;
   }
-  if (!(await setInputContent(input, content))) {
+  // 追加（不覆盖用户已输入的内容）：读现有内容 + 分隔 + 新内容
+  const current = getInputText(input);
+  const sep = current && !/\s$/.test(current) ? ' ' : '';
+  const next = current + sep + content;
+  if (!(await setInputContent(input, next))) {
     return false;
   }
   moveCaretToEnd(input);
   if (autoSend) {
     // 稍等片刻，让输入框内容稳定后再触发发送
     setTimeout(function () { triggerSend(input); }, 300);
-    console.log('[Cuckoo Code] 提示词已填入并触发发送, 长度=' + content.length);
+    console.log('[Cuckoo Code] 提示词已追加并触发发送, 长度=' + content.length);
   } else {
-    console.log('[Cuckoo Code] 提示词已填入（未发送）, 长度=' + content.length);
+    console.log('[Cuckoo Code] 提示词已追加（未发送）, 长度=' + content.length);
   }
   return true;
 }

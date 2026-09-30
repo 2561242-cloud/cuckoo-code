@@ -362,5 +362,7 @@ cuckoo-code/
 
 - DeepSeek、Claude 提供强大的 AI 能力
 - Electron 提供跨平台桌面框架
-- [@27584](https://github.com/27584)：Provider 发送扩展接口、流式稳定性双通道、自定义 Provider 渲染进程加载、MCP 工具识别等框架级改进（PR #9）
+- [@27584](https://github.com/27584)：
+  - Provider 发送扩展接口、流式稳定性双通道、自定义 Provider 渲染进程加载、MCP 工具识别等框架级改进（PR #9）
+  - **纯净对话模式（Harness）**：类 Codex 的纯对话界面——隐藏底层指令，只显示用户消息 / 模型回复 / 工具调用卡片，含流式渲染、思考过程折叠、Goal/Plan 面板、斜杠菜单（PR #22）
 - 所有贡献者和用户
