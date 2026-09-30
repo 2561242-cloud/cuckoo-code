@@ -57,8 +57,15 @@ export function initHarnessBridge(): void {
   if (inited) return;
   inited = true;
 
+  // 纯净模式开关：关闭时各监听回调立即返回（正则/IPC 零开销，降后台负担）
+  let enabled = false;
+  ipcRenderer.on('harness-mode', (_e: any, payload: any) => {
+    enabled = !!(payload && payload.enabled);
+  });
+
   // 流式增量 → 上报
   onStream((ev: any) => {
+    if (!enabled) return;
     let t = stripToolBlocks(ev.text || '');
     t = t.replace(GOAL_DONE_RE, '').trim();
     report({ type: 'stream', think: ev.think || '', text: t, finished: !!ev.finished });
@@ -66,6 +73,7 @@ export function initHarnessBridge(): void {
 
   // AI 回复完成 → 上报（含 goal-done 检测）
   onInterceptedResponse((text: string) => {
+    if (!enabled) return;
     const raw = text || '';
     const goalDone = GOAL_DONE_RE.test(raw);
     const clean = stripToolBlocks(raw).replace(/\[\[GOAL_DONE\]\]/g, '').trim();
@@ -75,7 +83,7 @@ export function initHarnessBridge(): void {
 
   // 工具调用事件 → 上报（含计划解析）
   onToolCall((ev: any) => {
-    if (!ev) return;
+    if (!enabled || !ev) return;
     if (ev.phase === 'start') {
       report({ type: 'tool-start', code: ev.code });
       const todos = parseTodos(ev.code || '');

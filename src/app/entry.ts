@@ -125,25 +125,56 @@ function createWindow(profile: any) {
   });
   mainWindow.contentView.addChildView(view);
 
-  // ========== 纯净对话模式（Harness）覆盖视图 ==========
+  // ========== 纯净对话模式（Harness）覆盖视图（懒加载） ==========
   // 承载类 Codex 的纯净对话 UI，默认隐藏；按 Ctrl+Shift+H 或 IPC 切换。
   // AI 网页（view）继续在后台运行，仅被遮挡。
-  const harnessView = new WebContentsView({
-    webPreferences: {
-      preload: path.join(import.meta.dirname, 'harness-preload.js'),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: false,
-      partition: profileData.partition,
-      additionalArguments: ['--cuckoo-user-data=' + app.getPath('userData')],
-    },
-  });
-  mainWindow.contentView.addChildView(harnessView);
-  harnessView.setBackgroundColor('#0d0e12');
-  // 初始隐藏（尺寸归零）
-  harnessView.setBounds({ x: 0, y: 0, width: 0, height: 0 });
-  (mainWindow as any).__ckHarnessView = harnessView;
+  // 懒加载：首次进入纯净模式才创建 WebContentsView，避免"从不使用纯净模式"的窗口
+  // 也常驻一个渲染进程、并提前加载 1486 行页面（降内存/启动开销）。
+  let harnessView: any = null;
+  (mainWindow as any).__ckHarnessView = null;
   (mainWindow as any).__ckHarnessVisible = false; // 默认网页模式，Ctrl+Shift+H 进入纯净模式
+
+  const ensureHarnessView = (): any => {
+    if (harnessView && !harnessView.webContents.isDestroyed()) return harnessView;
+    const hv = new WebContentsView({
+      webPreferences: {
+        preload: path.join(import.meta.dirname, 'harness-preload.js'),
+        contextIsolation: true,
+        nodeIntegration: false,
+        sandbox: false,
+        partition: profileData.partition,
+        additionalArguments: ['--cuckoo-user-data=' + app.getPath('userData')],
+      },
+    });
+    mainWindow.contentView.addChildView(hv);
+    hv.setBackgroundColor('#0d0e12');
+    hv.setBounds({ x: 0, y: 0, width: 0, height: 0 });
+    harnessView = hv;
+    (mainWindow as any).__ckHarnessView = hv;
+    // 挂到窗口上下文，供 harness IPC 查找
+    {
+      const ctx: any = windowState.getWindowContext(mainWindow.id);
+      if (ctx) ctx.harnessView = hv;
+    }
+    // 加载 harness 页面
+    hv.webContents.loadFile(resolveSrc('ui/harness.html'));
+    hv.webContents.on('did-finish-load', () => {
+      console.log('[Cuckoo Harness] 页面加载完成');
+    });
+    hv.webContents.on('did-fail-load', (_e: any, code: any, desc: any) => {
+      console.error('[Cuckoo Harness] 页面加载失败: ' + code + ' ' + desc);
+    });
+    hv.webContents.on('console-message', (_e: any, _l: any, msg: any) => {
+      console.log('[Harness Console] ' + msg);
+    });
+    // harness 页面内快捷键：Ctrl+R 重载页面（加载最新 HTML，无需重启）
+    hv.webContents.on('before-input-event', (_event: any, input: any) => {
+      if (input.control && !input.shift && (input.key === 'r' || input.key === 'R')) {
+        hv.webContents.reloadIgnoringCache();
+      }
+    });
+    return hv;
+  };
 
   // 布局：AI 页面占地址栏下方、Cuckoo 侧边栏右侧区域。
   // 侧边栏可收起（收起时 x=0，AI 页面铺满）。
@@ -194,40 +225,27 @@ function createWindow(profile: any) {
 
   // 注册窗口上下文（记录 providerId，未确定时为空字符串）
   windowState.addWindow(mainWindow, profileData.id, profileData.providerId || '', sessionStore, view);
-  // 把 harness 视图挂到上下文，供 harness IPC 查找
-  {
-    const ctx: any = windowState.getWindowContext(mainWindow.id);
-    if (ctx) ctx.harnessView = harnessView;
-  }
   sessionsToFlush.add(winSession);
-
-  // 加载 harness 页面（隐藏状态，加载后待切换即用）
-  harnessView.webContents.loadFile(resolveSrc('ui/harness.html'));
-  harnessView.webContents.on('did-finish-load', () => {
-    console.log('[Cuckoo Harness] 页面加载完成');
-  });
-  harnessView.webContents.on('did-fail-load', (_e: any, code: any, desc: any) => {
-    console.error('[Cuckoo Harness] 页面加载失败: ' + code + ' ' + desc);
-  });
-  harnessView.webContents.on('console-message', (_e: any, _l: any, msg: any) => {
-    console.log('[Harness Console] ' + msg);
-  });
-  // harness 页面内快捷键：Ctrl+R 重载页面（加载最新 HTML，无需重启）
-  harnessView.webContents.on('before-input-event', (_event: any, input: any) => {
-    if (input.control && !input.shift && (input.key === 'r' || input.key === 'R')) {
-      harnessView.webContents.reloadIgnoringCache();
-    }
-  });
 
   // 切换纯净模式（同窗口）：true=显示 harness，false=显示网页
   (mainWindow as any).__ckToggleHarness = (show?: boolean) => {
     if (mainWindow.isDestroyed()) return;
     const next = typeof show === 'boolean' ? show : !(mainWindow as any).__ckHarnessVisible;
     (mainWindow as any).__ckHarnessVisible = next;
-    layoutView();
-    if (next && !harnessView.webContents.isDestroyed()) {
-      harnessView.webContents.focus();
+    if (next) {
+      // 懒加载：首次进入纯净模式才创建 harness 视图
+      const hv = ensureHarnessView();
+      layoutView();
+      if (hv && !hv.webContents.isDestroyed()) hv.webContents.focus();
+    } else {
+      layoutView();
     }
+    // 通知 AI 页面：纯净模式开/关（bridge 据此决定是否处理上报，关闭时零开销）
+    try {
+      if (view && view.webContents && !view.webContents.isDestroyed()) {
+        view.webContents.send('harness-mode', { enabled: next });
+      }
+    } catch (_) {}
   };
 
   // 更新主窗口引用
