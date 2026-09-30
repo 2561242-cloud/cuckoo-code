@@ -1028,12 +1028,13 @@
     hideSlashMenu();
     input.value = '';
     input.style.height = 'auto';
-    // 目标：支持"/goal xxx"或由 / 菜单进入的"目标输入模式"
+    // 目标："/goal xxx" 或带"目标"chip（与"计划"同款）
     var displayText = text, sendText = text;
     var goalText = null;
-    if (pendingGoal && text) { goalText = text; }
+    var hasGoalChip = false;
+    for (var gi = 0; gi < hints.length; gi++) { if (hints[gi].isGoal) { hasGoalChip = true; break; } }
+    if (hasGoalChip) { goalText = text; }
     else if (/^\/goal(\s|$)/.test(text)) { goalText = text.replace(/^\/goal\s*/, '').trim(); }
-    if (pendingGoal) { pendingGoal = false; input.placeholder = '输入消息…  / 查看技能与工具'; }
     if (goalText !== null) {
       if (!goalText) {
         appendSystem('用法：/goal <目标描述> —— 设定后自动多轮推进，AI 完成时输出 [[GOAL_DONE]] 结束');
@@ -1045,7 +1046,7 @@
       sendText = buildGoalSendText(goalText);
     }
     // 隐藏指令（技能/工具/计划）：附加到发给 AI 的文本，但不进对话气泡
-    var hintText = hints.length ? hints.map(function (h) { return h.text; }).join('\n') : '';
+    var hintText = hints.length ? hints.filter(function (h) { return !h.isGoal; }).map(function (h) { return h.text; }).join('\n') : '';
     if (hintText) sendText = (hintText + '\n' + sendText).trim();
     var attachNote = files.length ? ('[附件 ' + files.length + ' 个] ') : '';
     // 气泡：/goal 显示"[目标] xxx"；正常显示用户文字；仅选 chip 时显示"[指令] 标签"
@@ -1184,8 +1185,7 @@
   var pendingFiles = []; // { name, mime, size, data(base64) }
   // 待发隐藏指令（技能/工具/计划等）：只显示为 chip，发送时作为隐藏文本附加给 AI，不进对话气泡
   var pendingHints = []; // { label, text }
-  // 目标输入模式：由 / 菜单"设定目标"触发，下一段输入作为目标
-  var pendingGoal = false;
+
   var hintRow = document.getElementById('hint-row');
   function renderHints() {
     if (!hintRow) return;
@@ -1416,11 +1416,10 @@
               pendingHints.push({ label: '计划', text: '请先给出完成该任务的分步计划，然后再开始执行：' });
               renderHints();
             } else if (action === 'goal') {
-              // 进入"目标输入模式"：输入框清空、提示改为输入目标，不写入 /goal 提示词
+              // 和"计划"一样：加一个待发 chip（标记本条消息为目标）
               input.value = prefix;
-              pendingGoal = true;
-              input.placeholder = '输入目标描述，回车设定并自动推进…';
-              appendSystem('请输入目标描述（回车设定，之后自动多轮推进）');
+              pendingHints.push({ label: '目标', text: '', isGoal: true });
+              renderHints();
             }
             hideSlashMenu();
             input.focus();
