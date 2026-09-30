@@ -45,11 +45,21 @@ function mk(name, source) {
 
 test('mergeSkills: 同名项目级优先', () => {
   const p = [mk('a', 'project'), mk('b', 'project')];
+  const ap = [mk('d', 'app')];
   const u = [mk('a', 'user'), mk('c', 'user')];
-  const merged = mergeSkills(p, u);
+  const merged = mergeSkills(p, ap, u);
   const a = merged.find((s) => s.name === 'a');
   assert.strictEqual(a.source, 'project');
-  assert.strictEqual(merged.length, 3);
+  assert.strictEqual(merged.length, 4);
+});
+
+test('mergeSkills: 应用级优先于用户级', () => {
+  const ap = [mk('a', 'app')];
+  const u = [mk('a', 'user')];
+  const merged = mergeSkills([], ap, u);
+  const a = merged.find((s) => s.name === 'a');
+  assert.strictEqual(a.source, 'app');
+  assert.strictEqual(merged.length, 1);
 });
 
 // ===== buildSkillsSection =====

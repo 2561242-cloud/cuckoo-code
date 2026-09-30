@@ -49,6 +49,16 @@ const shellAPI = {
   },
   // ========== 技能 ==========
   listSkills: () => ipcRenderer.invoke('list-skills'),
+  // 应用级技能管理（由界面管理，存 <userData>/skills）
+  listAppSkills: () => ipcRenderer.invoke('list-app-skills'),
+  upsertSkill: (skill: any) => ipcRenderer.invoke('upsert-skill', { skill }),
+  removeSkill: (id: string) => ipcRenderer.invoke('remove-skill', { id }),
+  setSkillEnabled: (id: string, enabled: boolean) => ipcRenderer.invoke('set-skill-enabled', { id, enabled }),
+  // 技能市场（SkillHub）
+  searchSkills: (keyword: string, page?: number, pageSize?: number) => ipcRenderer.invoke('search-skills', { keyword, page, pageSize }),
+  getSkillDetail: (slug: string, namespace: string) => ipcRenderer.invoke('get-skill-detail', { slug, namespace }),
+  installSkill: (slug: string, namespace: string, displayName?: string) => ipcRenderer.invoke('install-skill', { slug, namespace, displayName }),
+  refreshSkillNames: () => ipcRenderer.invoke('refresh-skill-names'),
   // ========== MCP ==========
   listMcpServers: () => ipcRenderer.invoke('list-mcp-servers', {}),
   enableMcpServer: (name: string) => ipcRenderer.invoke('enable-mcp-server', { name }),

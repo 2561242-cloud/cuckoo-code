@@ -395,6 +395,11 @@
   .ck-skill-top { display: flex; align-items: center; gap: 8px; }
   .ck-skill-name { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; color: var(--ck-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .ck-skill-src { font-size: 10px; color: var(--ck-text-dim); padding: 2px 7px; background: var(--ck-surface); border-radius: 6px; flex-shrink: 0; }
+  .ck-skill-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .ck-dot-on { background: #4ade80; box-shadow: 0 0 6px rgba(74,222,128,0.6); }
+  .ck-dot-off { background: #5d6280; }
+  .ck-skill-triggers { font-size: 10px; color: var(--ck-text-dim); margin-top: 4px; }
+  .ck-skill-ro { opacity: 0.85; }
   .ck-skill-desc {
     font-size: 11.5px; color: var(--ck-text-2); line-height: 1.5;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
@@ -655,8 +660,11 @@
           <button class="ck-ab-item ck-ab-active" data-tab="snippets" title="提示词">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
           </button>
-          <button class="ck-ab-item" data-tab="skills" title="技能">
+          <button class="ck-ab-item" data-tab="skills" title="技能管理">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+          </button>
+          <button class="ck-ab-item" data-tab="market" title="技能市场">
+            <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l1.5-6h15L21 9"/><path d="M3 9a3 3 0 0 0 6 0 3 3 0 0 0 6 0 3 3 0 0 0 6 0"/><path d="M5 12v9h14v-9"/><path d="M9 21v-6h6v6"/></svg>
           </button>
           <button class="ck-ab-item" data-tab="mcp" title="MCP（连接器）">
             <svg class="ck-ab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12h6"/><path d="M8 7H7a5 5 0 0 0 0 10h1"/><path d="M16 7h1a5 5 0 0 1 0 10h-1"/></svg>
@@ -812,16 +820,30 @@
               </div>
             </div>
 
-            <!-- ===== 技能 ===== -->
+            <!-- ===== 技能管理 ===== -->
             <div class="ck-tab" data-panel="skills">
               <div class="ck-actions">
-                <span class="ck-set-group-title" style="flex:1;">技能</span>
+                <span class="ck-set-group-title" style="flex:1;">技能管理</span>
+                <button class="ck-icon-btn" id="skill-new" title="新建技能">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M5 12h14"/></svg>
+                </button>
                 <button class="ck-icon-btn" id="skill-refresh" title="刷新">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
                 </button>
               </div>
               <div class="ck-list" id="skill-list">
                 <div class="ck-list-empty">加载中…</div>
+              </div>
+            </div>
+
+            <!-- ===== 技能市场 ===== -->
+            <div class="ck-tab" data-panel="market">
+              <div class="ck-actions">
+                <input type="text" class="ck-set-input" id="market-search" placeholder="搜索技能…" style="flex:1;" />
+                <button class="ck-btn ck-btn-primary" id="market-search-btn" style="padding:6px 12px;">搜索</button>
+              </div>
+              <div class="ck-list" id="market-list">
+                <div class="ck-list-empty">输入关键词搜索技能市场</div>
               </div>
             </div>
 
@@ -1350,6 +1372,7 @@
         if (t === 'about') { try { loadAbout(); } catch (e) {} }
         if (t === 'feishu') { try { loadFeishu(); } catch (e) {} }
         if (t === 'skills') { try { loadSkills(); } catch (e) {} }
+        if (t === 'market') { try { initMarket(); } catch (e) {} }
       };
       // 收起状态下点图标 → 展开并切到该标签
       if (isCollapsed) {
@@ -1596,46 +1619,156 @@
     tkAutoSaveBtn.disabled = false;
   });
 
-  // ===== 技能 =====
+  // ===== 技能管理 =====
   async function loadSkills() {
     var listEl = document.getElementById('skill-list');
-    if (!listEl || !api.listSkills) return;
+    if (!listEl) return;
+    if (!api.listAppSkills) { listEl.innerHTML = '<div class="ck-list-empty">接口未就绪</div>'; return; }
     try {
-      var r = await api.listSkills();
+      var r = await api.listAppSkills();
       var skills = (r && r.success) ? r.skills : [];
-      if (!skills || skills.length === 0) {
-        listEl.innerHTML = '<div class="ck-list-empty">未发现技能<br>（.cuckoo/skills/ 或 ~/.cuckoo/skills/）</div>';
-        return;
-      }
-      var skillCard = function (s) {
-        return '<div class="ck-skill-item" data-name="' + escapeHtml(s.name) + '">' +
-          '<div class="ck-skill-top">' +
-            '<span class="ck-skill-name">' + escapeHtml(s.name) + '</span>' +
-          '</div>' +
-          '<div class="ck-skill-desc">' + escapeHtml(s.description || '（无描述）') + '</div>' +
-        '</div>';
-      };
-      var userSkills = skills.filter(function (s) { return s.source !== 'project'; });
-      var projSkills = skills.filter(function (s) { return s.source === 'project'; });
       var html = '';
-      if (userSkills.length) html += '<div class="ck-mcp-group-title">用户级</div>' + userSkills.map(skillCard).join('');
-      if (projSkills.length) html += '<div class="ck-mcp-group-title">项目级</div>' + projSkills.map(skillCard).join('');
+      if (!skills || skills.length === 0) {
+        html = '<div class="ck-list-empty">还没有技能<br>点右上角 + 新建，或到「技能市场」安装</div>';
+      } else {
+        html = skills.map(function (s) {
+          var dot = s.enabled ? 'ck-dot-on' : 'ck-dot-off';
+          var triggers = (s.triggers && s.triggers.length) ? s.triggers.join(' / ') : '';
+          return '<div class="ck-skill-item" data-id="' + escapeHtml(s.id) + '">' +
+            '<div class="ck-skill-top">' +
+              '<span class="ck-skill-dot ' + dot + '"></span>' +
+              '<span class="ck-skill-name">' + escapeHtml(s.name) + '</span>' +
+            '</div>' +
+            '<div class="ck-skill-desc">' + escapeHtml(s.description || '（无描述）') + '</div>' +
+            (triggers ? '<div class="ck-skill-triggers">触发词：' + escapeHtml(triggers) + '</div>' : '') +
+          '</div>';
+        }).join('');
+      }
+      // 项目级/用户级技能（只读展示，来自新版 scanner）
+      if (api.listSkills) {
+        try {
+          var r2 = await api.listSkills();
+          var sys = (r2 && r2.success) ? r2.skills : [];
+          if (sys && sys.length) {
+            html += '<div class="ck-mcp-group-title">项目/用户级（只读）</div>';
+            html += sys.map(function (s) {
+              return '<div class="ck-skill-item ck-skill-ro" data-name="' + escapeHtml(s.name) + '">' +
+                '<div class="ck-skill-top"><span class="ck-skill-name">' + escapeHtml(s.name) + '</span>' +
+                '<span class="ck-skill-src">' + (s.source === 'project' ? '项目' : '用户') + '</span></div>' +
+                '<div class="ck-skill-desc">' + escapeHtml(s.description || '（无描述）') + '</div>' +
+              '</div>';
+            }).join('');
+          }
+        } catch (e) {}
+      }
       listEl.innerHTML = html;
-      // 点击 → 追加"请使用 xxx 技能"到输入框
-      listEl.querySelectorAll('.ck-skill-item').forEach(function (el) {
+      // 点击应用级技能 → 打开编辑弹窗
+      listEl.querySelectorAll('.ck-skill-item[data-id]').forEach(function (el) {
+        el.addEventListener('click', function () { openSkillEditor(el.dataset.id); });
+      });
+      // 点击只读技能 → 追加"请使用 xxx 技能"
+      listEl.querySelectorAll('.ck-skill-ро, .ck-skill-ro').forEach(function (el) {
         el.addEventListener('click', async function () {
           var name = el.dataset.name;
-          if (api.appendSnippet) {
-            try { await api.appendSnippet('请使用 ' + name + ' 技能'); } catch (e) {}
-          }
+          if (api.appendSnippet && name) { try { await api.appendSnippet('请使用 ' + name + ' 技能'); } catch (e) {} }
         });
       });
     } catch (e) {
       listEl.innerHTML = '<div class="ck-list-empty">加载失败</div>';
     }
   }
+
+  // 打开技能编辑弹窗（新建 id 为空）
+  async function openSkillEditor(id) {
+    var skill = { id: '', name: '', description: '', content: '', allowedTools: '', triggers: '' };
+    if (id) {
+      try {
+        var r = await api.listAppSkills();
+        var found = (r && r.success) ? (r.skills || []).find(function (s) { return s.id === id; }) : null;
+        if (found) skill = found;
+      } catch (e) {}
+    }
+    var name = await ckPrompt('技能名称（可含中文）', skill.name || '');
+    if (name === null || name === '') return;
+    var desc = await ckPrompt('技能描述（简述用途）', skill.description || '');
+    if (desc === null || desc === '') return;
+    var content = await ckPromptMultiline('技能正文（SKILL.md 内容）', skill.content || '');
+    if (content === null || content === '') return;
+    var trig = await ckPrompt('触发词（逗号分隔，可留空）', (skill.triggers || []).join(', '));
+    if (trig === null) trig = '';
+    var tools = await ckPrompt('允许工具（空格分隔，可留空）', (skill.allowedTools || []).join(' '));
+    if (tools === null) tools = '';
+    try {
+      var payload = {
+        id: skill.id || undefined,
+        name: name,
+        description: desc,
+        content: content,
+        triggers: trig,
+        allowedTools: tools ? tools.split(/\s+/) : [],
+      };
+      var res = await api.upsertSkill(payload);
+      if (res && res.success) { await ckAlert('已保存'); loadSkills(); }
+      else await ckAlert('保存失败: ' + ((res && res.error) || '未知'));
+    } catch (e) { await ckAlert('保存失败: ' + (e.message || e)); }
+  }
+
   var skillRefreshBtn = document.getElementById('skill-refresh');
   if (skillRefreshBtn) skillRefreshBtn.addEventListener('click', loadSkills);
+  var skillNewBtn = document.getElementById('skill-new');
+  if (skillNewBtn) skillNewBtn.addEventListener('click', function () { openSkillEditor(''); });
+
+  // ===== 技能市场 =====
+  var marketInitialized = false;
+  function initMarket() {
+    if (marketInitialized) return;
+    marketInitialized = true;
+    var input = document.getElementById('market-search');
+    var btn = document.getElementById('market-search-btn');
+    if (btn) btn.addEventListener('click', doMarketSearch);
+    if (input) input.addEventListener('keydown', function (e) { if (e.key === 'Enter') doMarketSearch(); });
+  }
+
+  async function doMarketSearch() {
+    var listEl = document.getElementById('market-list');
+    var input = document.getElementById('market-search');
+    var kw = input ? input.value.trim() : '';
+    if (!listEl || !api.searchSkills) return;
+    listEl.innerHTML = '<div class="ck-list-empty">搜索中…</div>';
+    try {
+      var r = await api.searchSkills(kw, 1, 24);
+      var skills = (r && r.success) ? (r.skills || []) : [];
+      if (!skills.length) { listEl.innerHTML = '<div class="ck-list-empty">没有找到技能</div>'; return; }
+      listEl.innerHTML = skills.map(function (s) {
+        var key = escapeHtml((s.namespace || '') + '/' + (s.slug || ''));
+        return '<div class="ck-skill-item" data-market="' + key + '">' +
+          '<div class="ck-skill-top">' +
+            '<span class="ck-skill-name">' + escapeHtml(s.name) + '</span>' +
+            '<span class="ck-skill-src">' + escapeHtml(s.namespace || '') + '</span>' +
+          '</div>' +
+          '<div class="ck-skill-desc">' + escapeHtml(s.summary || '（无描述）') + '</div>' +
+        '</div>';
+      }).join('');
+      listEl.querySelectorAll('.ck-skill-item[data-market]').forEach(function (el) {
+        el.addEventListener('click', function () {
+          var parts = el.dataset.market.split('/');
+          installFromMarket(parts[1], parts[0], el.querySelector('.ck-skill-name').textContent);
+        });
+      });
+    } catch (e) {
+      listEl.innerHTML = '<div class="ck-list-empty">搜索失败: ' + escapeHtml(e.message || String(e)) + '</div>';
+    }
+  }
+
+  async function installFromMarket(slug, namespace, displayName) {
+    var ok = await ckConfirm('安装技能「' + displayName + '」？');
+    if (!ok) return;
+    try {
+      var res = await api.installSkill(slug, namespace, displayName);
+      if (res && res.success) { await ckAlert('已安装：' + displayName); loadSkills(); }
+      else await ckAlert('安装失败: ' + ((res && res.error) || '未知'));
+    } catch (e) { await ckAlert('安装失败: ' + (e.message || e)); }
+  }
 
   // ===== MCP =====
   async function loadMcpServers() {

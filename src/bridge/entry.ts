@@ -14,6 +14,7 @@ import * as projectDir from '../overlay/project-dir.js';
 import { bindEvents, refreshTokenForCurrentSession, setIsSubagentWindow, getAutoCompactConfig, applyAutoCompactConfig, triggerCompaction } from '../overlay/events.js';
 import * as chatInput from '../overlay/chat-input.js';
 import * as settingsPanel from '../overlay/panels/settings.js';
+import { initSkillBar } from '../overlay/skill-bar.js';
 import { wireEvents } from '../overlay/events.js';
 import { getProviderByUrl } from '../providers/registry.js';
 import { startInterceptObserver, onInterceptedResponse, onTaskIdle } from './intercept/observer.js';
@@ -103,6 +104,8 @@ function init(): void {
   try {
     ui.injectCSS();
     ui.injectOverlay();
+    // 技能快捷栏（网页内可折叠，永久注入）
+    initSkillBar().catch(() => {});
     projectDir.initProjectDirSection();
     // 子代理窗口：显示继承的项目目录（它没有 project-dir-updated 事件）
     if (subCfg && subCfg.projectDir) {

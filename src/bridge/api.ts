@@ -79,6 +79,14 @@ let electronAPI: any = {
   refreshSkills: () => {
     return ipcRenderer.invoke('refresh-skills');
   },
+  // 网页内技能快捷栏：拉取已启用的应用级技能
+  getSkills: () => {
+    return ipcRenderer.invoke('shell-get-skills');
+  },
+  // 网页内技能快捷栏：把文本填入输入框（只填不发）
+  triggerSkill: (text: any) => {
+    return ipcRenderer.invoke('shell-trigger-skill', { text });
+  },
   // ========== MCP 相关 API ==========
   listMcpServers: (opts: any) => {
     return ipcRenderer.invoke('list-mcp-servers', opts || {});
