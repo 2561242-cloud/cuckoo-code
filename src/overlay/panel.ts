@@ -378,15 +378,12 @@ function updateHomeMode(): void {
   const url = window.location.href;
   const provider = getProviderByUrl(url);
   const isHome = !suppressHomeMode && provider && provider.homeUrlPattern ? provider.homeUrlPattern.test(url) : false;
-  const overlay = document.getElementById('cuckoo-overlay');
-  if (overlay) {
-    if (isHome) {
-      overlay.classList.add('cuckoo-home-mode');
-      showFirstTimeDialog();
-    } else {
-      overlay.classList.remove('cuckoo-home-mode');
-      hideFirstTimeDialog();
-    }
+  // 首页（未初始化/新对话）→ 显示"初始化项目"提示框；其他 → 隐藏
+  // 注：旧的 cuckoo-overlay 面板已移除，这里直接操作提示框（曾因依赖该元素而整块跳过，导致提示不显示）
+  if (isHome) {
+    showFirstTimeDialog();
+  } else {
+    hideFirstTimeDialog();
   }
 }
 

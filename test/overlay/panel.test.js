@@ -21,6 +21,7 @@ global.setTimeout = (_fn, _ms) => 0;
 global.clearTimeout = () => {};
 
 const ui = await import('../../src/overlay/panel.js');
+const { state } = await import('../../src/overlay/state.js');
 
 test('generateId 格式', () => {
   const id1 = ui.generateId();
@@ -49,6 +50,68 @@ test('escapeHtml 返回字符串', () => {
 
 test('updateHomeMode 首页模式', () => {
   assert.doesNotThrow(() => ui.updateHomeMode());
+});
+
+// 回归：曾因 updateHomeMode 依赖已被删除的 #cuckoo-overlay 元素，
+// 导致 if(overlay) 整块跳过 → 首次初始化提示框永不显示。
+function makeFakeDialog() {
+  const classes = new Set(['cuckoo-hidden']);
+  return {
+    classList: {
+      add: (c) => classes.add(c),
+      remove: (c) => classes.delete(c),
+      contains: (c) => classes.has(c),
+    },
+    _has: (c) => classes.has(c),
+  };
+}
+
+test('updateHomeMode：首页显示初始化提示框（回归）', () => {
+  const dialog = makeFakeDialog();
+  const prevGet = global.document.getElementById;
+  const prevHref = global.window.location.href;
+  global.document.getElementById = (id) => (id === 'cuckoo-first-time-dialog' ? dialog : null);
+  global.window.location.href = 'https://chat.deepseek.com/';
+  try {
+    ui.updateHomeMode();
+    assert.strictEqual(dialog._has('cuckoo-hidden'), false, '首页应移除 cuckoo-hidden（显示提示框）');
+  } finally {
+    global.document.getElementById = prevGet;
+    global.window.location.href = prevHref;
+  }
+});
+
+test('updateHomeMode：非首页隐藏初始化提示框', () => {
+  const dialog = makeFakeDialog();
+  const prevGet = global.document.getElementById;
+  const prevHref = global.window.location.href;
+  global.document.getElementById = (id) => (id === 'cuckoo-first-time-dialog' ? dialog : null);
+  global.window.location.href = 'https://chat.deepseek.com/chat/s/abc';
+  try {
+    ui.updateHomeMode();
+    assert.strictEqual(dialog._has('cuckoo-hidden'), true, '非首页应加回 cuckoo-hidden（隐藏提示框）');
+  } finally {
+    global.document.getElementById = prevGet;
+    global.window.location.href = prevHref;
+  }
+});
+
+test('updateHomeMode：已选项目时首页不显示提示框（由 state.currentProjectDir 控制）', () => {
+  const dialog = makeFakeDialog();
+  const prevGet = global.document.getElementById;
+  const prevHref = global.window.location.href;
+  global.document.getElementById = (id) => (id === 'cuckoo-first-time-dialog' ? dialog : null);
+  global.window.location.href = 'https://chat.deepseek.com/';
+  const prevDir = state.currentProjectDir;
+  state.currentProjectDir = 'C:/proj';
+  try {
+    ui.updateHomeMode();
+    assert.strictEqual(dialog._has('cuckoo-hidden'), true, '已选项目时应保持隐藏');
+  } finally {
+    state.currentProjectDir = prevDir;
+    global.document.getElementById = prevGet;
+    global.window.location.href = prevHref;
+  }
 });
 
 test('showToast 不抛错', () => {
