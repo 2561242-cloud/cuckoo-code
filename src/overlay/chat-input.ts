@@ -87,6 +87,20 @@ async function setInputContent(input: any, msg: string): Promise<boolean> {
 interface PendingSend { timer: any; input: any; cancelled: boolean; }
 let pendingSend: PendingSend | null = null;
 
+// 「用户消息已发出」回调（供 bridge 上报飞书等；overlay 不依赖上层，用回调注入）
+// 系统内部消息的 tag（不视为"用户消息"，不上报飞书）
+const SYSTEM_MSG_TAGS = [
+  'JS汇总', '飞书', '看门狗', '重试', '重试(操作频繁)',
+  '压缩-摘要', 'MCP信息', '技能与代理清单', '继续',
+  'JSON工具调用提示', 'XML工具调用提示',
+];
+let onUserMessageSentCb: ((text: string, tag?: string) => void) | null = null;
+/** 注册"用户消息已发出"回调（返回取消注册） */
+function onUserMessageSent(cb: (text: string, tag?: string) => void): () => void {
+  onUserMessageSentCb = cb;
+  return () => { if (onUserMessageSentCb === cb) onUserMessageSentCb = null; };
+}
+
 async function sendToChat(msg: string, tag?: string, fixedDelay?: number, afterSent?: () => void): Promise<boolean> {
   const input = findInputArea();
   if (!input) {
@@ -111,6 +125,10 @@ async function sendToChat(msg: string, tag?: string, fixedDelay?: number, afterS
     console.log('[Cuckoo Code] 等待结束，开始触发发送');
     triggerSend(input);
     console.log('[Cuckoo Code] 已触发发送, ' + (tag || '') + ', 长度=' + msg.length);
+    // 通知监听者（飞书同步等）；系统内部消息（工具结果/看门狗/重试等）不上报
+    try {
+      if (onUserMessageSentCb && !SYSTEM_MSG_TAGS.includes(tag || '')) onUserMessageSentCb(msg, tag);
+    } catch (_) {}
     if (typeof afterSent === 'function') afterSent();
   }, sendDelay);
   token.timer = timer;
@@ -431,6 +449,7 @@ export {
   insertSnippet,
   appendTextToInput,
   sendToChat,
+  onUserMessageSent,
   sendMessageToChat,
   sendCombinedJsResultsToChat,
   cancelPendingSend,

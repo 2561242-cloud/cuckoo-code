@@ -59,6 +59,11 @@ const shellAPI = {
   checkUpdate: () => ipcRenderer.invoke('check-update'),
   getAssetUrl: (rel: string) => ipcRenderer.invoke('get-asset-url', { rel }),
   openExternal: (url: string) => ipcRenderer.invoke('open-external', { url }),
+  // ========== 飞书同步 ==========
+  getFeishuConfig: () => ipcRenderer.invoke('feishu-get-config'),
+  saveFeishuConfig: (data: any) => ipcRenderer.invoke('feishu-save-config', { data }),
+  reconnectFeishu: () => ipcRenderer.invoke('feishu-reconnect'),
+  disconnectFeishu: () => ipcRenderer.invoke('feishu-disconnect'),
   // ========== 自动压缩 ==========
   getAutoCompact: () => ipcRenderer.invoke('get-autocompact'),
   saveAutoCompact: (data: any) => ipcRenderer.invoke('save-autocompact', { data }),
