@@ -20,6 +20,7 @@ import { startInterceptObserver, onInterceptedResponse } from './intercept/obser
 import { startRetryEngine } from './loop/retry.js';
 import { startSessionWatcher, startWatchdog, checkSessionChange } from './loop/watchdog.js';
 import { initSubagentIfNeeded } from './subagent.js';
+import { initHarnessBridge } from './harness-bridge.js';
 
 const require = createRequire(import.meta.url);
 const { webFrame, ipcRenderer } = require('electron');
@@ -200,6 +201,9 @@ function init(): void {
     // 启动看门狗（订阅 SSE 流静默事件）+ 会话切换监视
     startWatchdog();
     startSessionWatcher();
+
+    // 纯净对话模式：把回复/工具调用上报主进程，并接收用户消息
+    initHarnessBridge();
   } catch (err) {
     console.error('[Cuckoo Code] init() 出错:', err);
     // 兜底：即使出错也强制显示面板

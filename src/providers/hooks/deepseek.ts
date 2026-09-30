@@ -75,6 +75,19 @@ function install(): void {
     return 'error';
   }
 
+  // 流式增量事件（纯新增，供纯净模式实时渲染；节流 ~80ms）
+  var lastStreamAt = 0;
+  function dispatchStream(think, text, finished) {
+    var now = Date.now();
+    if (!finished && now - lastStreamAt < 80) return;
+    lastStreamAt = now;
+    try {
+      window.dispatchEvent(new CustomEvent('cuckoo-ai-stream', {
+        detail: { think: think || '', text: text || '', finished: !!finished }
+      }));
+    } catch (e) { /* ignore */ }
+  }
+
   function dispatch(text, status, tokenUsage, msgIds, extra?, dbg?) {
     try {
       if (status === 'error') {
@@ -259,6 +272,7 @@ function install(): void {
     return {
       consume: consume,
       get text() { return text; },
+      get think() { return thinkText; },
       get finished() { return finished; },
       get incomplete() { return incomplete; },
       get tokenUsage() { return tokenUsage; },
@@ -324,6 +338,7 @@ function install(): void {
         var parsed = parseBlock(frames[i]);
         if (parsed) extractor.consume(parsed);
       }
+      dispatchStream(extractor.think, extractor.text, extractor.finished);
       if (extractor.finished && !dispatched) {
         dispatched = true;
         dispatch(extractor.text, resolveStatus(extractor), extractor.tokenUsage, extractor.msgIds, null, Object.assign({ path: 'feed-finished-frame' }, extractor.snapshot()));
@@ -512,6 +527,7 @@ function install(): void {
         var parsed = parseBlock(frames[i]);
         if (parsed) extractor.consume(parsed);
       }
+      dispatchStream(extractor.think, extractor.text, extractor.finished);
       if (extractor.finished && !dispatched) {
         dispatched = true;
         dispatch(extractor.text, resolveStatus(extractor), extractor.tokenUsage, extractor.msgIds, null, Object.assign({ path: 'xhr-finished-frame' }, extractor.snapshot()));
